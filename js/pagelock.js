@@ -15,7 +15,8 @@ function setLock(text,lock){
 async function process(file,lock){
   const z=unzipSync(new Uint8Array(await file.arrayBuffer())),out={};let pages=0;
   for(const [n,d] of Object.entries(z)){if(n.endsWith('/'))continue;
-    if(/^page\d+\.svg$/i.test(n)){pages++;out[n]=enc.encode(setLock(dec.decode(d),lock))}else out[n]=d}
+    if(/^page\d+\.svg$/i.test(n)){pages++;out[n]=enc.encode(setLock(dec.decode(d),lock))}
+    else out[n]=/\.(png|jpe?g|gif|bmp|webp)$/i.test(n)?[d,{level:0}]:d}   // images are already compressed: store as-is
   if(!pages)throw new Error(t('pagelock.noPages'));
   return zipSync(out,{level:6});
 }

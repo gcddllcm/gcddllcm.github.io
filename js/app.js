@@ -1,8 +1,8 @@
 import {APP_VERSION} from '../config.js';
 import {$,msg,track,loadAnalytics} from './util.js';
 import * as resizer from './resizer.js?v=20261015i';
-import * as creator from './creator.js?v=20261015i';
-import * as pagelock from './pagelock.js?v=20261015i';
+import * as creator from './creator.js?v=20261019a';
+import * as pagelock from './pagelock.js?v=20261015j';
 import * as topdf from './topdf.js?v=20261015i';
 import {strings,t} from './i18n.js?v=20261015i';
 
@@ -39,7 +39,7 @@ startScreen.querySelector('.tool-start-heading p').textContent=t('start.sub');
 for(const tool of TOOLS){
   const [key,shortLabel,,category,icon]=tool,card=document.createElement('button');
   card.type='button';card.className='tool-start-card';card.dataset.tool=key;
-  card.innerHTML=`<span class="tool-start-card-icon" aria-hidden="true">${icon}</span><span class="tool-start-card-title">${shortLabel}</span><span class="tool-start-card-description">${startDescriptions[key]}</span><span class="tool-start-card-arrow" aria-hidden="true">→</span>`;
+  card.innerHTML=`${key==='creator'?'<kbd class="tool-start-card-kbd">Space</kbd>':''}<span class="tool-start-card-icon" aria-hidden="true">${icon}</span><span class="tool-start-card-title">${shortLabel}</span><span class="tool-start-card-description">${startDescriptions[key]}</span><span class="tool-start-card-arrow" aria-hidden="true">→</span>`;
   card.setAttribute('aria-label',`${shortLabel}. ${startDescriptions[key]}`);
   card.onclick=()=>selectTool(key);
   startCards.append(card);
@@ -138,6 +138,7 @@ function selectTool(key,{initial=false,log=true,direction}={}){
   if(key==='topdf')topdf.prepare();
 }
 document.addEventListener('keydown',e=>{
+  if($('dlg')?.open)return;
   if(e.key==='Escape'&&library.classList.contains('open')){e.preventDefault();closeLibrary();return}
   const target=e.target,typing=target instanceof Element&&target.matches('input,textarea,select,[contenteditable="true"]');
   if(typing||e.altKey||e.ctrlKey||e.metaKey)return;
@@ -156,6 +157,7 @@ document.addEventListener('keydown',e=>{
     if(instructionToggle){e.preventDefault();instructionToggle.click()}
   }
   else if(shortcut==='f'&&workspaceShown){e.preventDefault();openLibrary()}
+  else if(e.code==='Space'&&!workspaceShown&&document.querySelector('#tools-page.on')){e.preventDefault();selectTool('creator')}
 });
 
 const pageTabs=[...document.querySelectorAll('.tab')],tabIndicator=document.querySelector('.tab-indicator');
@@ -174,10 +176,12 @@ function showPage(name){
 pageTabs.forEach(b=>b.onclick=()=>showPage(b.dataset.page));
 requestAnimationFrame(syncTabIndicator);addEventListener('resize',syncTabIndicator);
 const updates=$('updates-page');
-updates.innerHTML=`<div class="page-heading"><img class="page-icon" src="icon.ico" alt=""><div><h1>${t('updates.title')}</h1><div class="sub">${t('updates.sub')}</div></div></div><div class="timeline">${strings.RELEASES.map((r,i)=>`<article class="release"><div class="release-date">${r.date}</div><div class="timeline-dot ${i===0?'latest':''}"></div><div class="release-card"><h2>${r.version}${i===0?`<span class="latest-pill">${t('updates.latest')}</span>`:''}</h2>${r.transition?`<div class="platform-transition" aria-label="${t('updates.transition')}"><div class="platform-node"><span class="platform-window exe-window"><i></i><i></i><i></i></span><strong>${t('updates.desktop')}</strong><small>.EXE</small></div><span class="transition-arrow" aria-hidden="true">→</span><div class="platform-node"><span class="platform-window web-window"><i></i><i></i><i></i></span><strong>${t('updates.web')}</strong><small>${t('updates.browser')}</small></div></div>`:''}${r.sections.map(s=>s.paragraphs?`<div class="release-story">${s.paragraphs.map(p=>`<p>${p}</p>`).join('')}</div>`:`<div class="release-section"><h3>${s.title}</h3><ul>${s.items.map(x=>`<li>${x}</li>`).join('')}</ul></div>`).join('')}</div></article>`).join('')}<div class="timeline-line" aria-hidden="true"></div></div>`;
+const reduceReleaseMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
+updates.innerHTML=`<div class="page-heading"><img class="page-icon" src="icon.ico" alt=""><div><h1>${t('updates.title')}</h1><div class="sub">${t('updates.sub')}</div></div></div><div class="timeline">${strings.RELEASES.map((r,i)=>`<article class="release${reduceReleaseMotion?'':' reveal-pending'}" style="--reveal-delay:${Math.min(i,5)*70}ms"><div class="release-date">${r.date}</div><div class="timeline-dot ${i===0?'latest':''}"></div><div class="release-card"><h2>${r.version}${i===0?`<span class="latest-pill">${t('updates.latest')}</span>`:''}</h2>${r.transition?`<div class="platform-transition" aria-label="${t('updates.transition')}"><div class="platform-node"><span class="platform-window exe-window"><i></i><i></i><i></i></span><strong>${t('updates.desktop')}</strong><small>.EXE</small></div><span class="transition-arrow" aria-hidden="true">→</span><div class="platform-node"><span class="platform-window web-window"><i></i><i></i><i></i></span><strong>${t('updates.web')}</strong><small>${t('updates.browser')}</small></div></div>`:''}${r.sections.map(s=>s.paragraphs?`<div class="release-story">${s.paragraphs.map(p=>`<p>${p}</p>`).join('')}</div>`:`<div class="release-section"><h3>${s.title}</h3><ul>${s.items.map(x=>`<li>${x}</li>`).join('')}</ul></div>`).join('')}</div></article>`).join('')}<div class="timeline-line" aria-hidden="true"></div></div>`;
 const timeline=updates.querySelector('.timeline'),timelineLine=timeline.querySelector('.timeline-line');
-function fitTimeline(){const dots=[...timeline.querySelectorAll('.timeline-dot')];if(dots.length<2)return;const parent=timeline.getBoundingClientRect(),first=dots[0].getBoundingClientRect(),last=dots.at(-1).getBoundingClientRect();timelineLine.style.top=`${first.top+first.height/2-parent.top}px`;timelineLine.style.height=`${last.top+last.height/2-first.top-first.height/2}px`}
+function fitTimeline(){const dots=[...timeline.querySelectorAll('.timeline-dot')];if(dots.length<2)return;const parent=timeline.getBoundingClientRect(),first=dots[0].getBoundingClientRect(),last=dots[dots.length-1].getBoundingClientRect();timelineLine.style.top=`${first.top+first.height/2-parent.top}px`;timelineLine.style.height=`${last.top+last.height/2-first.top-first.height/2}px`}
 requestAnimationFrame(fitTimeline);addEventListener('resize',fitTimeline);new ResizeObserver(fitTimeline).observe(timeline);
+if(!reduceReleaseMotion){const revealObserver=new IntersectionObserver(entries=>{for(const entry of entries){if(entry.isIntersecting){entry.target.classList.add('revealed');entry.target.classList.remove('reveal-pending');revealObserver.unobserve(entry.target)}}},{root:document.getElementById('main'),rootMargin:'0px 0px -8% 0px',threshold:.08});timeline.querySelectorAll('.release.reveal-pending').forEach(el=>revealObserver.observe(el))}
 const about=$('about-page');
 about.innerHTML=`<section class="about-card"><div class="page-heading"><img class="page-icon" src="icon.ico" alt=""><div><h1>${t('about.title')}</h1><div class="sub">Penguin Logistics</div></div></div><p>${t('about.contact')}</p><p>${t('about.creator')} Champ, AT Math + Claude and Codex (both of them are free btw)</p><p>${t('about.version')} <strong>${APP_VERSION}</strong></p><p>${t('about.privacy')}</p></section>`;
 
