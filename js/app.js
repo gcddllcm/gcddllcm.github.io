@@ -1,6 +1,6 @@
 import {APP_VERSION} from '../config.js';
 import {$,msg,track,loadAnalytics} from './util.js';
-import * as resizer from './resizer.js?v=20261015i';
+import * as resizer from './resizer.js?v=20261020b';
 import * as creator from './creator.js?v=20261020a';
 import * as pagelock from './pagelock.js?v=20261015j';
 import * as topdf from './topdf.js?v=20261015i';
