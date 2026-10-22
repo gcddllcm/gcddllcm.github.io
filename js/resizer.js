@@ -1,160 +1,39 @@
-import {$,msg,track} from './util.js';
-import {bindInstructionPanel} from './instruction-panel.js?v=20261015h';
-import {t} from './i18n.js';
+import {$,msg,track} from './util.js?v=3.1.3';
+import {bindInstructionPanel} from './instruction-panel.js?v=3.1.3';
+import {t} from './i18n.js?v=3.1.3';
+import {pngSetDpi,jpgSetDpi,bmpEncode,readImageInfo,resizeLanczos,ppm} from './imgcore.js?v=3.1.3';
+import {zipSync} from './vendor/fflate.js';
 const HAS_FS='showDirectoryPicker' in window;
 const sleep=()=>new Promise(r=>setTimeout(r));
+const IN_THREAD_MAX_MP=40;     // the page itself only processes images up to this size (fallback path)
+const HEAD_BYTES=262144;       // enough to read width/height from any common image header
+const SUPPORTED=new Set(['.jpg','.jpeg','.png','.bmp','.webp']);
 const extOf=n=>(n.match(/\.[^.]+$/)||[''])[0].toLowerCase();
 
-// ---- Lanczos-3 resize (same filter as Pillow's LANCZOS), premultiplied alpha ----
-const lz=x=>{if(x===0)return 1;if(x<=-3||x>=3)return 0;const p=Math.PI*x;return 3*Math.sin(p)*Math.sin(p/3)/(p*p)};
-function coeffs(inN,outN){
-  const sc=inN/outN,fs=Math.max(sc,1),sup=3*fs;
-  const los=new Int32Array(outN),lens=new Int32Array(outN),weights=[];
-  for(let i=0;i<outN;i++){
-    const c=(i+.5)*sc,lo=Math.max(0,Math.floor(c-sup+.5)),hi=Math.min(inN,Math.floor(c+sup+.5)),len=hi-lo;
-    los[i]=lo;lens[i]=len;let s=0;const w=new Float32Array(len);
-    for(let x=lo;x<hi;x++){const v=lz((x-c+.5)/fs);w[x-lo]=v;s+=v}
-    const invS=1/s;for(let k=0;k<len;k++)w[k]*=invS;weights.push(w);
-  }
-  return {los,lens,weights};
-}
-
-export async function resize(img,ow,oh){
-  const {width:iw,height:ih,data:src}=img;
-  const cx=coeffs(iw,ow),cy=coeffs(ih,oh),nPix=iw*ih,inv255=1/255;
-  let hasAlpha=false;
-  for(let i=3;i<nPix*4;i+=4){if(src[i]!==255){hasAlpha=true;break}}
-  const preSrc=new Float32Array(nPix*4);
-  if(hasAlpha){
-    for(let i=0;i<nPix*4;i+=4){const a=src[i+3],al=a*inv255;preSrc[i]=src[i]*al;preSrc[i+1]=src[i+1]*al;preSrc[i+2]=src[i+2]*al;preSrc[i+3]=a}
-  }else{
-    for(let i=0;i<nPix*4;i+=4){preSrc[i]=src[i];preSrc[i+1]=src[i+1];preSrc[i+2]=src[i+2];preSrc[i+3]=255}
-  }
-  const mid=new Float32Array(ow*ih*4),cxLos=cx.los,cxLens=cx.lens,cxWeights=cx.weights;
-  for(let y=0;y<ih;y++){
-    const srcRow=y*iw*4,midRow=y*ow*4;
-    for(let x=0;x<ow;x++){
-      const lo=cxLos[x],len=cxLens[x],w=cxWeights[x];let r=0,g=0,b=0,a=0,p=srcRow+(lo<<2);
-      for(let k=0;k<len;k++){const f=w[k];r+=preSrc[p]*f;g+=preSrc[p+1]*f;b+=preSrc[p+2]*f;a+=preSrc[p+3]*f;p+=4}
-      const q=midRow+(x<<2);mid[q]=r;mid[q+1]=g;mid[q+2]=b;mid[q+3]=a;
-    }
-    if(y%128===127)await sleep();
-  }
-  const out=new Uint8ClampedArray(ow*oh*4),lineAcc=new Float32Array(ow*4),rowFloats=ow*4;
-  const cyLos=cy.los,cyLens=cy.lens,cyWeights=cy.weights;
-  for(let y=0;y<oh;y++){
-    lineAcc.fill(0);const lo=cyLos[y],len=cyLens[y],w=cyWeights[y];
-    for(let k=0;k<len;k++){const f=w[k],midPtr=(lo+k)*rowFloats;for(let i=0;i<rowFloats;i++)lineAcc[i]+=mid[midPtr+i]*f}
-    const outRow=y*rowFloats;
-    if(hasAlpha){
-      for(let x=0;x<ow;x++){
-        const q=x<<2,a=lineAcc[q+3],al=(a<0?0:(a>255?255:a))*inv255,invAl=al>0?1/al:0,oq=outRow+q;
-        out[oq]=lineAcc[q]*invAl;out[oq+1]=lineAcc[q+1]*invAl;out[oq+2]=lineAcc[q+2]*invAl;out[oq+3]=a;
-      }
-    }else{
-      for(let i=0;i<rowFloats;i+=4){const oq=outRow+i;out[oq]=lineAcc[i];out[oq+1]=lineAcc[i+1];out[oq+2]=lineAcc[i+2];out[oq+3]=255}
-    }
-    if(y%128===127)await sleep();
-  }
-  return {width:ow,height:oh,data:out};
-}
+// Same Lanczos code as the worker (imgcore.js); sleep() keeps the page responsive on this fallback path.
+const resize=(img,ow,oh)=>resizeLanczos(img,ow,oh,sleep);
 
 // ---- decode / encode ----
 export async function decode(file){
   const bmp=await createImageBitmap(file,{imageOrientation:'none'});
+  if(bmp.width*bmp.height>IN_THREAD_MAX_MP*1e6){const w=bmp.width,h=bmp.height;bmp.close();throw new Error(`Image too large: ${w}×${h} (${(w*h/1e6).toFixed(1)} MP) exceeds ${IN_THREAD_MAX_MP} MP safety limit`)}
   const c=document.createElement('canvas');c.width=bmp.width;c.height=bmp.height;
   const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(bmp,0,0);bmp.close();
   const d=x.getImageData(0,0,c.width,c.height);return {width:c.width,height:c.height,data:d.data};
 }
 
-const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
-const crc32=b=>{let c=~0;for(const v of b)c=CRC[(c^v)&255]^(c>>>8);return ~c>>>0};
-const ppm=dpi=>Math.round(dpi/0.0254);
-
-function pngSetDpi(u8,dpi){
-  const v=new DataView(u8.buffer,u8.byteOffset,u8.byteLength);
-  let physPos=-1,physLen=0;
-  for(let p=8;p+8<=u8.length;){
-    const len=v.getUint32(p),tag=String.fromCharCode(...u8.subarray(p+4,p+8));
-    if(tag==='pHYs'){physPos=p;physLen=12+len;break}
-    if(tag==='IDAT')break;
-    p+=12+len;
-  }
-  const chunk=new Uint8Array(21),cv=new DataView(chunk.buffer);
-  cv.setUint32(0,9);chunk.set([0x70,0x48,0x59,0x73],4);cv.setUint32(8,ppm(dpi));cv.setUint32(12,ppm(dpi));chunk[16]=1;cv.setUint32(17,crc32(chunk.subarray(4,17)));
-  if(physPos!==-1&&physLen===21){const out=new Uint8Array(u8.length);out.set(u8);out.set(chunk,physPos);return out}
-  if(physPos!==-1){const out=new Uint8Array(u8.length-physLen+21);out.set(u8.subarray(0,physPos));out.set(chunk,physPos);out.set(u8.subarray(physPos+physLen),physPos+21);return out}
-  const out=new Uint8Array(u8.length+21);out.set(u8.subarray(0,33));out.set(chunk,33);out.set(u8.subarray(33),54);return out;
-}
-
-function jpgSetDpi(u8,dpi){
-  if(!(u8[2]===0xFF&&u8[3]===0xE0&&u8[6]===0x4A)){
-    const j=new Uint8Array([0xFF,0xE0,0,16,0x4A,0x46,0x49,0x46,0,1,1,1,0,1,0,1,0,0]);
-    const o=new Uint8Array(u8.length+18);o.set(u8.subarray(0,2));o.set(j,2);o.set(u8.subarray(2),20);u8=o;
-  }
-  u8[13]=1;u8[14]=dpi>>8;u8[15]=dpi&255;u8[16]=dpi>>8;u8[17]=dpi&255;return u8;
-}
-
-function bmpEncode(img,dpi){
-  const {width:w,height:h,data}=img,n=w*h*4,u=new Uint8Array(54+n),v=new DataView(u.buffer);
-  u[0]=66;u[1]=77;v.setUint32(2,54+n,true);v.setUint32(10,54,true);v.setUint32(14,40,true);v.setInt32(18,w,true);v.setInt32(22,-h,true);
-  v.setUint16(26,1,true);v.setUint16(28,32,true);v.setUint32(34,n,true);v.setInt32(38,ppm(dpi),true);v.setInt32(42,ppm(dpi),true);
-  for(let i=0;i<w*h;i++){const p=i*4,q=54+p;u[q]=data[p+2];u[q+1]=data[p+1];u[q+2]=data[p];u[q+3]=data[p+3]}
-  return new Blob([u],{type:'image/bmp'});
-}
-
-async function encode(img,ext,dpi){
+async function encode(img,ext,dpi,quality=0.75){
   if(ext==='.bmp')return bmpEncode(img,dpi);
   const c=document.createElement('canvas');c.width=img.width;c.height=img.height;
   c.getContext('2d').putImageData(new ImageData(img.data,img.width,img.height),0,0);
   const type={'.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp'}[ext];
   if(!type)throw new Error(t('resizer.unsupported',ext));
-  const blob=await new Promise(r=>c.toBlob(r,type,0.75));
+  const blob=await new Promise(r=>c.toBlob(r,type,quality));
   if(!blob||blob.type!==type)throw new Error(t('resizer.encodeError'));
   const u8=new Uint8Array(await blob.arrayBuffer());
   if(type==='image/png')return new Blob([pngSetDpi(u8,dpi)],{type});
   if(type==='image/jpeg')return new Blob([jpgSetDpi(u8,dpi)],{type});
   return blob;
-}
-
-// ---- Fast Header Inspection: 0ms width, height and DPI verification ----
-function readImageInfo(u8,ext){
-  const v=new DataView(u8.buffer,u8.byteOffset,u8.byteLength);
-  let width=0,height=0,dpi=undefined;
-  if(ext==='.png'){
-    if(u8.length>=24&&u8[0]===0x89&&u8[1]===0x50&&u8[2]===0x4E&&u8[3]===0x47){width=v.getUint32(16);height=v.getUint32(20)}
-    for(let p=8;p+8<=u8.length;){
-      const len=v.getUint32(p),tag=String.fromCharCode(...u8.subarray(p+4,p+8));
-      if(tag==='pHYs')dpi=Math.round(v.getUint32(p+8)*0.0254);
-      if(tag==='IDAT')break;
-      p+=12+len;
-    }
-  }else if(ext==='.jpg'||ext==='.jpeg'){
-    if(u8.length>=4&&u8[0]===0xFF&&u8[1]===0xD8){
-      let p=2;
-      while(p+4<u8.length){
-        if(u8[p]!==0xFF){p++;continue}
-        const m=u8[p+1];
-        if(m===0xD9||m===0xDA)break;
-        if(m>=0xC0&&m<=0xCF&&m!==0xC4&&m!==0xC8&&m!==0xCC){height=(u8[p+5]<<8)|u8[p+6];width=(u8[p+7]<<8)|u8[p+8];break}
-        const len=(u8[p+2]<<8)|u8[p+3];p+=2+len;
-      }
-      if(u8[2]===0xFF&&u8[3]===0xE0&&u8[13]===1)dpi=(u8[14]<<8)|u8[15];
-    }
-  }else if(ext==='.bmp'){
-    if(u8.length>=26&&u8[0]===0x42&&u8[1]===0x4D){
-      width=v.getInt32(18,true);height=Math.abs(v.getInt32(22,true));
-      if(u8.length>=42)dpi=Math.round(v.getInt32(38,true)*0.0254);
-    }
-  }else if(ext==='.webp'){
-    if(u8.length>=30&&u8[0]===0x52&&u8[1]===0x49&&u8[2]===0x46&&u8[3]===0x46){
-      const tag=String.fromCharCode(...u8.subarray(12,16));
-      if(tag==='VP8 '){width=(u8[26]|(u8[27]<<8))&0x3FFF;height=(u8[28]|(u8[29]<<8))&0x3FFF}
-      else if(tag==='VP8L'){const b1=u8[21],b2=u8[22],b3=u8[23],b4=u8[24];width=1+(((b2&0x3F)<<8)|b1);height=1+(((b4&0xF)<<10)|(b3<<2)|(b2>>6))}
-      else if(tag==='VP8X'){width=1+(u8[24]|(u8[25]<<8)|(u8[26]<<16));height=1+(u8[27]|(u8[28]<<8)|(u8[29]<<16))}
-    }
-  }
-  return {width,height,dpi};
 }
 
 async function verify(blob,ext,w,h,dpi){
@@ -172,7 +51,7 @@ async function verify(blob,ext,w,h,dpi){
 
 // ---- Multi-threaded Web Worker Pool ----
 // Hardened: per-task timeout, per-worker error isolation, automatic respawn
-const WORKER_TIMEOUT_MS = 60000; // 60 seconds per task before force-kill
+const WORKER_TIMEOUT_MS = 60000; // base time per task; big images get more (see pump) before the worker is force-killed
 
 class ResizerPool {
   constructor(size){
@@ -183,6 +62,11 @@ class ResizerPool {
     this.seq=0;
     this.handlers=new Map();  // id -> {res, rej, worker, timer}
     this.workerTaskMap=new Map(); // worker -> id (which task a worker is running)
+    this.inflightCost=0;      // estimated bytes of memory used by tasks now running
+    this.spawnFailures=0;     // workers that died before doing any work (e.g. script failed to load)
+    // Memory budget for all running tasks together. Typical batches stay far below it, so every
+    // worker keeps busy; only a handful of very large images at once get queued until others finish.
+    this.budget=Math.min(4,Math.max(1,(navigator.deviceMemory||4)*0.5))*1073741824;
     this.supported=typeof Worker!=='undefined'&&typeof OffscreenCanvas!=='undefined';
     if(this.supported){
       try{
@@ -194,16 +78,18 @@ class ResizerPool {
   }
 
   _spawnWorker(){
-    const w=new Worker(new URL('./resizer-worker.js',import.meta.url),{type:'module'});
+    const w=new Worker(new URL('./resizer-worker.js?v=3.1.3',import.meta.url),{type:'module'});
     w.onmessage=e=>{
       const {id,ok,blob,w:rw,h:rh,dpi:rdpi,error}=e.data;
       const h=this.handlers.get(id);
+      w._alive=true;this.spawnFailures=0;
       if(h){
         clearTimeout(h.timer);
         this.handlers.delete(id);
+        this.inflightCost-=h.cost;
         this.workerTaskMap.delete(w);
         if(ok) h.res({blob,w:rw,h:rh,dpi:rdpi});
-        else h.rej(new Error(error));
+        else h.rej(Object.assign(new Error(error),{fromWorker:true}));   // a real problem with this file
       }
       this.idle.push(w);
       this.pump();
@@ -216,9 +102,16 @@ class ResizerPool {
         if(h){
           clearTimeout(h.timer);
           this.handlers.delete(taskId);
-          h.rej(new Error(err?.message||'Worker crashed'));
+          this.inflightCost-=h.cost;
+          h.rej(Object.assign(new Error(err?.message||'Worker crashed'),{crash:true}));
         }
         this.workerTaskMap.delete(w);
+      }else if(!w._alive&&++this.spawnFailures>=3){
+        // Workers keep dying on start-up: stop respawning and let the page handle the files itself.
+        this.supported=false;
+        for(const x of [...this.workers])this._removeWorker(x);
+        this._failQueue();
+        return;
       }
       // Remove the crashed worker and respawn a replacement
       this._removeWorker(w);
@@ -240,6 +133,7 @@ class ResizerPool {
     const h=this.handlers.get(id);
     if(!h)return;
     this.handlers.delete(id);
+    this.inflightCost-=h.cost;
     const w=h.worker;
     if(w){
       this.workerTaskMap.delete(w);
@@ -247,25 +141,36 @@ class ResizerPool {
       this._removeWorker(w);
       try{ this._spawnWorker(); }catch{}
     }
-    h.rej(new Error('Worker timeout: processing took longer than 60 seconds'));
+    h.rej(Object.assign(new Error(`Worker timeout: processing took longer than ${Math.round((h.limit||WORKER_TIMEOUT_MS)/1000)} seconds`),{timeout:true}));
     this.pump();
+  }
+
+  _failQueue(){
+    for(const {rej} of this.queue.splice(0))rej(Object.assign(new Error('Workers unavailable'),{crash:true}));
   }
 
   pump(){
     while(this.idle.length&&this.queue.length){
-      const w=this.idle.pop(),{task,res,rej}=this.queue.shift();
+      const next=this.queue[0];
+      // Wait for running tasks to free memory first (the first task always runs, so this never stalls).
+      if(this.handlers.size>0&&this.inflightCost+next.cost>this.budget)break;
+      this.queue.shift();
+      const w=this.idle.pop(),{task,res,rej,cost}=next;
       const id=++this.seq;
-      const timer=setTimeout(()=>this._timeoutWorker(id),WORKER_TIMEOUT_MS);
-      this.handlers.set(id,{res,rej,worker:w,timer});
+      // Time allowed grows with the estimated work (cost is in bytes): a 40 MP image gets roughly twice as long as a small one.
+      const limit=WORKER_TIMEOUT_MS+Math.min(240000,Math.round(cost/1e9*60000));
+      const timer=setTimeout(()=>this._timeoutWorker(id),limit);
+      this.handlers.set(id,{res,rej,worker:w,timer,cost,limit});
+      this.inflightCost+=cost;
       this.workerTaskMap.set(w,id);
       w.postMessage({id,...task});
     }
   }
 
-  dispatch(task){
+  dispatch(task,cost=0){
     return new Promise((res,rej)=>{
-      if(!this.supported){rej(new Error('Workers not supported'));return}
-      this.queue.push({task,res,rej});
+      if(!this.supported){rej(Object.assign(new Error('Workers not supported'),{crash:true}));return}
+      this.queue.push({task,res,rej,cost});
       this.pump();
     });
   }
@@ -275,7 +180,7 @@ class ResizerPool {
       clearTimeout(h.timer);
       h.rej(new Error('Pool destroyed'));
     }
-    this.handlers.clear();
+    this.handlers.clear();this.inflightCost=0;
     this.workerTaskMap.clear();
     for(const w of this.workers) try{w.terminate()}catch{}
     this.workers=[];this.idle=[];this.queue=[];
@@ -288,24 +193,42 @@ function getPool(){
   return pool;
 }
 
-// In-thread fallback if workers are unsupported
-async function processInThread(file,ow,oh,dpi,ext){
-  if(!ow&&!oh){
-    const buf=await file.arrayBuffer(),u8=new Uint8Array(buf);
-    let outBlob;
-    if(ext==='.png')outBlob=new Blob([pngSetDpi(u8,dpi)],{type:'image/png'});
-    else if(ext==='.jpg'||ext==='.jpeg')outBlob=new Blob([jpgSetDpi(u8,dpi)],{type:'image/jpeg'});
-    else if(ext==='.bmp'){
-      const v=new DataView(u8.buffer);
-      if(u8.length>=42){v.setInt32(38,ppm(dpi),true);v.setInt32(42,ppm(dpi),true)}
-      outBlob=new Blob([u8],{type:'image/bmp'});
-    }else outBlob=file;
-    const outU8=new Uint8Array(await outBlob.arrayBuffer()),info=readImageInfo(outU8,ext);
-    return {blob:outBlob,w:info.width,h:info.height};
-  }
+// Header-only look at a file: does it already have the requested pixel size?
+async function headInfo(file,ext){
+  try{return readImageInfo(new Uint8Array(await file.slice(0,HEAD_BYTES).arrayBuffer()),ext)}catch{return {width:0,height:0}}
+}
+// Rough peak memory a task will need, so large images are not all processed at the same moment.
+function estimateCost(file,ow,oh,head){
+  if(!ow||!oh)return file.size*2+1048576;
+  const {width:iw,height:ih}=head;
+  if(iw===ow&&ih===oh)return file.size*2+1048576;        // same size: DPI-only fast path
+  const sw=iw||4000,sh=ih||3000;                          // unknown header: assume 12 MP
+  return sw*sh*8+ow*sh*16+ow*oh*8;
+}
+
+// DPI-only change: rewrite just the header, never re-encode the pixels.
+async function dpiOnly(file,dpi,ext){
+  const buf=await file.arrayBuffer(),u8=new Uint8Array(buf);
+  let outBlob;
+  if(ext==='.png')outBlob=new Blob([pngSetDpi(u8,dpi)],{type:'image/png'});
+  else if(ext==='.jpg'||ext==='.jpeg')outBlob=new Blob([jpgSetDpi(u8,dpi)],{type:'image/jpeg'});
+  else if(ext==='.bmp'){
+    const v=new DataView(u8.buffer);
+    if(u8.length>=42){v.setInt32(38,ppm(dpi),true);v.setInt32(42,ppm(dpi),true)}
+    outBlob=new Blob([u8],{type:'image/bmp'});
+  }else outBlob=file;
+  const outU8=new Uint8Array(await outBlob.arrayBuffer()),info=readImageInfo(outU8,ext);
+  return {blob:outBlob,w:info.width,h:info.height};
+}
+
+// In-thread fallback, only used if workers are unavailable or crashed (never for a file the worker rejected)
+async function processInThread(file,ow,oh,dpi,ext,quality){
+  if(!ow&&!oh)return dpiOnly(file,dpi,ext);
+  const head=await headInfo(file,ext);
+  if(head.width===ow&&head.height===oh)return dpiOnly(file,dpi,ext);
   let img=await decode(file);
   if(ow&&oh&&(img.width!==ow||img.height!==oh))img=await resize(img,ow,oh);
-  const blob=await encode(img,ext,dpi);
+  const blob=await encode(img,ext,dpi,quality);
   return {blob,w:img.width,h:img.height};
 }
 
@@ -314,6 +237,7 @@ export function mount(root){
   root.innerHTML=`<div class="tool-layout"><div class="tool"><div class="head"><h1>${t('tool.resizer')}</h1><button class="iconbtn instruction-toggle" id="rz-info" title="Instructions" aria-label="Open instructions" aria-controls="rz-instructions" aria-expanded="false">i</button></div>
   <div class="sub">${t('resizer.sub')}</div>
   <div class="row3"><label>${t('resizer.dpi')}<input id="rz-dpi" value="300" inputmode="numeric"></label><label>${t('resizer.width')}<input id="rz-w" value="2480" inputmode="numeric"></label><label>${t('resizer.height')}<input id="rz-h" value="3508" inputmode="numeric"></label></div>
+  <div class="quality-row"><label for="rz-q">${t('resizer.quality')}</label><select id="rz-q"><option value="75" selected>${t('resizer.qualityDefault')}</option><option value="85">85%</option><option value="90">90%</option><option value="95">95%</option></select></div>
   <button class="btn reset-btn" id="rz-reset">${t('resizer.reset')}</button>
   <button class="btn primary wide" id="rz-out">${t('resizer.output')}</button><div class="path" id="rz-path">${HAS_FS?t('resizer.noFolder'):t('resizer.downloadMode')}</div>
   <div class="drop" id="rz-drop" tabindex="0">${t('resizer.drop')}</div>
@@ -325,9 +249,9 @@ export function mount(root){
   const drop=$('rz-drop'),status=t=>$('rz-status').textContent=t;
   const info=t('resizer.info');
   bindInstructionPanel(root.querySelector('.tool-layout'),$('rz-info'),$('rz-instructions'),$('rz-info-close'),$('rz-info-copy'),info);
-  $('rz-reset').onclick=()=>{$('rz-dpi').value='300';$('rz-w').value='2480';$('rz-h').value='3508'};
+  $('rz-reset').onclick=()=>{$('rz-dpi').value='300';$('rz-w').value='2480';$('rz-h').value='3508';$('rz-q').value='75'};
   if(!HAS_FS)$('rz-out').hidden=true;
-  $('rz-out').onclick=async()=>{try{outDir=await showDirectoryPicker({mode:'readwrite'});$('rz-path').textContent=outDir.name;$('rz-path').classList.add('set')}catch{}};
+  $('rz-out').onclick=async()=>{if(busy)return;try{outDir=await showDirectoryPicker({mode:'readwrite'});$('rz-path').textContent=outDir.name;$('rz-path').classList.add('set')}catch{}};
   const pick=async()=>{
     if(busy)return;
     if('showOpenFilePicker' in window){try{const hs=await showOpenFilePicker({multiple:true,types:[{description:'Images',accept:{'image/*':['.jpg','.jpeg','.png','.bmp','.webp']}}]});run(await Promise.all(hs.map(async h=>({file:await h.getFile(),handle:h}))))}catch{}}
@@ -345,9 +269,13 @@ export function mount(root){
     const dpi=$('rz-dpi').value.trim(),w=$('rz-w').value.trim(),h=$('rz-h').value.trim(),bad=(title,s)=>{msg(title,s,'error');return null};
     if(HAS_FS&&!outDir){msg(t('nb.error'),t('resizer.selectFolder'),'error');return null}
     if(!/^\d+$/.test(dpi)||+dpi<=0)return bad(t('resizer.invalid'),t('resizer.dpiError'));
-    for(const [l,r] of [[t('resizer.widthName'),w],[t('resizer.heightName'),h]])if(r&&(!/^\d+$/.test(r)||+r<=0))return bad(t('resizer.invalid'),t('resizer.dimensionError',l));
+    if(+dpi>65535)return bad(t('resizer.invalid'),t('resizer.dpiRange'));
+    for(const [l,r] of [[t('resizer.widthName'),w],[t('resizer.heightName'),h]]){
+      if(r&&(!/^\d+$/.test(r)||+r<=0))return bad(t('resizer.invalid'),t('resizer.dimensionError',l));
+      if(r&&+r>32767)return bad(t('resizer.invalid'),t('resizer.dimensionMax',l));
+    }
     if(!w!==!h)return bad(t('resizer.invalid'),t('resizer.bothError'));
-    return {dpi:+dpi,w:w?+w:0,h:h?+h:0};
+    return {dpi:+dpi,w:w?+w:0,h:h?+h:0,quality:(+$('rz-q').value||75)/100};
   }
   async function save(name,blob,src){
     if(!outDir){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000);return blob}
@@ -359,57 +287,84 @@ export function mount(root){
 
   async function run(entries){
     if(busy||!entries.length)return;const s=settings();if(!s)return;
-    busy=true;drop.classList.add('off');$('rz-prog').max=entries.length*2;$('rz-prog').value=0;
-    const fails=[],results=[];let ok=0,processed=0;
+    busy=true;
+    try{await runBatch(entries,s)}catch(e){msg(t('nb.error'),String(e&&e.message||e),'error')}
+    finally{busy=false;drop.classList.remove('off');$('rz-prog').value=0}
+  }
+  async function runBatch(entries,s){
+    drop.classList.add('off');$('rz-prog').max=entries.length*2;$('rz-prog').value=0;
+    const fails=[],results=[],used=new Set(),direct=!!outDir;let ok=0,processed=0,steps=0,stretched=0,webp=0;
     const workerPool=getPool();
+    const step=n=>{steps+=n;$('rz-prog').value=steps};
+    // Two inputs with the same name (from different folders) must not overwrite each other in the output folder.
+    const uniqueName=name=>{let n=name,k=1;while(used.has(n.toLowerCase()))n=name.replace(/(\.[^.]*)?$/,`_${++k}$1`);used.add(n.toLowerCase());return n};
 
-    // Phase 1: Parallel decoding, resizing, and encoding via Worker Pool
+    // Decode, resize and encode in the worker pool. With an output folder each result is written
+    // straight away (overlapping disk writes with other files' processing), so results never pile up in memory.
     status(t('resizer.processing',1,entries.length));
-    const processEntry=async(entry)=>{
-      const {file,handle}=entry,ext=extOf(file.name);
+    const processEntry=async(entry,index)=>{
+      const {file,handle}=entry,ext=extOf(file.name);let credited=0;
       try{
+        if(!SUPPORTED.has(ext))throw new Error(t('resizer.unsupportedInput',ext));
+        const head=await headInfo(file,ext);
         let res;
         if(workerPool.supported){
           try{
-            res=await workerPool.dispatch({file,ow:s.w,oh:s.h,dpi:s.dpi,ext});
+            res=await workerPool.dispatch({file,ow:s.w,oh:s.h,dpi:s.dpi,ext,quality:s.quality},estimateCost(file,s.w,s.h,head));
           }catch(workerErr){
-            // Fallback to in-thread processing on worker failure
-            try{
-              res=await processInThread(file,s.w,s.h,s.dpi,ext);
-            }catch(fallbackErr){
-              throw fallbackErr;
-            }
+            // Only retry on this page if the worker itself died. A file the worker rejected (too large,
+            // damaged...) or a timeout is reported as a failure, never re-run here where it could freeze the tab.
+            if(!workerErr.crash)throw workerErr;
+            res=await processInThread(file,s.w,s.h,s.dpi,ext,s.quality);
           }
         }else{
-          res=await processInThread(file,s.w,s.h,s.dpi,ext);
+          res=await processInThread(file,s.w,s.h,s.dpi,ext,s.quality);
         }
-        const why=await verify(res.blob,ext,res.w||s.w,res.h||s.h,s.dpi);
+        const outW=res.w||s.w,outH=res.h||s.h;
+        const why=await verify(res.blob,ext,outW,outH,s.dpi);
         if(why)throw new Error(why);
-        results.push({file,handle,blob:res.blob,ext,w:res.w||s.w,h:res.h||s.h});
+        step(1);credited++;
+        if(s.w&&s.h&&head.width&&head.height&&Math.abs(head.width/head.height/(s.w/s.h)-1)>0.02)stretched++;   // shape differs from the requested size
+        if(ext==='.webp')webp++;                                                                              // WebP cannot hold a DPI value
+        if(direct){
+          const saved=await save(uniqueName(file.name),res.blob,handle);
+          const why2=await verify(saved,ext,outW,outH,s.dpi);
+          if(why2)throw new Error(why2);
+          ok++;step(1);credited++;
+        }else results.push({index,file,handle,blob:res.blob,ext,w:outW,h:outH});
       }catch(e){
         fails.push(`${file.name}: ${e.message||e}`);
       }finally{
+        step((direct?2:1)-credited);
         processed++;
-        $('rz-prog').value=processed;
         status(t('resizer.processing',Math.min(processed,entries.length),entries.length));
       }
     };
 
-    // Bounded concurrency: limit in-flight tasks to pool size + small buffer
-    // to prevent memory explosion from hundreds of simultaneous file reads
-    const concurrency=Math.min(workerPool.supported?workerPool.size+2:2,entries.length);
+    // Bounded concurrency: workers + a small buffer (a few more when files are also being written)
+    const concurrency=Math.min(workerPool.supported?workerPool.size+(direct?5:2):2,entries.length);
     let cursor=0;
-    const next=async()=>{while(cursor<entries.length){const entry=entries[cursor++];await processEntry(entry)}};
+    const next=async()=>{while(cursor<entries.length){const index=cursor++;await processEntry(entries[index],index)}};
     await Promise.all(Array.from({length:concurrency},()=>next()));
 
-    // Phase 2: Saving results
-    if(!outDir&&results.length)await msg(t('resizer.downloadTitle'),t('resizer.downloadMsg',results.length),'info',[t('resizer.downloadAll')]);
-    for(let i=0;i<results.length;i++){
-      const r=results[i];status(t('resizer.saving',i+1,results.length,r.file.name));if(outDir)await sleep();
+    // Download mode (no output folder): hand the finished files to the browser in the original order
+    results.sort((a,b)=>a.index-b.index);
+    if(!direct&&results.length)await msg(t('resizer.downloadTitle'),t('resizer.downloadMsg',results.length),'info',[t('resizer.downloadAll')]);
+    // Several results are bundled into one zip: browsers ask permission for (or drop) many automatic downloads.
+    if(results.length>1){
       try{
-        const saved=await save(r.file.name,r.blob,r.handle);
-        const why=outDir?await verify(saved,r.ext,r.w,r.h,s.dpi):null;
-        if(why)throw new Error(why);
+        status(t('resizer.saving',1,results.length,'resized_images.zip'));
+        const files={};
+        for(const r of results)files[uniqueName(r.file.name)]=[new Uint8Array(await r.blob.arrayBuffer()),{level:0}];
+        const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([zipSync(files)],{type:'application/zip'}));a.download='resized_images.zip';a.click();
+        setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+        ok+=results.length;results.length=0;$('rz-prog').value=entries.length*2;
+      }catch{/* zip failed (for example not enough memory): fall back to one download per file below */}
+    }
+    for(let i=0;i<results.length;i++){
+      const r=results[i];status(t('resizer.saving',i+1,results.length,r.file.name));
+      try{
+        await save(r.file.name,r.blob,r.handle);
         ok++;
       }catch(e){
         fails.push(`${r.file.name}: ${e.message||e}`);
@@ -419,7 +374,8 @@ export function mount(root){
 
     busy=false;drop.classList.remove('off');$('rz-prog').value=0;
     track('resizer/run','Resizer run');for(let i=0;i<Math.min(ok,50);i++)track('resizer/file','Resizer file');
-    if(fails.length){status(t('resizer.errorStatus',fails.length));msg(t('resizer.errorTitle'),t('resizer.errorMsg',ok,entries.length,fails.slice(0,10).join('\n')+(fails.length>10?'\n...':'')),'warning')}
-    else{status(t('resizer.successStatus',ok));msg(t('resizer.doneTitle'),t('resizer.doneMsg',ok))}
+    const notes=[stretched?t('resizer.stretchNote',stretched):null,webp?t('resizer.webpNote',webp):null].filter(Boolean),extra=notes.length?'\n\n'+notes.join('\n'):'';
+    if(fails.length){status(t('resizer.errorStatus',fails.length));msg(t('resizer.errorTitle'),t('resizer.errorMsg',ok,entries.length,fails.slice(0,10).join('\n')+(fails.length>10?'\n...':''))+extra,'warning')}
+    else{status(t('resizer.successStatus',ok));msg(t('resizer.doneTitle'),t('resizer.doneMsg',ok)+extra,notes.length?'warning':'info')}
   }
 }

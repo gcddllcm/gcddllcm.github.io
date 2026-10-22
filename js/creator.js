@@ -1,26 +1,29 @@
-import {$,msg,track} from './util.js';
-import {bindInstructionPanel} from './instruction-panel.js?v=20261015h';
+import {$,msg,track} from './util.js?v=3.1.3';
+import {bindInstructionPanel} from './instruction-panel.js?v=3.1.3';
 import {zipSync} from './vendor/fflate.js';
-import * as T from './nbtemplates.js';
-import {t} from './i18n.js';
+import * as T from './nbtemplates.js?v=3.1.3';
+import {t} from './i18n.js?v=3.1.3';
 const SUP=/\.(png|jpe?g|gif|bmp)$/i,coll=new Intl.Collator(undefined,{numeric:true,sensitivity:'base'});
 const A='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',nid=(n=25)=>Array.from(crypto.getRandomValues(new Uint8Array(n)),b=>A[b%36]).join('');
 const enc=new TextEncoder(),tick=()=>new Promise(r=>setTimeout(r));
 const stem=n=>n.replace(/\.[^.]*$/,'');
 
-async function prep(file){                    // JPEG/PNG embedded as-is; everything else becomes PNG
-  const u=new Uint8Array(await file.arrayBuffer()),bmp=await createImageBitmap(file,{imageOrientation:'none'}),w=bmp.width,h=bmp.height;
-  const jpg=u[0]===0xFF&&u[1]===0xD8,png=u[0]===0x89&&u[1]===0x50&&u[2]===0x4E&&u[3]===0x47;
-  if(jpg||png){bmp.close();return {raw:u,w,h,ext:jpg?'jpg':'png'}}
-  const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(bmp,0,0);bmp.close();
-  return {raw:new Uint8Array(await (await new Promise(r=>c.toBlob(r,'image/png'))).arrayBuffer()),w,h,ext:'png'};
-}
-async function thumb(file,W,H){               // centred on white, like the desktop thumbnails
-  const bmp=await createImageBitmap(file,{imageOrientation:'none'}),c=document.createElement('canvas');c.width=W;c.height=H;
+function thumbOf(bmp,W,H){                    // centred on white, like the desktop thumbnails
+  const c=document.createElement('canvas');c.width=W;c.height=H;
   const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,W,H);x.imageSmoothingQuality='high';
   const r=Math.min(W/bmp.width,H/bmp.height),nw=Math.max(1,Math.floor(bmp.width*r)),nh=Math.max(1,Math.floor(bmp.height*r));
-  x.drawImage(bmp,Math.floor((W-nw)/2),Math.floor((H-nh)/2),nw,nh);bmp.close();
-  return new Uint8Array(await (await new Promise(r=>c.toBlob(r,'image/png'))).arrayBuffer());
+  x.drawImage(bmp,Math.floor((W-nw)/2),Math.floor((H-nh)/2),nw,nh);
+  return new Promise(r=>c.toBlob(r,'image/png')).then(b=>b.arrayBuffer()).then(a=>new Uint8Array(a));
+}
+async function prep(file,wantPreview){         // JPEG/PNG embedded as-is; everything else becomes PNG. Decoded once: thumbnails come from the same bitmap.
+  const u=new Uint8Array(await file.arrayBuffer()),bmp=await createImageBitmap(file,{imageOrientation:'none'});
+  try{
+    const w=bmp.width,h=bmp.height,jpg=u[0]===0xFF&&u[1]===0xD8,png=u[0]===0x89&&u[1]===0x50&&u[2]===0x4E&&u[3]===0x47;
+    const th=await thumbOf(bmp,160,120),pv=wantPreview?await thumbOf(bmp,320,240):null;
+    if(jpg||png)return {raw:u,w,h,ext:jpg?'jpg':'png',th,pv};
+    const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(bmp,0,0);
+    return {raw:new Uint8Array(await (await new Promise(r=>c.toBlob(r,'image/png'))).arrayBuffer()),w,h,ext:'png',th,pv};
+  }finally{bmp.close()}
 }
 function pageSvg(pid,aid,w,h,href){
   const cx=w/2,cy=h/2;
@@ -28,9 +31,10 @@ function pageSvg(pid,aid,w,h,href){
    `x="0.00" y="0.00" width="${w.toFixed(2)}" height="${h.toFixed(2)}" RotationPoint="(${cx.toFixed(6)},${cy.toFixed(6)})" transform="rotate(0.00,${cx.toFixed(2)},${cy.toFixed(2)})" xml:id="annotation.${aid}" visible="1" xlink:href="${href}" locked="30"/></g></svg>`;
 }
 async function build(items,report){
-  const n=items.length,total=2*n+2,files={},hrefs=[],used=new Set(),pages=items.map((_,i)=>`page${i+1}.svg`);let step=0;
+  const n=items.length,total=n+1,files={},hrefs=[],used=new Set(),pages=items.map((_,i)=>`page${i+1}.svg`),thumbs=[];let step=0,preview=null;
   for(let i=0;i<n;i++){
-    const {raw,w,h,ext}=await prep(items[i].file);
+    const {raw,w,h,ext,th,pv}=await prep(items[i].file,i===0);
+    thumbs.push(th);if(pv)preview=pv;
     let s=stem(items[i].file.name).replace(/[^A-Za-z0-9_-]/g,'');if(!s)s=`image${i+1}`;
     let name=`${s}.${ext}`,k=1;while(used.has(name.toLowerCase()))name=`${s}_${k++}.${ext}`;used.add(name.toLowerCase());
     files['images/'+name]=raw;hrefs.push('images/'+name);
@@ -46,8 +50,9 @@ async function build(items,report){
   files['metadata.xml']=enc.encode(T.METADATA_XML_TEMPLATE.replace('{doc_id}',nid(12)).replace('{created}',new Date().toISOString().slice(0,19)));
   files['metadata.rdf']=enc.encode(T.METADATA_RDF);files['settings.xml']=enc.encode(T.SETTINGS_XML);
   report(++step,total,t('creator.progressMeta'));
-  files['preview.png']=await thumb(items[0].file,320,240);report(++step,total,t('creator.progressPreview'));
-  for(let i=0;i<n;i++){files[`Thumbnails/thumbnail${i+1}.png`]=await thumb(items[i].file,160,120);report(++step,total,t('creator.progressThumb',i+1,n));await tick()}
+  files['preview.png']=preview;
+  for(let i=0;i<n;i++)files[`Thumbnails/thumbnail${i+1}.png`]=thumbs[i];
+  await tick();
   // PNG/JPEG are already compressed: store them as-is (level 0) and only deflate the small text files.
   const out={};for(const [name,data] of Object.entries(files))out[name]=/^(images\/|Thumbnails\/)|^preview\.png$/.test(name)?[data,{level:0}]:data;
   return zipSync(out,{level:6});
@@ -162,6 +167,7 @@ export function mount(root){
   fullBtn.onclick=openView;
   pvBox.onclick=e=>{if(e.altKey&&(e.target===pvBox.querySelector('img')||e.target===pvBox)){e.preventDefault();openView()}};
   function render(){
+    if(!items.length)folder='';
     list.innerHTML='';items.forEach((it,i)=>{const r=document.createElement('div');r.className='lrow'+(sel.has(i)?' sel':'');r.draggable=true;r.dataset.i=i;r.textContent=`${String(i+1).padStart(2,'0')}.  ${it.file.name}`;list.append(r)});
     status(items.length?t('creator.imageReady',items.length):t('creator.ready'));preview();
   }
@@ -193,7 +199,7 @@ export function mount(root){
   async function fromDrop(dt){
     const ents=[...dt.items].filter(i=>i.kind==='file').map(i=>i.webkitGetAsEntry?i.webkitGetAsEntry():null),flat=[...dt.files];
     const all=[];let first=true;
-    if(ents.length&&ents.every(Boolean)){for(const e of ents){if(e.isDirectory){if(first)folder=e.name;all.push(...await readDir(e))}else all.push(await new Promise(r=>e.file(r)));first=false}}
+    if(ents.length&&ents.every(Boolean)){for(const e of ents){if(e.isDirectory){if(first)folder=e.name;all.push(...await readDir(e))}else{const f=await new Promise(r=>e.file(r,()=>r(null)));if(f)all.push(f)}first=false}}
     else all.push(...flat);
     add(all);
   }
@@ -205,12 +211,13 @@ export function mount(root){
   const tool=root.firstElementChild;let dragging=false;
   const clearMarks=()=>list.querySelectorAll('.before,.after').forEach(x=>x.classList.remove('before','after'));
   const target=e=>{const r=e.target.closest('.lrow');if(!r)return {t:items.length,row:null};const b=r.getBoundingClientRect(),after=e.clientY>b.top+b.height/2;return {t:+r.dataset.i+(after?1:0),row:r,after}};
-  list.ondragstart=e=>{const r=e.target.closest('.lrow');if(!r||busy){e.preventDefault();return}const i=+r.dataset.i;if(!sel.has(i)){sel=new Set([i]);render()}dragging=true;e.dataTransfer.setData('text/x-pl','1');e.dataTransfer.effectAllowed='move'};
+  list.ondragstart=e=>{const r=e.target.closest('.lrow');if(!r||busy){e.preventDefault();return}const i=+r.dataset.i;if(!sel.has(i)){sel=new Set([i]);list.querySelectorAll('.lrow').forEach(x=>x.classList.toggle('sel',+x.dataset.i===i));preview()}dragging=true;e.dataTransfer.setData('text/x-pl','1');e.dataTransfer.effectAllowed='move'};
   list.ondragend=()=>{dragging=false;clearMarks()};
   tool.ondragover=e=>{e.preventDefault();if(dragging){clearMarks();const {row,after}=target(e);if(row)row.classList.add(after?'after':'before')}else $('cr-drop').classList.add('hot')};
   tool.ondragleave=e=>{if(!tool.contains(e.relatedTarget)){clearMarks();$('cr-drop').classList.remove('hot')}};
   tool.ondrop=e=>{
     e.preventDefault();$('cr-drop').classList.remove('hot');if(busy)return;
+    if(dragging&&!list.contains(e.target)){clearMarks();dragging=false;return}   // dropped outside the list: leave the order alone
     if(dragging){const {t}=target(e);clearMarks();dragging=false;const idx=[...sel].sort((a,b)=>a-b),mv=idx.map(i=>items[i]),rest=items.filter((_,i)=>!sel.has(i)),at=t-idx.filter(i=>i<t).length;
       items=[...rest.slice(0,at),...mv,...rest.slice(at)];sel=new Set(mv.map((_,k)=>at+k));render()}
     else fromDrop(e.dataTransfer);
@@ -219,7 +226,7 @@ export function mount(root){
   $('cr-save').onclick=async()=>{
     if(busy)return;if(!items.length){msg(t('creator.noImagesTitle'),t('creator.noImages'),'warning');return}
     let handle=null,name=(folder||stem(items[0].file.name))+'.notebook';
-    if('showSaveFilePicker' in window){try{handle=await showSaveFilePicker({suggestedName:name,types:[{description:'SMART Notebook',accept:{'application/octet-stream':['.notebook']}}]});name=handle.name}catch{return}}
+    if('showSaveFilePicker' in window){try{handle=await showSaveFilePicker({suggestedName:name,types:[{description:'SMART Notebook',accept:{'application/octet-stream':['.notebook']}}]});name=handle.name}catch(err){if(err&&err.name==='AbortError')return;handle=null}}   // only a cancel stops here; any other picker problem falls back to a normal download
     else{const chosen=prompt(t('creator.prompt'),name);if(!chosen)return;name=chosen.trim();if(!name)return;if(!/\.notebook$/i.test(name))name+='.notebook'}
     busy=true;$('cr-save').disabled=true;$('cr-prog').value=0;
     try{

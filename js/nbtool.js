@@ -1,6 +1,6 @@
-import {msg,track} from './util.js';
-import {bindInstructionPanel} from './instruction-panel.js?v=20261015h';
-import {t} from './i18n.js';
+import {msg,track} from './util.js?v=3.1.3';
+import {bindInstructionPanel} from './instruction-panel.js?v=3.1.3';
+import {t} from './i18n.js?v=3.1.3';
 export const isNb=n=>/\.notebook$/i.test(n);
 const NBTYPES=[{description:'SMART Notebook',accept:{'application/octet-stream':['.notebook']}}];
 export const sleep=()=>new Promise(r=>setTimeout(r));
@@ -47,3 +47,11 @@ export function shell(root,{title,sub,info,top='',hideFolder=false,run}){
 export const finishMsg=(failures,okText,warnTitle,note,total,done)=>failures.length
   ?msg(warnTitle,`${done} / ${total} file(s) ${okText}.${note}\n\nProblems:\n${failures.slice(0,10).join('\n')}${failures.length>10?'\n...':''}`,'warning')
   :msg('Done',`${okText[0].toUpperCase()+okText.slice(1)} ${total} file(s) successfully.${note}`);
+
+// Ask once, up front, for permission to write into the dropped/picked folders, so files can be saved beside the originals.
+// Best effort: if the browser refuses (it wants a fresh click), callers fall back to downloading.
+export async function ensureWriteAccess(entries){
+  for(const dir of new Set(entries.map(e=>e.dir).filter(Boolean))){
+    try{if(await dir.queryPermission({mode:'readwrite'})!=='granted')await dir.requestPermission({mode:'readwrite'})}catch{}
+  }
+}

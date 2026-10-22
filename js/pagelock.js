@@ -1,7 +1,7 @@
-import {msg,track} from './util.js';
-import {shell,download} from './nbtool.js?v=20261015i';
+import {msg,track} from './util.js?v=3.1.3';
+import {shell,download,ensureWriteAccess} from './nbtool.js?v=3.1.3';
 import {unzipSync,zipSync} from './vendor/fflate.js';
-import {t} from './i18n.js';
+import {t} from './i18n.js?v=3.1.3';
 const LOCK_VALUE='30',dec=new TextDecoder('utf-8'),enc=new TextEncoder();
 
 function setLock(text,lock){
@@ -28,6 +28,7 @@ export function mount(root){
     info:t('pagelock.info'),
     async run(entries,ign,ui){
       const lock=mode==='lock',ing=t(lock?'pagelock.locking':'pagelock.unlocking'),ed=t(lock?'pagelock.locked':'pagelock.unlocked'),failures=[],fallbacks=[];
+      await ensureWriteAccess(entries);
       ui.progress(0,entries.length);
       for(let i=0;i<entries.length;i++){
         const {file,handle}=entries[i];ui.status(t('pagelock.processing',ing,i+1,entries.length,file.name));await new Promise(r=>setTimeout(r));

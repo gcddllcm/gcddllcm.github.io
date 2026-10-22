@@ -1,10 +1,10 @@
-import {APP_VERSION} from '../config.js';
-import {$,msg,track,loadAnalytics} from './util.js';
-import * as resizer from './resizer.js?v=20261020b';
-import * as creator from './creator.js?v=20261020a';
-import * as pagelock from './pagelock.js?v=20261015j';
-import * as topdf from './topdf.js?v=20261015i';
-import {strings,t} from './i18n.js?v=20261015i';
+import {APP_VERSION} from '../config.js?v=3.1.3';
+import {$,msg,track,loadAnalytics} from './util.js?v=3.1.3';
+import * as resizer from './resizer.js?v=3.1.3';
+import * as creator from './creator.js?v=3.1.3';
+import * as pagelock from './pagelock.js?v=3.1.3';
+import * as topdf from './topdf.js?v=3.1.3';
+import {strings,t} from './i18n.js?v=3.1.3';
 
 document.querySelector('[data-page="tools"]').textContent=t('nav.tools');
 document.querySelector('[data-page="updates"]').textContent=t('nav.updates');
@@ -12,10 +12,10 @@ document.querySelector('[data-page="about"]').textContent=t('nav.about');
 document.querySelector('.tabs').setAttribute('aria-label',t('nav.main'));
 
 const TOOLS=[
-  ['creator',t('tool.creator.short'),t('tool.creator'),t('library.categoryNotebook'),`<svg aria-hidden="true" focusable="false" viewBox="0 0 80 90" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13 7h35l17 17v54H13V7Z" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M48 8v17h16" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><rect x="22" y="31" width="34" height="24" rx="3" stroke="currentColor" stroke-width="3.5"/><circle cx="46" cy="38" r="3.5" fill="#85E8D8"/><path d="m25 51 9-9 7 7 5-5 7 7" stroke="#85E8D8" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M39 62v16m-7-7 7 7 7-7" stroke="#85E8D8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>`,'Images → Notebook',creator],
-  ['topdf',t('tool.topdf.short'),t('tool.topdf'),t('library.categoryNotebook'),`<svg aria-hidden="true" focusable="false" viewBox="0 0 80 90" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 7h35l17 17v54H12V7Z" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M47 8v17h16M22 36h22M22 45h18M22 54h13" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="52" cy="62" r="16" fill="#292A35" stroke="#FF927D" stroke-width="4"/><path d="M48 70V54h6a5 5 0 0 1 0 10h-6" stroke="#FF927D" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,'Notebook → PDF',topdf],
-  ['pagelock',t('tool.pagelock.short'),t('tool.pagelock'),t('library.categoryNotebook'),`<svg aria-hidden="true" focusable="false" viewBox="0 0 80 90" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 7h35l17 17v54H12V7Z" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M47 8v17h16M22 37h22M22 47h18" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="39" y="52" width="25" height="20" rx="4" fill="#292A35" stroke="#85E8D8" stroke-width="3.5"/><path d="M45 52v-5a6.5 6.5 0 0 1 13 0v5" stroke="#85E8D8" stroke-width="3.5" stroke-linecap="round"/><circle cx="51.5" cy="61" r="2.5" fill="#85E8D8"/><path d="M51.5 63v3" stroke="#85E8D8" stroke-width="2.5" stroke-linecap="round"/></svg>`,'Lock or unlock pages',pagelock],
-  ['resizer',t('tool.resizer.short'),t('tool.resizer'),t('library.categoryImages'),`<svg aria-hidden="true" focusable="false" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M28 10H12v16m40-16h16v16M12 54v16h16m40-16v16H52" stroke="#85E8D8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><rect x="23" y="24" width="34" height="32" rx="3" stroke="currentColor" stroke-width="3.5"/><circle cx="47" cy="33" r="3.5" fill="#85E8D8"/><path d="m27 51 9-10 7 7 5-5 6 8" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,'Resize images in bulk',resizer],
+  ['creator',t('tool.creator.short'),t('tool.creator'),t('library.categoryNotebook'),`<svg aria-hidden="true" focusable="false" viewBox="0 0 80 90" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13 7h35l17 17v54H13V7Z" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M48 8v17h16" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><rect x="22" y="31" width="34" height="24" rx="3" stroke="currentColor" stroke-width="3.5"/><circle cx="46" cy="38" r="3.5" fill="#85E8D8"/><path d="m25 51 9-9 7 7 5-5 7 7" stroke="#85E8D8" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M39 62v16m-7-7 7 7 7-7" stroke="#85E8D8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>`,t('tool.creator.desc'),creator],
+  ['topdf',t('tool.topdf.short'),t('tool.topdf'),t('library.categoryNotebook'),`<svg aria-hidden="true" focusable="false" viewBox="0 0 80 90" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 7h35l17 17v54H12V7Z" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M47 8v17h16M22 36h22M22 45h18M22 54h13" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="52" cy="62" r="16" fill="#292A35" stroke="#FF927D" stroke-width="4"/><path d="M48 70V54h6a5 5 0 0 1 0 10h-6" stroke="#FF927D" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,t('tool.topdf.desc'),topdf],
+  ['pagelock',t('tool.pagelock.short'),t('tool.pagelock'),t('library.categoryNotebook'),`<svg aria-hidden="true" focusable="false" viewBox="0 0 80 90" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 7h35l17 17v54H12V7Z" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M47 8v17h16M22 37h22M22 47h18" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="39" y="52" width="25" height="20" rx="4" fill="#292A35" stroke="#85E8D8" stroke-width="3.5"/><path d="M45 52v-5a6.5 6.5 0 0 1 13 0v5" stroke="#85E8D8" stroke-width="3.5" stroke-linecap="round"/><circle cx="51.5" cy="61" r="2.5" fill="#85E8D8"/><path d="M51.5 63v3" stroke="#85E8D8" stroke-width="2.5" stroke-linecap="round"/></svg>`,t('tool.pagelock.desc'),pagelock],
+  ['resizer',t('tool.resizer.short'),t('tool.resizer'),t('library.categoryImages'),`<svg aria-hidden="true" focusable="false" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M28 10H12v16m40-16h16v16M12 54v16h16m40-16v16H52" stroke="#85E8D8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><rect x="23" y="24" width="34" height="32" rx="3" stroke="currentColor" stroke-width="3.5"/><circle cx="47" cy="33" r="3.5" fill="#85E8D8"/><path d="m27 51 9-10 7 7 5-5 6 8" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,t('tool.resizer.desc'),resizer],
 ];
 const main=$('tools'),carouselStage=$('carousel-stage'),library=$('tool-library'),libraryPanel=library.querySelector('.library-panel'),libraryGroups=$('library-groups'),allToolsButton=$('all-tools-button');
 const startScreen=$('tool-start'),startCards=$('tool-start-cards'),toolbar=document.querySelector('#tools-page>.toolbar');
@@ -50,7 +50,7 @@ function cardMarkup(tool,position){
 }
 function renderCarousel(direction=0,animate=false){
   const previous=TOOLS[activeIndex<0?TOOLS.length-1:(activeIndex-1+TOOLS.length)%TOOLS.length],current=activeIndex<0?null:TOOLS[activeIndex],next=TOOLS[activeIndex<0?0:(activeIndex+1)%TOOLS.length];
-  const center=current?cardMarkup(current,'current'):`<button type="button" class="carousel-card current empty" data-open-library aria-label="Select a tool"><span class="carousel-card-icon" aria-hidden="true">＋</span><span class="carousel-card-copy"><span class="carousel-card-category">READY WHEN YOU ARE</span><span class="carousel-card-title">Select a tool</span><span class="carousel-card-description">Press A or D, or open All Tools</span></span></button>`;
+  const center=current?cardMarkup(current,'current'):`<button type="button" class="carousel-card current empty" data-open-library aria-label="${t('carousel.emptyTitle')}"><span class="carousel-card-icon" aria-hidden="true">＋</span><span class="carousel-card-copy"><span class="carousel-card-category">${t('carousel.emptyEyebrow')}</span><span class="carousel-card-title">${t('carousel.emptyTitle')}</span><span class="carousel-card-description">${t('carousel.emptyHint')}</span></span></button>`;
   carouselStage.innerHTML=`${cardMarkup(previous,'neighbor previous')}<button type="button" class="carousel-step previous" aria-label="${t('carousel.shortcutPrevious')}" title="${t('carousel.shortcutPrevious')}"><span aria-hidden="true">←</span><kbd>A</kbd></button>${center}<button type="button" class="carousel-step next" aria-label="${t('carousel.shortcutNext')}" title="${t('carousel.shortcutNext')}"><kbd>D</kbd><span aria-hidden="true">→</span></button>${cardMarkup(next,'neighbor next')}`;
   carouselStage.querySelector('.previous.neighbor').onclick=()=>selectTool(previous[0],{direction:-1});
   carouselStage.querySelector('.next.neighbor').onclick=()=>selectTool(next[0],{direction:1});
@@ -157,7 +157,7 @@ document.addEventListener('keydown',e=>{
     if(instructionToggle){e.preventDefault();instructionToggle.click()}
   }
   else if(shortcut==='f'&&workspaceShown){e.preventDefault();openLibrary()}
-  else if(e.code==='Space'&&!workspaceShown&&document.querySelector('#tools-page.on')){e.preventDefault();selectTool('creator')}
+  else if(e.code==='Space'&&!workspaceShown&&document.querySelector('#tools-page.on')&&!(target instanceof Element&&target.closest('button,a,summary,[role="button"]'))){e.preventDefault();selectTool('creator')}
 });
 
 const pageTabs=[...document.querySelectorAll('.tab')],tabIndicator=document.querySelector('.tab-indicator');
@@ -183,7 +183,7 @@ function fitTimeline(){const dots=[...timeline.querySelectorAll('.timeline-dot')
 requestAnimationFrame(fitTimeline);addEventListener('resize',fitTimeline);new ResizeObserver(fitTimeline).observe(timeline);
 if(!reduceReleaseMotion){const revealObserver=new IntersectionObserver(entries=>{for(const entry of entries){if(entry.isIntersecting){entry.target.classList.add('revealed');entry.target.classList.remove('reveal-pending');revealObserver.unobserve(entry.target)}}},{root:document.getElementById('main'),rootMargin:'0px 0px -8% 0px',threshold:.08});timeline.querySelectorAll('.release.reveal-pending').forEach(el=>revealObserver.observe(el))}
 const about=$('about-page');
-about.innerHTML=`<section class="about-card"><div class="page-heading"><img class="page-icon" src="icon.ico" alt=""><div><h1>${t('about.title')}</h1><div class="sub">Penguin Logistics</div></div></div><p>${t('about.contact')}</p><p>${t('about.creator')} Champ, AT Math + Claude and Codex (both of them are free btw)</p><p>${t('about.version')} <strong>${APP_VERSION}</strong></p><p>${t('about.privacy')}</p></section>`;
+about.innerHTML=`<section class="about-card"><div class="page-heading"><img class="page-icon" src="icon.ico" alt=""><div><h1>${t('about.title')}</h1><div class="sub">Penguin Logistics</div></div></div><p>${t('about.contact')}</p><p>${t('about.creator')} Champ, AT Math + Claude, Codex, Zhipu and Antigravity (all of them are free btw)</p><p>${t('about.version')} <strong>${APP_VERSION}</strong></p><p>${t('about.privacy')}</p></section>`;
 
 const glowTargets=[...document.querySelectorAll('.center,.drop,.previewbox,.listbox,.release-card,.about-card,.instruction-panel,.carousel-card,.library-card,.tool-start-card')];
 glowTargets.forEach(el=>el.classList.add('pointer-glow'));
@@ -199,3 +199,4 @@ document.addEventListener('pointermove',e=>{
 });
 
 loadAnalytics(); track('app/start','App start');
+if(typeof requestIdleCallback!=='undefined'){requestIdleCallback(()=>topdf.prepare(),{timeout:2500})}else{setTimeout(()=>topdf.prepare(),1200)}
