@@ -5,31 +5,46 @@ import {t} from './i18n.js?v=3.1.4';
 // The conversion runs the desktop app's own Python code (PyMuPDF) in a Web Worker.
 let worker=null,seq=0,prepared=false;const waits=new Map();let onStatus=()=>{};
 let lastStatusText=null,lastProgress=null;
+let setupSince=0,setupTimer=0,lastSetupMsg=null;
+const setupSeconds=()=>Math.max(0,Math.round((Date.now()-setupSince)/1000));
+function setupDetail(m){                  // what the engine is doing right now, in words
+  if(m.stage===1)return m.pending?t('pdf.d.files',m.n,m.of,m.pending):t('pdf.d.compile');
+  if(m.stage===2)return t('pdf.d.install');
+  if(m.stage===3)return t('pdf.d.import');
+  return t('pdf.d.code');
+}
 function localStatus(m){                       // the worker sends a code plus the values, so wording and translations live only here
   switch(m.code){
-    case 'start':return t('pdf.load',m.done,m.steps);
     case 'ready':return t('pdf.cached');
-    case 'cachedFile':case 'readyFile':return t('pdf.setup',m.done,m.steps);
-    case 'starting':return t('pdf.starting',m.done,m.steps);
     case 'loadError':return t('pdf.loadError',m.error);
-    case 'loading':return t('pdf.loading',m.file,m.loaded,m.total,m.done,m.steps);
+    case 'loading':return t('pdf.loading',m.stage,m.stages,m.label||m.file,m.loaded,m.total,setupSeconds());
+    case 'start':case 'stage':case 'cachedFile':case 'readyFile':return t('pdf.setup',m.stage,m.stages,setupDetail(m),setupSeconds());
   }
   return m.text;
+}
+function stopSetupTicker(){clearInterval(setupTimer);setupTimer=0;lastSetupMsg=null}
+// The worker is blocked while it compiles or unpacks, so it cannot report in; this page re-draws the line every second so the seconds keep counting.
+function startSetupTicker(){
+  stopSetupTicker();setupSince=Date.now();
+  setupTimer=setInterval(()=>{if(!lastSetupMsg)return;const text=localStatus(lastSetupMsg);lastStatusText=text;onStatus(text,lastProgress,lastSetupMsg.code)},1000);
 }
 function getWorker(){
   if(worker)return worker;
   worker=new Worker(new URL('./pdfworker.js?v=3.1.4',import.meta.url),{type:'module'});
   worker.onmessage=e=>{
     const m=e.data;
+    if(m.type==='setupDone'){stopSetupTicker();return}
     if(m.type==='status'){
+      if(m.code==='start')startSetupTicker();
+      if(m.code==='ready'||m.code==='loadError')stopSetupTicker();else lastSetupMsg=m;
       lastStatusText=localStatus(m);
       lastProgress=m.progress;
       onStatus(lastStatusText,m.progress,m.code);
       return;
     }
-    const w=waits.get(m.id);if(!w)return;
+    stopSetupTicker();const w=waits.get(m.id);if(!w)return;
     if(m.type==='page')w.onPage(m.d,m.t);else{waits.delete(m.id);m.type==='done'?w.res(m):w.rej(new Error(m.message));if(m.fatal){worker?.terminate();worker=null;prepared=false}}};
-  worker.onerror=e=>{for(const w of waits.values())w.rej(new Error(t('pdf.engineFail')+' ('+(e.message||'unknown')+')'));waits.clear();worker=null;prepared=false};
+  worker.onerror=e=>{stopSetupTicker();for(const w of waits.values())w.rej(new Error(t('pdf.engineFail')+' ('+(e.message||'unknown')+')'));waits.clear();worker=null;prepared=false};
   return worker;
 }
 function convert(buf,title,onPage,quality,resolution){return new Promise((res,rej)=>{const id=++seq;waits.set(id,{res,rej,onPage});getWorker().postMessage({id,data:buf,title,quality,resolution},[buf])})}
