@@ -1,4 +1,4 @@
-import {t} from './i18n.js?v=3.1.3';
+import {t} from './i18n.js?v=3.1.4';
 
 export function bindInstructionPanel(layout,toggle,panel,close,copy,instructions){
   toggle.title=t('instructions.open');toggle.setAttribute('aria-label',t('instructions.open'));

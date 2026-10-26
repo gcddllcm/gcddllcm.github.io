@@ -1,10 +1,10 @@
-import {APP_VERSION} from '../config.js?v=3.1.3';
-import {$,msg,track,loadAnalytics} from './util.js?v=3.1.3';
-import * as resizer from './resizer.js?v=3.1.3';
-import * as creator from './creator.js?v=3.1.3';
-import * as pagelock from './pagelock.js?v=3.1.3';
-import * as topdf from './topdf.js?v=3.1.3';
-import {strings,t} from './i18n.js?v=3.1.3';
+import {APP_VERSION} from '../config.js?v=3.1.4';
+import {$,msg,track,loadAnalytics} from './util.js?v=3.1.4';
+import * as resizer from './resizer.js?v=3.1.4';
+import * as creator from './creator.js?v=3.1.4';
+import * as pagelock from './pagelock.js?v=3.1.4';
+import * as topdf from './topdf.js?v=3.1.4';
+import {strings,t} from './i18n.js?v=3.1.4';
 
 document.querySelector('[data-page="tools"]').textContent=t('nav.tools');
 document.querySelector('[data-page="updates"]').textContent=t('nav.updates');
@@ -187,16 +187,25 @@ about.innerHTML=`<section class="about-card"><div class="page-heading"><img clas
 
 const glowTargets=[...document.querySelectorAll('.center,.drop,.previewbox,.listbox,.release-card,.about-card,.instruction-panel,.carousel-card,.library-card,.tool-start-card')];
 glowTargets.forEach(el=>el.classList.add('pointer-glow'));
-let activeGlow=null;
+let activeGlow=null,lastPointer=null;
+function moveGlow(){
+  if(!activeGlow||!lastPointer)return;
+  const rect=activeGlow.getBoundingClientRect();
+  // The glow sits inside the box's own scrolling content, so on a scrolled list it is shifted by the scroll position to stay under the pointer.
+  activeGlow.style.setProperty('--glow-top',`${activeGlow.scrollTop}px`);
+  activeGlow.style.setProperty('--glow-left',`${activeGlow.scrollLeft}px`);
+  activeGlow.style.setProperty('--glow-x',`${lastPointer.x-rect.left-activeGlow.clientLeft}px`);
+  activeGlow.style.setProperty('--glow-y',`${lastPointer.y-rect.top-activeGlow.clientTop}px`);
+}
+function dropGlow(){activeGlow?.classList.remove('pointer-active');activeGlow=null;lastPointer=null}
 document.addEventListener('pointermove',e=>{
   if(e.pointerType==='touch')return;
   const target=e.target.closest('.pointer-glow');
   if(target!==activeGlow){activeGlow?.classList.remove('pointer-active');activeGlow=target;activeGlow?.classList.add('pointer-active')}
-  if(!activeGlow)return;
-  const rect=activeGlow.getBoundingClientRect();
-  activeGlow.style.setProperty('--glow-x',`${e.clientX-rect.left}px`);
-  activeGlow.style.setProperty('--glow-y',`${e.clientY-rect.top}px`);
+  lastPointer={x:e.clientX,y:e.clientY};moveGlow();
 });
+document.addEventListener('scroll',e=>{if(e.target===activeGlow)moveGlow()},true);   // list scrolled by wheel or by the app while the pointer stays still
+['dragstart','dragend','drop'].forEach(n=>document.addEventListener(n,dropGlow,true));   // no pointermove arrives during a drag, so the glow would stay frozen where the drag began
 
 loadAnalytics(); track('app/start','App start');
 if(typeof requestIdleCallback!=='undefined'){requestIdleCallback(()=>topdf.prepare(),{timeout:2500})}else{setTimeout(()=>topdf.prepare(),1200)}

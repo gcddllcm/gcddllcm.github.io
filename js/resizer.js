@@ -1,7 +1,7 @@
-import {$,msg,track} from './util.js?v=3.1.3';
-import {bindInstructionPanel} from './instruction-panel.js?v=3.1.3';
-import {t} from './i18n.js?v=3.1.3';
-import {pngSetDpi,jpgSetDpi,bmpEncode,readImageInfo,resizeLanczos,ppm} from './imgcore.js?v=3.1.3';
+import {$,msg,track} from './util.js?v=3.1.4';
+import {bindInstructionPanel} from './instruction-panel.js?v=3.1.4';
+import {t} from './i18n.js?v=3.1.4';
+import {pngSetDpi,jpgSetDpi,bmpEncode,readImageInfo,resizeLanczos,ppm} from './imgcore.js?v=3.1.4';
 import {zipSync} from './vendor/fflate.js';
 const HAS_FS='showDirectoryPicker' in window;
 const sleep=()=>new Promise(r=>setTimeout(r));
@@ -78,7 +78,7 @@ class ResizerPool {
   }
 
   _spawnWorker(){
-    const w=new Worker(new URL('./resizer-worker.js?v=3.1.3',import.meta.url),{type:'module'});
+    const w=new Worker(new URL('./resizer-worker.js?v=3.1.4',import.meta.url),{type:'module'});
     w.onmessage=e=>{
       const {id,ok,blob,w:rw,h:rh,dpi:rdpi,error}=e.data;
       const h=this.handlers.get(id);

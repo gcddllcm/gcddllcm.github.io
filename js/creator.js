@@ -1,8 +1,8 @@
-import {$,msg,track} from './util.js?v=3.1.3';
-import {bindInstructionPanel} from './instruction-panel.js?v=3.1.3';
+import {$,msg,track} from './util.js?v=3.1.4';
+import {bindInstructionPanel} from './instruction-panel.js?v=3.1.4';
 import {zipSync} from './vendor/fflate.js';
-import * as T from './nbtemplates.js?v=3.1.3';
-import {t} from './i18n.js?v=3.1.3';
+import * as T from './nbtemplates.js?v=3.1.4';
+import {t} from './i18n.js?v=3.1.4';
 const SUP=/\.(png|jpe?g|gif|bmp)$/i,coll=new Intl.Collator(undefined,{numeric:true,sensitivity:'base'});
 const A='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',nid=(n=25)=>Array.from(crypto.getRandomValues(new Uint8Array(n)),b=>A[b%36]).join('');
 const enc=new TextEncoder(),tick=()=>new Promise(r=>setTimeout(r));

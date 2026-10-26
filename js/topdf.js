@@ -1,24 +1,24 @@
-import {msg,track} from './util.js?v=3.1.3';
-import {shell,download,ensureWriteAccess} from './nbtool.js?v=3.1.3';
-import {t} from './i18n.js?v=3.1.3';
+import {msg,track} from './util.js?v=3.1.4';
+import {shell,download,ensureWriteAccess} from './nbtool.js?v=3.1.4';
+import {t} from './i18n.js?v=3.1.4';
 
 // The conversion runs the desktop app's own Python code (PyMuPDF) in a Web Worker.
 let worker=null,seq=0,prepared=false;const waits=new Map();let onStatus=()=>{};
 let lastStatusText=null,lastProgress=null;
 function localStatus(m){                       // the worker sends a code plus the values, so wording and translations live only here
   switch(m.code){
-    case 'start':return t('pdf.load');
+    case 'start':return t('pdf.load',m.done,m.steps);
     case 'ready':return t('pdf.cached');
-    case 'cachedFile':return t('pdf.cachedFile',m.file);
-    case 'readyFile':return t('pdf.readyFile',m.file);
+    case 'cachedFile':case 'readyFile':return t('pdf.setup',m.done,m.steps);
+    case 'starting':return t('pdf.starting',m.done,m.steps);
     case 'loadError':return t('pdf.loadError',m.error);
-    case 'loading':return t('pdf.loading',m.file,m.loaded,m.total);
+    case 'loading':return t('pdf.loading',m.file,m.loaded,m.total,m.done,m.steps);
   }
   return m.text;
 }
 function getWorker(){
   if(worker)return worker;
-  worker=new Worker(new URL('./pdfworker.js?v=3.1.3',import.meta.url),{type:'module'});
+  worker=new Worker(new URL('./pdfworker.js?v=3.1.4',import.meta.url),{type:'module'});
   worker.onmessage=e=>{
     const m=e.data;
     if(m.type==='status'){
