@@ -1,50 +1,97 @@
-import {msg,track} from './util.js?v=3.1.4';
-import {shell,download,ensureWriteAccess} from './nbtool.js?v=3.1.4';
-import {t} from './i18n.js?v=3.1.4';
+import {msg,track} from './util.js?v=3.1.5';
+import {shell,download,ensureWriteAccess} from './nbtool.js?v=3.1.5';
+import {t} from './i18n.js?v=3.1.5';
 
-// The conversion runs the desktop app's own Python code (PyMuPDF) in a Web Worker.
 let worker=null,seq=0,prepared=false;const waits=new Map();let onStatus=()=>{};
 let lastStatusText=null,lastProgress=null;
-let setupSince=0,setupTimer=0,lastSetupMsg=null;
-const setupSeconds=()=>Math.max(0,Math.round((Date.now()-setupSince)/1000));
-function setupDetail(m){                  // what the engine is doing right now, in words
-  if(m.stage===1)return m.pending?t('pdf.d.files',m.n,m.of,m.pending):t('pdf.d.compile');
-  if(m.stage===2)return t('pdf.d.install');
-  if(m.stage===3)return t('pdf.d.import');
-  return t('pdf.d.code');
-}
 function localStatus(m){                       // the worker sends a code plus the values, so wording and translations live only here
   switch(m.code){
     case 'ready':return t('pdf.cached');
     case 'loadError':return t('pdf.loadError',m.error);
-    case 'loading':return t('pdf.loading',m.stage,m.stages,m.label||m.file,m.loaded,m.total,setupSeconds());
-    case 'start':case 'stage':case 'cachedFile':case 'readyFile':return t('pdf.setup',m.stage,m.stages,setupDetail(m),setupSeconds());
   }
   return m.text;
 }
-function stopSetupTicker(){clearInterval(setupTimer);setupTimer=0;lastSetupMsg=null}
-// The worker is blocked while it compiles or unpacks, so it cannot report in; this page re-draws the line every second so the seconds keep counting.
-function startSetupTicker(){
-  stopSetupTicker();setupSince=Date.now();
-  setupTimer=setInterval(()=>{if(!lastSetupMsg)return;const text=localStatus(lastSetupMsg);lastStatusText=text;onStatus(text,lastProgress,lastSetupMsg.code)},1000);
+// The old PDF engine (Pyodide + PyMuPDF, ~30 MB) is no longer used: remove what it stored in this browser.
+try{globalThis.caches?.keys().then(keys=>{for(const k of keys)if(k.startsWith('penguin-logistics-pdf-engine-'))globalThis.caches.delete(k)}).catch(()=>{})}catch{}
+// A page that never finishes drawing is given up on after 50 s (the worker waits 60 s), so one bad page cannot hang the whole conversion.
+function renderSvgPage(svgText,width,height,quality){
+  return new Promise((resolve,reject)=>{
+    const timer=setTimeout(()=>reject(new Error('drawing this page took too long')),50000);
+    drawSvgPage(svgText,width,height,quality).then(v=>{clearTimeout(timer);resolve(v)},e=>{clearTimeout(timer);reject(e)});
+  });
+}
+function drawSvgPage(svgText,width,height,quality){
+  return new Promise((resolve,reject)=>{
+    try{
+      let svg=svgText.replace(/^\uFEFF/,'').replace(/<\?xml\b[\s\S]*?\?>/gi,'').replace(/<!DOCTYPE\b[\s\S]*?>/gi,'').trim();
+      if(!/<svg\b[^>]*\bxmlns\s*=/i.test(svg)){
+        svg=svg.replace(/<svg\b/i,'<svg xmlns="http://www.w3.org/2000/svg"');
+      }
+      if(!/<svg\b[^>]*\bxmlns:xlink\s*=/i.test(svg)){
+        svg=svg.replace(/<svg\b/i,'<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+      }
+      svg=svg.replace(/&(?!(?:[a-zA-Z]+|#\d+|#x[0-9a-fA-F]+);)/g,'&amp;');
+      if(!/\bviewBox\s*=/i.test(svg)){
+        const wm=svg.match(/\bwidth\s*=\s*["']\s*([\d.]+)/i);
+        const hm=svg.match(/\bheight\s*=\s*["']\s*([\d.]+)/i);
+        if(wm&&hm)svg=svg.replace(/<svg\b/i,`<svg viewBox="0 0 ${wm[1]} ${hm[1]}" preserveAspectRatio="none" `);
+      }
+      const blob=new Blob([svg],{type:'image/svg+xml;charset=utf-8'});
+      const url=URL.createObjectURL(blob);
+      const img=new Image();
+      let cleaned=false;
+      const cleanup=()=>{if(!cleaned){cleaned=true;URL.revokeObjectURL(url)}};
+      img.onload=()=>{
+        try{
+          const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
+          const ctx=canvas.getContext('2d');ctx.fillStyle='#ffffff';ctx.fillRect(0,0,width,height);
+          ctx.drawImage(img,0,0,width,height);
+          cleanup();
+          canvas.toBlob(async b=>{
+            if(!b)return reject(new Error('Canvas export failed'));
+            try{
+              const buf=await b.arrayBuffer();resolve({bytes:new Uint8Array(buf),w:width,h:height});
+            }catch(err){reject(err)}
+          },'image/jpeg',quality);
+        }catch(err){cleanup();reject(err)}
+      };
+      img.onerror=()=>{
+        cleanup();
+        try{
+          const parser=new DOMParser();
+          const doc=parser.parseFromString(svg,'image/svg+xml');
+          const pe=doc.querySelector('parsererror');
+          if(pe)return reject(new Error('SVG XML syntax error: '+pe.textContent.slice(0,160)));
+        }catch{}
+        reject(new Error('Failed to load SVG in Image element'));
+      };
+      img.src=url;
+    }catch(err){reject(err)}
+  });
 }
 function getWorker(){
   if(worker)return worker;
-  worker=new Worker(new URL('./pdfworker.js?v=3.1.4',import.meta.url),{type:'module'});
-  worker.onmessage=e=>{
+  worker=new Worker(new URL('./pdfworker.js?v=3.1.5',import.meta.url),{type:'module'});
+  worker.onmessage=async e=>{
     const m=e.data;
-    if(m.type==='setupDone'){stopSetupTicker();return}
+    if(m.type==='renderSvg'){
+      try{
+        const res=await renderSvgPage(m.svgText,m.width,m.height,m.quality);
+        worker.postMessage({type:'renderedSvg',reqId:m.reqId,ok:true,bytes:res.bytes,w:res.w,h:res.h},[res.bytes.buffer]);
+      }catch(err){
+        worker.postMessage({type:'renderedSvg',reqId:m.reqId,ok:false,error:String(err?.message||err)});
+      }
+      return;
+    }
     if(m.type==='status'){
-      if(m.code==='start')startSetupTicker();
-      if(m.code==='ready'||m.code==='loadError')stopSetupTicker();else lastSetupMsg=m;
       lastStatusText=localStatus(m);
       lastProgress=m.progress;
       onStatus(lastStatusText,m.progress,m.code);
       return;
     }
-    stopSetupTicker();const w=waits.get(m.id);if(!w)return;
+    const w=waits.get(m.id);if(!w)return;
     if(m.type==='page')w.onPage(m.d,m.t);else{waits.delete(m.id);m.type==='done'?w.res(m):w.rej(new Error(m.message));if(m.fatal){worker?.terminate();worker=null;prepared=false}}};
-  worker.onerror=e=>{stopSetupTicker();for(const w of waits.values())w.rej(new Error(t('pdf.engineFail')+' ('+(e.message||'unknown')+')'));waits.clear();worker=null;prepared=false};
+  worker.onerror=e=>{for(const w of waits.values())w.rej(new Error(t('pdf.engineFail')+' ('+(e.message||'unknown')+')'));waits.clear();worker=null;prepared=false};
   return worker;
 }
 function convert(buf,title,onPage,quality,resolution){return new Promise((res,rej)=>{const id=++seq;waits.set(id,{res,rej,onPage});getWorker().postMessage({id,data:buf,title,quality,resolution},[buf])})}

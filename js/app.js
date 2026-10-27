@@ -1,10 +1,10 @@
-import {APP_VERSION} from '../config.js?v=3.1.4';
-import {$,msg,track,loadAnalytics} from './util.js?v=3.1.4';
-import * as resizer from './resizer.js?v=3.1.4';
-import * as creator from './creator.js?v=3.1.4';
-import * as pagelock from './pagelock.js?v=3.1.4';
-import * as topdf from './topdf.js?v=3.1.4';
-import {strings,t} from './i18n.js?v=3.1.4';
+import {APP_VERSION} from '../config.js?v=3.1.5';
+import {$,msg,track,loadAnalytics} from './util.js?v=3.1.5';
+import * as resizer from './resizer.js?v=3.1.5';
+import * as creator from './creator.js?v=3.1.5';
+import * as pagelock from './pagelock.js?v=3.1.5';
+import * as topdf from './topdf.js?v=3.1.5';
+import {strings,t} from './i18n.js?v=3.1.5';
 
 document.querySelector('[data-page="tools"]').textContent=t('nav.tools');
 document.querySelector('[data-page="updates"]').textContent=t('nav.updates');

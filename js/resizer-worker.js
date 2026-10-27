@@ -1,4 +1,4 @@
-import {pngSetDpi, jpgSetDpi, bmpEncode, readImageInfo, resizeLanczos, sizeProblem, ppm} from './imgcore.js?v=3.1.4';
+import {pngSetDpi, jpgSetDpi, bmpEncode, readImageInfo, resizeLanczos, sizeProblem, ppm} from './imgcore.js?v=3.1.5';
 
 const HEAD_BYTES = 262144;   // enough to read width/height from any common image header
 const TYPES = {'.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.bmp': 'image/bmp'};

@@ -1,4 +1,4 @@
-import {GOATCOUNTER_CODE} from '../config.js?v=3.1.4';
+import {GOATCOUNTER_CODE} from '../config.js?v=3.1.5';
 export const $ = id => document.getElementById(id);
 
 // Usage counting: numbers only (tool names + counts). Never file names or file contents.

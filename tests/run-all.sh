@@ -5,5 +5,5 @@ status=0
 for f in js/*.js js/locales/*.js config.js; do node --check "$f" || status=1; done
 echo "syntax: checked all scripts"
 node tests/imgcore.test.mjs || status=1
-python3 tests/test_pdf.py || status=1
+node tests/pdfworker.test.mjs || status=1
 exit $status

@@ -40,11 +40,3 @@ en = read(root / "js" / "locales" / "en.js")
 top = re.search(r"RELEASES:\[\s*\{version:'v([^']+)'", en)
 if not top or top.group(1) != ver:
     print(f"WARNING: the newest entry in RELEASES (js/locales/en.js) is v{top.group(1) if top else '?'}, not v{ver}. Add the release notes.")
-import hashlib
-fp = hashlib.sha1("|".join(f"{p.name}:{p.stat().st_size}" for p in sorted((root / "js" / "vendor" / "pyodide").iterdir())).encode()).hexdigest()[:12]
-fp_file = root / "tools" / "engine-fingerprint.txt"
-old = fp_file.read_text().strip() if fp_file.exists() else ""
-if fp != old:
-    if old:
-        print("WARNING: the PDF engine files in js/vendor/pyodide changed. Bump the number in ENGINE_CACHE (js/pdfworker.js, 'v1' -> 'v2') so browsers drop the old engine.")
-    fp_file.write_text(fp + "\n")

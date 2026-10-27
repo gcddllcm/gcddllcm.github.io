@@ -1,7 +1,7 @@
-import {msg,track} from './util.js?v=3.1.4';
-import {shell,download,ensureWriteAccess} from './nbtool.js?v=3.1.4';
+import {msg,track} from './util.js?v=3.1.5';
+import {shell,download,ensureWriteAccess} from './nbtool.js?v=3.1.5';
 import {unzipSync,zipSync} from './vendor/fflate.js';
-import {t} from './i18n.js?v=3.1.4';
+import {t} from './i18n.js?v=3.1.5';
 const LOCK_VALUE='30',dec=new TextDecoder('utf-8'),enc=new TextEncoder();
 
 function setLock(text,lock){
