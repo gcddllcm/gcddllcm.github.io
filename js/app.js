@@ -1,6 +1,6 @@
 import {APP_VERSION} from '../config.js?v=3.2.0';
 import {$,msg,track,loadAnalytics} from './util.js?v=3.2.0';
-import * as resizer from './resizer.js?v=3.2.0';
+import * as resizer from './resizer.js?v=3.2.0-layout1';
 import * as creator from './creator.js?v=3.2.0';
 import * as pagelock from './pagelock.js?v=3.2.0';
 import * as topdf from './topdf.js?v=3.2.0';
@@ -108,10 +108,11 @@ function showPage(name){
   if(!next)return;
   pageTabs.forEach(b=>b.classList.toggle('active',b.dataset.page===name));requestAnimationFrame(syncTabIndicator);
   if(current===next){current.classList.remove('leaving');if(name==='updates')requestAnimationFrame(fitTimeline);return}
+  if(name==='about')animateProjectLineCount();
   const token=++pageTransition;
-  if(matchMedia('(prefers-reduced-motion: reduce)').matches||!current){if(current)current.classList.remove('on','leaving','entering');next.classList.add('on');next.classList.remove('leaving','entering');if(name==='updates')requestAnimationFrame(fitTimeline);return}
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches||!current){if(current)current.classList.remove('on','leaving','entering');next.classList.add('on');next.classList.remove('leaving','entering');if(name==='about')animateAboutCard();if(name==='updates')requestAnimationFrame(fitTimeline);return}
   current.classList.remove('entering');current.classList.add('leaving');
-  setTimeout(()=>{if(token!==pageTransition)return;current.classList.remove('on','leaving');next.classList.add('on','entering');if(name==='updates')requestAnimationFrame(fitTimeline);setTimeout(()=>{if(token===pageTransition)next.classList.remove('entering')},260)},145);
+  setTimeout(()=>{if(token!==pageTransition)return;current.classList.remove('on','leaving');next.classList.add('on','entering');if(name==='about')animateAboutCard();if(name==='updates')requestAnimationFrame(fitTimeline);setTimeout(()=>{if(token===pageTransition)next.classList.remove('entering')},260)},145);
 }
 pageTabs.forEach(b=>b.onclick=()=>showPage(b.dataset.page));
 requestAnimationFrame(syncTabIndicator);addEventListener('resize',syncTabIndicator);
@@ -123,9 +124,37 @@ function fitTimeline(){const dots=[...timeline.querySelectorAll('.timeline-dot')
 requestAnimationFrame(fitTimeline);addEventListener('resize',fitTimeline);new ResizeObserver(fitTimeline).observe(timeline);
 if(!reduceReleaseMotion){const revealObserver=new IntersectionObserver(entries=>{for(const entry of entries){if(entry.isIntersecting){entry.target.classList.add('revealed');entry.target.classList.remove('reveal-pending');revealObserver.unobserve(entry.target)}}},{root:document.getElementById('main'),rootMargin:'0px 0px -8% 0px',threshold:.08});timeline.querySelectorAll('.release.reveal-pending').forEach(el=>revealObserver.observe(el))}
 const about=$('about-page');
-about.innerHTML=`<section class="about-card"><div class="page-heading"><img class="page-icon" src="icon.ico" alt=""><div><h1>${t('about.title')}</h1><div class="sub">Penguin Logistics</div></div></div><p>${t('about.contact')}</p><p>${t('about.creator')} Champ (AT Math) + Claude, Codex, Zhipu, Antigravity, and Cursor (all of them are free btw)</p><p>${t('about.version')} <strong>${APP_VERSION}</strong></p><p>${t('about.privacy')}</p></section>`;
+const PROJECT_LINE_COUNT=6262,PROJECT_FILE_COUNT=33;
+about.innerHTML=`<section class="about-card"><div class="page-heading"><img class="page-icon" src="icon.ico" alt=""><div><h1>${t('about.title')}</h1><div class="sub">Penguin Logistics</div></div></div><article class="about-lines" aria-label="${t('about.linesLabel')}"><div class="about-lines-copy"><span class="about-lines-label">${t('about.linesLabel')}</span><strong class="about-lines-value">${PROJECT_LINE_COUNT.toLocaleString()}</strong><span class="about-lines-note">${t('about.linesNote',PROJECT_FILE_COUNT.toLocaleString())}</span></div><span class="about-lines-mark" aria-hidden="true">&lt;/&gt;</span></article><p>${t('about.contact')}</p><p>${t('about.creator')} Champ (AT Math) + Claude, Codex, Zhipu, Antigravity, Copilot, and Cursor (all of them are free btw)</p><p>${t('about.version')} <strong>${APP_VERSION}</strong></p><p>${t('about.privacy')}</p></section>`;
+function animateAboutCard(){
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  const card=about.querySelector('.about-lines');
+  if(!card)return;
+  card.classList.remove('about-lines-arriving');
+  void card.offsetWidth;
+  card.classList.add('about-lines-arriving');
+}
+about.querySelector('.about-lines').addEventListener('animationend',event=>{
+  if(event.animationName==='about-lines-arrive')event.currentTarget.classList.remove('about-lines-arriving');
+});
+let lineCountAnimation=0;
+function animateProjectLineCount(){
+  const value=about.querySelector('.about-lines-value');
+  if(!value)return;
+  cancelAnimationFrame(lineCountAnimation);
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches){value.textContent=PROJECT_LINE_COUNT.toLocaleString();return}
+  const started=performance.now(),duration=1900;
+  function tick(now){
+    const progress=Math.min((now-started)/duration,1);
+    const eased=progress===1?1:2**(-10*progress)*Math.sin((progress*10-.75)*(2*Math.PI/3))+1;
+    value.textContent=Math.round(PROJECT_LINE_COUNT*eased).toLocaleString();
+    if(progress<1)lineCountAnimation=requestAnimationFrame(tick);
+  }
+  value.textContent='0';
+  lineCountAnimation=requestAnimationFrame(tick);
+}
 
-const glowTargets=[...document.querySelectorAll('.center,.drop,.previewbox,.listbox,.release-card,.about-card,.instruction-panel,.tool-nav,.tool-nav-item,.tool-guide')];
+const glowTargets=[...document.querySelectorAll('.center,.drop,.previewbox,.listbox,.release-card,.about-card,.about-lines,.instruction-panel,.tool-nav,.tool-nav-item,.tool-guide')];
 glowTargets.forEach(el=>el.classList.add('pointer-glow'));
 let activeGlow=null,lastPointer=null;
 function moveGlow(){
@@ -134,14 +163,19 @@ function moveGlow(){
   // The glow sits inside the box's own scrolling content, so on a scrolled list it is shifted by the scroll position to stay under the pointer.
   activeGlow.style.setProperty('--glow-top',`${activeGlow.scrollTop}px`);
   activeGlow.style.setProperty('--glow-left',`${activeGlow.scrollLeft}px`);
-  activeGlow.style.setProperty('--glow-x',`${lastPointer.x-rect.left-activeGlow.clientLeft}px`);
-  activeGlow.style.setProperty('--glow-y',`${lastPointer.y-rect.top-activeGlow.clientTop}px`);
+  const x=lastPointer.x-rect.left-activeGlow.clientLeft,y=lastPointer.y-rect.top-activeGlow.clientTop;
+  activeGlow.style.setProperty('--glow-x',`${x}px`);
+  activeGlow.style.setProperty('--glow-y',`${y}px`);
+  if(activeGlow.matches('.about-lines')){
+    activeGlow.style.setProperty('--tilt-x',`${((.5-y/activeGlow.clientHeight)*12).toFixed(2)}deg`);
+    activeGlow.style.setProperty('--tilt-y',`${((x/activeGlow.clientWidth-.5)*14).toFixed(2)}deg`);
+  }
 }
-function dropGlow(){activeGlow?.classList.remove('pointer-active');activeGlow=null;lastPointer=null}
+function dropGlow(){activeGlow?.classList.remove('pointer-active');activeGlow?.style.setProperty('--tilt-x','0deg');activeGlow?.style.setProperty('--tilt-y','0deg');activeGlow=null;lastPointer=null}
 document.addEventListener('pointermove',e=>{
   if(e.pointerType==='touch')return;
   const target=e.target.closest('.pointer-glow');
-  if(target!==activeGlow){activeGlow?.classList.remove('pointer-active');activeGlow=target;activeGlow?.classList.add('pointer-active')}
+  if(target!==activeGlow){activeGlow?.classList.remove('pointer-active');activeGlow?.style.setProperty('--tilt-x','0deg');activeGlow?.style.setProperty('--tilt-y','0deg');activeGlow=target;activeGlow?.classList.add('pointer-active')}
   lastPointer={x:e.clientX,y:e.clientY};moveGlow();
 });
 document.addEventListener('scroll',e=>{if(e.target===activeGlow)moveGlow()},true);   // list scrolled by wheel or by the app while the pointer stays still

@@ -216,7 +216,7 @@ export function mount(root){
   const pick=async()=>{if(busy)return;if('showOpenFilePicker' in window){try{const hs=await showOpenFilePicker({multiple:true,types:[{description:'Images',accept:{'image/*':['.png','.jpg','.jpeg','.gif','.bmp']}}]});add(await Promise.all(hs.map(h=>h.getFile())))}catch{}}else $('cr-file').click()};
   $('cr-drop').onclick=pick;$('cr-drop').onkeydown=e=>{if(e.key==='Enter'||e.key===' ')pick()};
   $('cr-file').onchange=e=>{add([...e.target.files]);e.target.value=''};
-  addEventListener('paste',e=>{if(root.classList.contains('on')&&!busy&&e.clipboardData.files.length)add([...e.clipboardData.files])});
+  addEventListener('paste',e=>{if(root.classList.contains('on')&&root.closest('.page')?.classList.contains('on')&&!busy&&e.clipboardData.files.length)add([...e.clipboardData.files])});   // the view stays "on" while Home / Release Notes / About are shown, so the page must be visible too
   addEventListener('beforeunload',e=>{if(busy||items.length){e.preventDefault();e.returnValue=''}});   // the list of images would be lost
   // ---- drag: files in, or reorder rows ----
   const tool=root.firstElementChild;let dragging=false;

@@ -112,6 +112,14 @@ dialog::backdrop{background:rgba(0,0,0,.62)}
 #cr-cap{position:absolute;right:0;bottom:50px;left:0;text-align:center;pointer-events:none}
 .reset-btn{align-self:flex-end;padding:7px 12px;font-size:12px}
 .quality-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.quality-row label{font-size:12px}.quality-row select{background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:8px 12px;font:inherit;font-size:13px;font-weight:600}
+.resizer-settings{display:grid;grid-template-columns:minmax(0,1fr) max-content;align-items:center;gap:12px}
+.resizer-settings .quality-row{display:grid;grid-template-columns:max-content 132px;gap:10px;min-width:0}
+.resizer-settings .quality-row label{min-width:0}
+.resizer-settings .quality-row select{width:132px;min-width:0}
+.resizer-settings .reset-btn{white-space:nowrap}
+.resizer-output-row{display:grid;grid-template-columns:minmax(0,1fr);align-items:start;gap:6px;min-width:0}
+.resizer-output-row .btn{width:100%;white-space:nowrap}
+.resizer-output-row .path{min-width:0}
 .chk{display:flex;gap:8px;align-items:center;color:var(--sub);font-size:13px;font-weight:400;cursor:pointer}.chk input{width:auto;margin:0}
 .warn{color:var(--sub);font-size:12px;border-left:3px solid var(--warn);padding-left:10px}
 .page-heading{display:flex;align-items:center;gap:14px;margin:4px auto 28px;width:min(100%,1060px)}
@@ -152,6 +160,21 @@ dialog::backdrop{background:rgba(0,0,0,.62)}
 @media(max-width:760px){.tool-layout{display:flex;flex-direction:column}.tool-layout.tool-shifted>.tool{transform:none;flex:0 0 auto}.tool-layout.with-instructions>.instruction-panel{width:100%;order:2}}
 @media(max-width:430px){.brand{font-size:14px}.row3{gap:7px}.row3 label{font-size:9px}.row3 input{padding:8px 4px;font-size:14px}.cr-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.release-card{border-radius:13px}.release-card h2{font-size:18px}}
 @media(max-width:600px){.landing-content{padding:22px 2px 30px}.landing-intro{margin-bottom:22px}.landing-tools{grid-template-columns:1fr;gap:10px}.landing-tool{min-height:90px;grid-template-columns:52px minmax(0,1fr) 18px;padding:15px;gap:13px}.landing-tool-icon{width:50px;height:50px}.landing-tool-icon svg{width:30px;height:34px}.landing-tool-copy strong{font-size:15px}}
+.about-lines{position:relative;display:flex;align-items:center;justify-content:space-between;gap:20px;overflow:hidden;margin:0 0 25px;padding:23px 26px;border:1px solid #8e80ff45;border-radius:14px;background:radial-gradient(ellipse at 85% 15%,#7062dc38,transparent 58%),linear-gradient(125deg,#302e43,#272832 70%);box-shadow:inset 0 1px #ffffff0a,0 12px 35px #6555df24;transition:transform .12s ease,border-color .25s ease,box-shadow .3s ease;transform-style:preserve-3d}
+.about-lines::before{content:"";position:absolute;z-index:0;top:-45%;bottom:-45%;left:-45%;width:32%;pointer-events:none;background:linear-gradient(90deg,transparent,#ffffff0a,#c3baff38,#ffffff0a,transparent);transform:rotate(22deg);animation:about-lines-sweep 3.4s ease-in-out infinite}
+.about-lines-copy,.about-lines-mark{position:relative;z-index:1}
+.about-lines.pointer-active{transform:perspective(900px) rotateX(var(--tilt-x,0deg)) rotateY(var(--tilt-y,0deg)) translateY(-7px) scale(1.035);border-color:#b4aaff;box-shadow:inset 0 1px #ffffff25,0 22px 55px #6555df55,0 0 32px #8e80ff30}
+.about-lines.about-lines-arriving{animation:about-lines-arrive .95s cubic-bezier(.2,1.35,.35,1) both}
+@keyframes about-lines-arrive{0%{opacity:0;filter:blur(14px);transform:perspective(700px) translateY(90px) rotateX(-35deg) rotateZ(-7deg) scale(.55)}55%{opacity:1;filter:blur(0);transform:perspective(700px) translateY(-17px) rotateX(13deg) rotateZ(3deg) scale(1.12)}75%{transform:perspective(700px) translateY(8px) rotateX(-6deg) rotateZ(-1.5deg) scale(.96)}100%{opacity:1;filter:blur(0);transform:perspective(700px) translateY(0) rotateX(0) rotateZ(0) scale(1)}}
+@keyframes about-lines-sweep{0%,16%{left:-45%;opacity:0}28%{opacity:1}72%{opacity:.9}100%{left:125%;opacity:0}}
+.about-lines-copy{display:grid;gap:4px;min-width:0}
+.about-lines-label{color:#aaa0ff;font-size:10px;font-weight:750;letter-spacing:.18em}
+.about-lines-value{font-size:clamp(38px,7vw,58px);font-variant-numeric:tabular-nums;line-height:1.05;letter-spacing:-.055em;background:linear-gradient(100deg,#fff 15%,#b5adff 75%,#85e8d8);background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 14px #aaa0ff55)}
+.about-lines-note{color:#b4b5c0;font-size:12px;line-height:1.55}
+.about-lines-mark{display:grid;place-items:center;flex:none;width:58px;height:58px;border:1px solid #aaa0ff45;border-radius:18px;background:#aaa0ff12;color:#b8afff;font-size:29px;box-shadow:0 0 32px #8170ff18;transition:transform .4s cubic-bezier(.2,1.5,.4,1)}
+.about-lines.pointer-active .about-lines-mark{transform:translateZ(28px) rotate(12deg) scale(1.16)}
+@media(max-width:600px){.about-lines{padding:19px;gap:12px}.about-lines-mark{width:46px;height:46px;border-radius:14px;font-size:24px}}
+@media(prefers-reduced-motion:reduce){.about-lines,.about-lines-mark{animation:none!important;transition:none!important;transform:none!important}.about-lines::before{display:none}.about-lines.pointer-active .about-lines-mark{transform:none}}
 @media(prefers-reduced-motion:reduce){.tool-layout,.tool-layout>.tool,.instruction-panel{transition:none!important;transform:none!important;clip-path:none!important}.tab-indicator,.tab,.page{transition:none!important;animation:none!important}}
 @media(prefers-reduced-motion:reduce){.release.reveal-pending,.release.revealed{opacity:1;transform:none;transition:none!important}.timeline-line,.release.revealed .timeline-dot,.release.revealed .release-card{animation:none!important;filter:none!important}.timeline-line{transform:none}}
 @media(hover:hover) and (pointer:fine){
@@ -164,7 +187,7 @@ dialog::backdrop{background:rgba(0,0,0,.62)}
 @media(prefers-reduced-motion:reduce){.pointer-glow::after{transition:none!important}}
 
 /* Keep the tool picker reachable while the active tool content scrolls. */
-@media(max-width:760px){
+@media(max-width:1250px){
  #main{display:flex;flex-direction:column;padding:10px 12px 16px}
  #tools-page.on{min-height:0;overflow:hidden;flex-direction:column;gap:10px}
  #tool{width:100%;min-width:0;padding:10px 12px}
@@ -186,6 +209,12 @@ dialog::backdrop{background:rgba(0,0,0,.62)}
  .view[data-tool="topdf"] .drop,.view[data-tool="pagelock"] .drop{min-height:clamp(180px,40vh,340px);max-height:min(44vh,360px)}
  .view[data-tool="resizer"] .drop{min-height:clamp(160px,32vh,280px);max-height:min(38vh,300px)}
  .drop.small{min-height:74px}
+}
+@media(max-width:1250px){
+ .view[data-tool="resizer"] .tool{min-height:calc(100vh - 220px)}
+ .view[data-tool="resizer"] .drop{flex:1 1 0;min-height:180px;max-height:none}
+ .row3{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .row3 label,.row3 input{min-width:0}
 }
 
 /* Persistent, compact tool guides beside a centered workspace. */
@@ -209,11 +238,18 @@ dialog::backdrop{background:rgba(0,0,0,.62)}
 .guide-chevron{width:15px;height:15px;flex:none;transition:transform .18s ease}
 .guide-details[open]:not(.closing) .guide-chevron{transform:rotate(180deg)}
 .guide-details-content{padding:10px 2px 2px;color:#c5c6ce;font-size:11px;line-height:1.65;white-space:pre-line;overflow-wrap:anywhere}
-@media(max-width:760px){
+@media(max-width:1250px){
  .tool-layout{display:flex!important;flex-direction:column;gap:14px;width:100%;height:auto;min-height:0}
  .tool-layout>.tool,.tool-layout>.tool.wideview{flex:none;width:100%;max-width:none;height:auto;min-height:0;margin:0;transform:none}
  .tool-guide{flex:none;width:100%;max-height:none;overflow:visible;padding:15px}
  .guide-steps{grid-template-columns:1fr 1fr;gap:12px}
+}
+@media(max-width:430px){
+ .resizer-settings{grid-template-columns:minmax(0,1fr) max-content;gap:8px}
+ .resizer-settings .quality-row{grid-template-columns:minmax(0,1fr) 132px;gap:6px}
+ .resizer-settings .quality-row label{overflow-wrap:anywhere;font-size:9px}
+ .resizer-settings .quality-row select{width:132px;padding:8px 4px;font-size:12px}
+ .resizer-settings .reset-btn{padding:8px}
 }
 @media(prefers-reduced-motion:reduce){.guide-chevron{transition:none!important}}
 
@@ -233,7 +269,7 @@ dialog::backdrop{background:rgba(0,0,0,.62)}
 .tool-nav-name{overflow:hidden;color:#f4f4f8;font-size:13px;font-weight:700;text-overflow:ellipsis;white-space:nowrap}
 .tool-nav-desc{overflow:hidden;margin-top:2px;color:#8c909c;font-size:11px;text-overflow:ellipsis;white-space:nowrap}
 .tool-nav-shortcut{flex:none;margin-left:auto}
-@media(max-width:760px){
+@media(max-width:1250px){
  .tool-nav{width:100%;padding:10px 8px 8px;border-radius:12px}
  .tool-nav-eyebrow{display:none}
  .tool-nav-list{flex-direction:row;gap:6px;overflow:auto}
@@ -246,6 +282,30 @@ dialog::backdrop{background:rgba(0,0,0,.62)}
  .tool-nav-desc{display:none}
 }
 @media(prefers-reduced-motion:reduce){.tool-nav-item{transition:none!important}}
+
+@media(min-width:1051px){
+ #main{flex-direction:row;padding:10px 12px 16px}
+ #tools-page.on{min-height:0;overflow:hidden;flex-direction:row;gap:16px}
+ #tool{width:auto;min-width:min(400px,55%)}
+ #tools{display:flex;min-height:0;overflow:hidden}
+ .view.on{display:flex;min-height:0;height:100%;overflow-y:auto;padding:0}
+ .tool-layout{display:flex!important;flex-direction:row;gap:18px;width:100%;height:100%;min-height:0}
+ .tool-layout>.tool,.tool-layout>.tool.wideview{flex:1 1 0;width:auto;max-width:none;height:100%;min-height:0;margin:0}
+ .tool-guide{flex:0 0 clamp(230px,25%,300px);width:auto;max-height:100%;align-self:stretch;overflow:auto;padding:18px 16px}
+ .view.on{overflow:hidden}
+ .tool-layout>.tool,.tool-layout>.tool.wideview{overflow-y:auto;scrollbar-width:thin;scrollbar-color:#4a4c58 transparent}
+ .guide-steps{grid-template-columns:1fr}
+ .tool-nav{flex:0 0 232px;width:232px;padding:14px 12px 16px}
+ .tool-nav-eyebrow{display:block}
+ .tool-nav-list{flex-direction:column;gap:16px}
+ .tool-nav-group{display:flex;flex-direction:column;gap:6px}
+ .tool-nav-category{display:block}
+ .tool-nav-item{flex:0 1 auto;min-width:0;flex-direction:row;align-items:center;justify-content:initial;gap:10px;padding:10px 11px;text-align:left}
+ .tool-nav-copy{align-items:flex-start;width:auto}
+ .tool-nav-shortcut{margin-left:auto}
+ .tool-nav-name{font-size:13px;white-space:nowrap}
+ .tool-nav-desc{display:block}
+}
 
 /* ---- Laptop / short-window layout ----
    One layout for every height: the tool fills what is left under the header and its
@@ -285,6 +345,9 @@ dialog::backdrop{background:rgba(0,0,0,.62)}
 }
 @media(min-width:1254px) and (max-width:1473px){
  .tool-layout.wide-tool.tool-shifted>.tool{transform:translateX(-300px)}
+}
+@media(min-width:1051px) and (max-width:1250px){
+ .view[data-tool="topdf"] .drop,.view[data-tool="pagelock"] .drop{flex:1 1 0;min-height:clamp(120px,24vh,220px);max-height:none}
 }
 
 /* ---- File creator: fullscreen image preview (corner button or Alt+click) ---- */

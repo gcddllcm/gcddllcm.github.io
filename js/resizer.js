@@ -238,9 +238,9 @@ export function mount(root){
   root.innerHTML=`<div class="tool-layout"><div class="tool"><div class="head"><h1>${t('tool.resizer')}</h1></div>
   <div class="sub">${t('resizer.sub')}</div>
   <div class="row3"><label>${t('resizer.dpi')}<input id="rz-dpi" value="300" inputmode="numeric"></label><label>${t('resizer.width')}<input id="rz-w" value="2480" inputmode="numeric"></label><label>${t('resizer.height')}<input id="rz-h" value="3508" inputmode="numeric"></label></div>
-  <div class="quality-row"><label for="rz-q">${t('resizer.quality')}</label><select id="rz-q"><option value="75">75%</option><option value="85">85%</option><option value="90">90%</option><option value="95">95%</option><option value="100" selected>${t('resizer.qualityDefault')}</option></select></div>
-  <button class="btn reset-btn" id="rz-reset">${t('resizer.reset')}</button>
-  <button class="btn primary wide" id="rz-out">${t('resizer.output')}</button><div class="path" id="rz-path">${HAS_FS?t('resizer.noFolder'):t('resizer.downloadMode')}</div>
+  <div class="resizer-settings"><div class="quality-row"><label for="rz-q">${t('resizer.quality')}</label><select id="rz-q"><option value="75">75%</option><option value="85">85%</option><option value="90">90%</option><option value="95">95%</option><option value="100" selected>${t('resizer.qualityDefault')}</option></select></div>
+  <button class="btn reset-btn" id="rz-reset">${t('resizer.reset')}</button></div>
+  <div class="resizer-output-row"><button class="btn primary" id="rz-out">${t('resizer.output')}</button><div class="path" id="rz-path">${HAS_FS?t('resizer.noFolder'):t('resizer.downloadMode')}</div></div>
   <div class="drop" id="rz-drop" tabindex="0"><span class="drop-label">${t('resizer.drop')}</span></div>
   <div><progress id="rz-prog" max="1" value="0"></progress><div class="sub" id="rz-status">${t('resizer.ready')}</div></div>
   <input type="file" id="rz-file" multiple accept=".jpg,.jpeg,.png,.bmp,.webp" hidden></div>

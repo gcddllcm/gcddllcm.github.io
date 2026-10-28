@@ -101,6 +101,26 @@ await check('i18n: every key used as t(\'...\') in js/ exists in en.js', () => {
   assert.deepEqual(missing, [], 'missing keys: ' + missing.join(', '));
 });
 
+await check('About Us: the file count in the text is dynamic and the line/file constants keep the shape the build script edits', () => {
+  assert.equal(typeof en['about.linesNote'], 'function');
+  assert.ok(en['about.linesNote'](42).includes('42 text files'), 'the number must come from the argument');
+  const app = fs.readFileSync(new URL('../js/app.js', import.meta.url), 'utf8');
+  // tools/update_project_line_count.py rewrites exactly this pair; if it is reformatted the Pages build stops
+  assert.equal(app.match(/const PROJECT_LINE_COUNT=\d+,PROJECT_FILE_COUNT=\d+;/g)?.length, 1);
+  assert.ok(app.includes("t('about.linesNote',PROJECT_FILE_COUNT"), 'app.js must pass the file count to the text');
+});
+
+await check('creator: pasting only adds images while the Tools page is the one on screen', () => {
+  const src = fs.readFileSync(new URL('../js/creator.js', import.meta.url), 'utf8');
+  const line = src.split('\n').find(l => l.includes("addEventListener('paste'"));
+  assert.ok(line && line.includes("root.closest('.page')?.classList.contains('on')"), 'paste handler must check that the page is visible');
+});
+
+await check('i18n: no old carousel / library strings or the stale PDF-engine sentence are left', () => {
+  for (const k of Object.keys(en)) assert.ok(!/^(carousel|start|home)\./.test(k), k + ' is unused and should stay removed');
+  assert.ok(!en['guide.topdf.details'].includes('PDF engine'), 'the converter is built in now: nothing is cached');
+});
+
 await check('analytics: file counts are grouped into buckets', () => {
   assert.deepEqual([1, 2, 5, 6, 10, 11, 20, 21, 50, 51, 300].map(countBucket), ['1', '2-5', '2-5', '6-10', '6-10', '11-20', '11-20', '21-50', '21-50', '51+', '51+']);
 });
