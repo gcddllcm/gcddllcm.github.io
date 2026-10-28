@@ -31,11 +31,11 @@ def count_project_text():
 
 def main():
     total, files = count_project_text()
-    app_source = APP.read_text(encoding="utf-8")
+    app_source = APP.read_bytes().decode("utf-8")
     updated, replacements = COUNT_PATTERN.subn(rf"\g<1>{total}\g<2>{files};", app_source)
     if replacements != 1:
         sys.exit(f"Expected one PROJECT_LINE_COUNT/PROJECT_FILE_COUNT constant pair in {APP.relative_to(ROOT)}.")
-    APP.write_text(updated, encoding="utf-8", newline="\n")
+    APP.write_bytes(updated.encode("utf-8"))
     print(f"Updated About Us counts: {total} lines in {files} text files")
 
 

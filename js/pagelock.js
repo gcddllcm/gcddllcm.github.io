@@ -1,9 +1,9 @@
-import {msg,track,countBucket,yieldNow} from './util.js?v=3.2.0';
-import {shell,download,ensureWriteAccess,saveToHandle} from './nbtool.js?v=3.2.0';
-import {setLock} from './lockcore.js?v=3.2.0';
-import {fixNames} from './zipnames.js?v=3.2.0';
+import {msg,track,countBucket,yieldNow} from './util.js?v=3.2.1';
+import {shell,download,ensureWriteAccess,saveToHandle} from './nbtool.js?v=3.2.1';
+import {setLock} from './lockcore.js?v=3.2.1';
+import {fixNames} from './zipnames.js?v=3.2.1';
 import {unzipSync,zipSync} from './vendor/fflate.js';
-import {t} from './i18n.js?v=3.2.0';
+import {t} from './i18n.js?v=3.2.1';
 const dec=new TextDecoder('utf-8'),enc=new TextEncoder();
 
 async function process(file,lock){

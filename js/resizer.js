@@ -1,7 +1,7 @@
-import {$,msg,track,countBucket,yieldNow} from './util.js?v=3.2.0';
-import {mountGuide} from './instruction-panel.js?v=3.2.0';
-import {t} from './i18n.js?v=3.2.0';
-import {pngSetDpi,jpgSetDpi,bmpEncode,readImageInfo,resizeLanczos,ppm} from './imgcore.js?v=3.2.0';
+import {$,msg,track,countBucket,yieldNow} from './util.js?v=3.2.1';
+import {mountGuide} from './instruction-panel.js?v=3.2.1';
+import {t} from './i18n.js?v=3.2.1';
+import {pngSetDpi,jpgSetDpi,bmpEncode,readImageInfo,resizeLanczos,ppm} from './imgcore.js?v=3.2.1';
 import {zipSync} from './vendor/fflate.js';
 const HAS_FS='showDirectoryPicker' in window;
 const sleep=yieldNow;
@@ -78,7 +78,7 @@ class ResizerPool {
   }
 
   _spawnWorker(){
-    const w=new Worker(new URL('./resizer-worker.js?v=3.2.0',import.meta.url),{type:'module'});
+    const w=new Worker(new URL('./resizer-worker.js?v=3.2.1',import.meta.url),{type:'module'});
     w.onmessage=e=>{
       const {id,ok,blob,w:rw,h:rh,dpi:rdpi,error}=e.data;
       const h=this.handlers.get(id);
@@ -242,7 +242,7 @@ export function mount(root){
   <button class="btn reset-btn" id="rz-reset">${t('resizer.reset')}</button></div>
   <div class="resizer-output-row"><button class="btn primary" id="rz-out">${t('resizer.output')}</button><div class="path" id="rz-path">${HAS_FS?t('resizer.noFolder'):t('resizer.downloadMode')}</div></div>
   <div class="drop" id="rz-drop" tabindex="0"><span class="drop-label">${t('resizer.drop')}</span></div>
-  <div><progress id="rz-prog" max="1" value="0"></progress><div class="sub" id="rz-status">${t('resizer.ready')}</div></div>
+  <div class="tool-progress"><progress id="rz-prog" max="1" value="0"></progress><div class="sub" id="rz-status">${t('resizer.ready')}</div></div>
   <input type="file" id="rz-file" multiple accept=".jpg,.jpeg,.png,.bmp,.webp" hidden></div>
   </div>`;
 

@@ -1,6 +1,6 @@
-import {msg,track,countBucket} from './util.js?v=3.2.0';
-import {shell,download,ensureWriteAccess} from './nbtool.js?v=3.2.0';
-import {t} from './i18n.js?v=3.2.0';
+import {msg,track,countBucket} from './util.js?v=3.2.1';
+import {shell,download,ensureWriteAccess} from './nbtool.js?v=3.2.1';
+import {t} from './i18n.js?v=3.2.1';
 
 const PDF_RESOLUTION=0;   // always original size: pages are never scaled down (the worker reads 0 as "no downscale")
 let worker=null,seq=0,prepared=false;const waits=new Map();let onStatus=()=>{};
@@ -72,7 +72,7 @@ function drawSvgPage(svgText,width,height,quality){
 }
 function getWorker(){
   if(worker)return worker;
-  worker=new Worker(new URL('./pdfworker.js?v=3.2.0',import.meta.url),{type:'module'});
+  worker=new Worker(new URL('./pdfworker.js?v=3.2.1',import.meta.url),{type:'module'});
   worker.onmessage=async e=>{
     const m=e.data;
     if(m.type==='renderSvg'){

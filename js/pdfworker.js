@@ -1,7 +1,7 @@
 import { unzipSync, zlibSync } from './vendor/fflate.js';
 const SKIP_ENTRY = /(^|\/)thumbnails\/|^preview\.png$|\.(mp4|m4v|mov|avi|wmv|mpe?g|webm|mp3|wav|ogg|m4a|wma|swf|flv)$/i;
-import { readImageInfo } from './imgcore.js?v=3.2.0';
-import { fixNames } from './zipnames.js?v=3.2.0';
+import { readImageInfo } from './imgcore.js?v=3.2.1';
+import { fixNames } from './zipnames.js?v=3.2.1';
 
 const PAGE_WIDTH_PT = 595.28;
 const B64_CACHE_LIMIT = 48 * 1024 * 1024;

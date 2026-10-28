@@ -1,6 +1,6 @@
-import {msg,track} from './util.js?v=3.2.0';
-import {mountGuide} from './instruction-panel.js?v=3.2.0';
-import {t} from './i18n.js?v=3.2.0';
+import {msg,track} from './util.js?v=3.2.1';
+import {mountGuide} from './instruction-panel.js?v=3.2.1';
+import {t} from './i18n.js?v=3.2.1';
 export const isNb=n=>/\.notebook$/i.test(n);
 const NBTYPES=[{description:'SMART Notebook',accept:{'application/octet-stream':['.notebook']}}];
 export function download(name,bytes){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([bytes]));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}
@@ -11,7 +11,7 @@ export function shell(root,{title,sub,guideKey,top='',hideFolder=false,run}){
   root.innerHTML=`<div class="tool-layout"><div class="tool"><div class="head"><h1>${title}</h1></div><div class="sub">${sub}</div>${top}
   <div class="drop" data-q="drop" tabindex="0"><span class="drop-label">${t('nb.drop')}</span></div>
   ${hideFolder?'':'<div class="btnrow"><button class="btn" data-q="folder">'+t('nb.folder')+'</button></div>'}
-  <div><progress data-q="prog" max="1" value="0"></progress><div class="sub" data-q="status">${t('nb.ready')}</div></div><input type="file" data-q="file" multiple accept=".notebook" hidden></div></div>`;
+  <div class="tool-progress"><progress data-q="prog" max="1" value="0"></progress><div class="sub" data-q="status">${t('nb.ready')}</div></div><input type="file" data-q="file" multiple accept=".notebook" hidden></div></div>`;
   const q=k=>root.querySelector(`[data-q=${k}]`);let busy=false;
   addEventListener('beforeunload',e=>{if(busy){e.preventDefault();e.returnValue=''}});   // closing the tab mid-run would leave files half done
   const ui={status:t=>q('status').textContent=t,progress:(v,m)=>{if(m)q('prog').max=m;q('prog').value=v},root};

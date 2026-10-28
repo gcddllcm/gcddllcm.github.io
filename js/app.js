@@ -1,10 +1,10 @@
-import {APP_VERSION} from '../config.js?v=3.2.0';
-import {$,msg,track,loadAnalytics} from './util.js?v=3.2.0';
-import * as resizer from './resizer.js?v=3.2.0-layout1';
-import * as creator from './creator.js?v=3.2.0';
-import * as pagelock from './pagelock.js?v=3.2.0';
-import * as topdf from './topdf.js?v=3.2.0';
-import {strings,t} from './i18n.js?v=3.2.0';
+import {APP_VERSION} from '../config.js?v=3.2.1';
+import {$,msg,track,loadAnalytics} from './util.js?v=3.2.1';
+import * as resizer from './resizer.js?v=3.2.1';
+import * as creator from './creator.js?v=3.2.1';
+import * as pagelock from './pagelock.js?v=3.2.1';
+import * as topdf from './topdf.js?v=3.2.1';
+import {strings,t} from './i18n.js?v=3.2.1';
 
 document.querySelector('[data-page="tools"]').textContent=t('nav.tools');
 document.querySelector('[data-page="updates"]').textContent=t('nav.updates');
@@ -27,9 +27,24 @@ for(const [key,shortLabel,label,,icon,description] of TOOLS){
   card.onclick=()=>{hasChosenTool=true;selectTool(key);showPage('tools')};
   landingTools.append(card);
 }
+if(matchMedia('(hover: hover) and (pointer: fine)').matches&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
+  for(const card of landingTools.querySelectorAll('.landing-tool')){
+    card.addEventListener('pointermove',e=>{
+      const bounds=card.getBoundingClientRect(),x=(e.clientX-bounds.left)/bounds.width,y=(e.clientY-bounds.top)/bounds.height;
+      card.style.setProperty('--tilt-x',`${(x-.5)*8}deg`);
+      card.style.setProperty('--tilt-y',`${(.5-y)*8}deg`);
+      card.style.setProperty('--pointer-x',`${x*100}%`);
+      card.style.setProperty('--pointer-y',`${y*100}%`);
+    });
+    card.addEventListener('pointerleave',()=>{
+      card.style.removeProperty('--tilt-x');card.style.removeProperty('--tilt-y');
+      card.style.removeProperty('--pointer-x');card.style.removeProperty('--pointer-y');
+    });
+  }
+}
 const main=$('tools'),navList=$('tool-nav-list');
 $('tool-nav').setAttribute('aria-label',t('sidebar.title'));
-$('tool-nav-eyebrow').textContent=t('sidebar.title');
+$('tool-nav-eyebrow').innerHTML=`<span>${t('sidebar.title')}</span><kbd class="page-shortcut-key tool-nav-space-shortcut" aria-label="Press Space to select the next tool" title="Press Space to select the next tool">SPACE</kbd>`;
 const views={};
 for(const [key,shortLabel,label,category,icon,description,mod] of TOOLS){
   const v=document.createElement('section');v.className='view';v.dataset.tool=key;main.append(v);views[key]=v;
@@ -78,11 +93,18 @@ function selectTool(key,{log=true}={}){
   if(key==='topdf')topdf.prepare();
 }
 selectTool('creator',{log:false});
+// Keep keyboard focus styling visible while the user is navigating with Tab.
+// Any other key (including app shortcuts) switches the visual treatment off.
+document.addEventListener('keydown',e=>{
+  document.body.classList.toggle('keyboard-tab-nav',e.key==='Tab');
+},true);
+document.addEventListener('pointerdown',()=>document.body.classList.remove('keyboard-tab-nav'),true);
 document.addEventListener('keydown',e=>{
   if($('dlg')?.open)return;
-  const target=e.target,typing=target instanceof Element&&target.matches('input,textarea,select,[contenteditable="true"]');
+  const target=e.target,typing=target instanceof Element&&target.matches('input,textarea,select,[contenteditable="true"]'),interactive=target instanceof Element&&target.closest('button,a,[role="button"],[tabindex]:not([tabindex="-1"])');
   if(typing||e.altKey||e.ctrlKey||e.metaKey)return;
   if(e.code==='Space'&&landing.classList.contains('on')&&!(target instanceof Element&&target.closest('button,a,[role="button"]'))){e.preventDefault();landingTools.querySelector('[data-tool="creator"]')?.click();return}
+  if(e.code==='Space'&&!e.repeat&&!interactive&&document.getElementById('tools-page').classList.contains('on')){e.preventDefault();selectTool(TOOLS[(activeIndex+1)%TOOLS.length][0]);return}
   const digit=/^Digit([1-9])$/.exec(e.code)?.[1]??(/^[1-9]$/.test(e.key)?e.key:null),numberShortcut=digit&&Number(digit)<=TOOLS.length?Number(digit)-1:-1;   // 1..N for the N tools
   if(numberShortcut>=0&&document.getElementById('tools-page').classList.contains('on')){e.preventDefault();selectTool(TOOLS[numberShortcut][0]);return}
   const shortcut={KeyQ:'q',KeyE:'e',KeyI:'i'}[e.code]||(e.key&&['q','e','i'].includes(e.key.toLowerCase())?e.key.toLowerCase():null);
@@ -108,7 +130,7 @@ function showPage(name){
   if(!next)return;
   pageTabs.forEach(b=>b.classList.toggle('active',b.dataset.page===name));requestAnimationFrame(syncTabIndicator);
   if(current===next){current.classList.remove('leaving');if(name==='updates')requestAnimationFrame(fitTimeline);return}
-  if(name==='about')animateProjectLineCount();
+  if(name==='about')animateProjectCounts();
   const token=++pageTransition;
   if(matchMedia('(prefers-reduced-motion: reduce)').matches||!current){if(current)current.classList.remove('on','leaving','entering');next.classList.add('on');next.classList.remove('leaving','entering');if(name==='about')animateAboutCard();if(name==='updates')requestAnimationFrame(fitTimeline);return}
   current.classList.remove('entering');current.classList.add('leaving');
@@ -125,7 +147,7 @@ requestAnimationFrame(fitTimeline);addEventListener('resize',fitTimeline);new Re
 if(!reduceReleaseMotion){const revealObserver=new IntersectionObserver(entries=>{for(const entry of entries){if(entry.isIntersecting){entry.target.classList.add('revealed');entry.target.classList.remove('reveal-pending');revealObserver.unobserve(entry.target)}}},{root:document.getElementById('main'),rootMargin:'0px 0px -8% 0px',threshold:.08});timeline.querySelectorAll('.release.reveal-pending').forEach(el=>revealObserver.observe(el))}
 const about=$('about-page');
 const PROJECT_LINE_COUNT=6262,PROJECT_FILE_COUNT=33;
-about.innerHTML=`<section class="about-card"><div class="page-heading"><img class="page-icon" src="icon.ico" alt=""><div><h1>${t('about.title')}</h1><div class="sub">Penguin Logistics</div></div></div><article class="about-lines" aria-label="${t('about.linesLabel')}"><div class="about-lines-copy"><span class="about-lines-label">${t('about.linesLabel')}</span><strong class="about-lines-value">${PROJECT_LINE_COUNT.toLocaleString()}</strong><span class="about-lines-note">${t('about.linesNote',PROJECT_FILE_COUNT.toLocaleString())}</span></div><span class="about-lines-mark" aria-hidden="true">&lt;/&gt;</span></article><p>${t('about.contact')}</p><p>${t('about.creator')} Champ (AT Math) + Claude, Codex, Zhipu, Antigravity, Copilot, and Cursor (all of them are free btw)</p><p>${t('about.version')} <strong>${APP_VERSION}</strong></p><p>${t('about.privacy')}</p></section>`;
+about.innerHTML=`<section class="about-card"><div class="about-hero"><div class="page-heading"><div><h1>${t('about.title')}</h1><div class="sub">Penguin Logistics</div></div></div><div class="about-radar" aria-hidden="true"><span class="about-radar-sweep"></span><img src="icon.ico" alt=""><span class="about-radar-point"></span></div></div><article class="about-lines" aria-label="${t('about.linesLabel')}"><div class="about-stat"><span class="about-lines-label">${t('about.linesLabel')}</span><strong class="about-lines-value">${PROJECT_LINE_COUNT.toLocaleString()}</strong><span class="about-lines-note">${t('about.linesNote',PROJECT_FILE_COUNT.toLocaleString())}</span></div><div class="about-stat about-stat-files"><span class="about-lines-label">${t('about.filesLabel')}</span><strong class="about-files-value">${PROJECT_FILE_COUNT}</strong><span class="about-lines-note">${t('about.filesNote')}</span></div></article><div class="about-details"><p class="about-detail about-detail-contact">${t('about.contact')}</p><p class="about-detail about-detail-creator">${t('about.creator')} Champ (AT Math) + Claude, Codex, Zhipu, Antigravity, Copilot, and Cursor (all of them are free btw)</p><p class="about-detail about-detail-version">${t('about.version')} <strong>${APP_VERSION}</strong></p><p class="about-detail about-detail-privacy">${t('about.privacy')}</p></div></section>`;
 function animateAboutCard(){
   if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
   const card=about.querySelector('.about-lines');
@@ -137,7 +159,7 @@ function animateAboutCard(){
 about.querySelector('.about-lines').addEventListener('animationend',event=>{
   if(event.animationName==='about-lines-arrive')event.currentTarget.classList.remove('about-lines-arriving');
 });
-let lineCountAnimation=0;
+let lineCountAnimation=0,fileCountAnimation=0;
 function animateProjectLineCount(){
   const value=about.querySelector('.about-lines-value');
   if(!value)return;
@@ -153,6 +175,22 @@ function animateProjectLineCount(){
   value.textContent='0';
   lineCountAnimation=requestAnimationFrame(tick);
 }
+function animateProjectFileCount(){
+  const value=about.querySelector('.about-files-value');
+  if(!value)return;
+  cancelAnimationFrame(fileCountAnimation);
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches){value.textContent=PROJECT_FILE_COUNT.toLocaleString();return}
+  const started=performance.now(),duration=2400;
+  function tick(now){
+    const progress=Math.min((now-started)/duration,1);
+    const eased=1-(1-progress)**3;
+    value.textContent=Math.round(PROJECT_FILE_COUNT*eased).toLocaleString();
+    if(progress<1)fileCountAnimation=requestAnimationFrame(tick);
+  }
+  value.textContent='0';
+  fileCountAnimation=requestAnimationFrame(tick);
+}
+const animateProjectCounts=()=>{animateProjectLineCount();animateProjectFileCount()};
 
 const glowTargets=[...document.querySelectorAll('.center,.drop,.previewbox,.listbox,.release-card,.about-card,.about-lines,.instruction-panel,.tool-nav,.tool-nav-item,.tool-guide')];
 glowTargets.forEach(el=>el.classList.add('pointer-glow'));
