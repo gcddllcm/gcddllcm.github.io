@@ -197,13 +197,10 @@ dialog::backdrop{background:rgba(0,0,0,.62)}
 .about-lines-note{color:#b4b5c0;font-size:12px;line-height:1.55}
 .about-details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .about-detail{position:relative;min-width:0;margin:0;padding:17px 18px 17px 46px!important;border:1px solid #ffffff12;border-radius:12px;background:linear-gradient(145deg,#ffffff08,#ffffff03);color:#d9d9e1;font-size:13px;line-height:1.65}
-.about-detail::before{position:absolute;left:17px;top:18px;color:#aaa0ff;font-size:13px;font-weight:800}
-.about-detail-contact::before{content:"↗"}
-.about-detail-creator::before{content:"✳";color:#85e8d8}
-.about-detail-version::before{content:"◈";color:#85e8d8}
-.about-detail-privacy::before{content:"◎";top:50%;color:#85e8d8;transform:translateY(-50%)}
+.about-detail-icon{position:absolute;left:17px;top:50%;width:18px;height:18px;fill:none;stroke:#aaa0ff;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;transform:translateY(-50%)}
+.about-detail-creator .about-detail-icon,.about-detail-version .about-detail-icon,.about-detail-privacy .about-detail-icon{stroke:#85e8d8}
 .about-detail-version{display:flex;align-items:center;justify-content:flex-start;padding-left:18px!important;text-align:left}
-.about-detail-version::before{position:static;flex:none;margin-right:10px}
+.about-detail-version .about-detail-icon{position:static;flex:none;margin-right:10px;transform:none}
 .about-detail-version strong{margin-left:5px;color:#85e8d8!important;font-size:13px;font-weight:700}
 .about-detail-privacy{display:flex;align-items:center;padding:14px 18px 14px 46px!important;color:#c1c3cc;font-size:12px;line-height:1.7}
 .about-card .btn{margin-top:8px}
@@ -225,7 +222,8 @@ dialog::backdrop{background:rgba(0,0,0,.62)}
  .about-details{grid-template-columns:1fr;gap:9px}
  .about-detail{padding:14px 14px 14px 41px!important}
  .about-detail-version{padding-left:14px!important}
- .about-detail::before{left:14px;top:15px}
+ .about-detail-icon{left:14px}
+ .about-detail-version .about-detail-icon{left:auto;top:auto}
 }
 @media(max-width:360px){
  .about-hero{padding-inline:20px}
