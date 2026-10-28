@@ -1,19 +1,13 @@
-import {msg,track} from './util.js?v=3.1.5';
-import {shell,download,ensureWriteAccess} from './nbtool.js?v=3.1.5';
+import {msg,track,countBucket,yieldNow} from './util.js?v=3.2.0';
+import {shell,download,ensureWriteAccess,saveToHandle} from './nbtool.js?v=3.2.0';
+import {setLock} from './lockcore.js?v=3.2.0';
+import {fixNames} from './zipnames.js?v=3.2.0';
 import {unzipSync,zipSync} from './vendor/fflate.js';
-import {t} from './i18n.js?v=3.1.5';
-const LOCK_VALUE='30',dec=new TextDecoder('utf-8'),enc=new TextEncoder();
+import {t} from './i18n.js?v=3.2.0';
+const dec=new TextDecoder('utf-8'),enc=new TextEncoder();
 
-function setLock(text,lock){
-  return text.replace(/<image\b[\s\S]*?(?:\/>|<\/image>)/gi,tag=>{
-    const m=tag.match(/(?:xlink:href|href)\s*=\s*["']([^"']+)["']/i),href=m?m[1]:'';
-    if(!href||href.startsWith('data:'))return tag;
-    if(lock){if(/\blocked\s*=/i.test(tag))return tag;return tag.endsWith('/>')?tag.slice(0,-2)+` locked="${LOCK_VALUE}"/>`:tag.slice(0,-1)+` locked="${LOCK_VALUE}">`}
-    return tag.replace(/\s+locked\s*=\s*["'][^"']*["']/gi,'');
-  });
-}
 async function process(file,lock){
-  const z=unzipSync(new Uint8Array(await file.arrayBuffer())),out={};let pages=0;
+  const z=fixNames(unzipSync(new Uint8Array(await file.arrayBuffer()))),out={};let pages=0;   // fixNames: Thai names stay Thai when the archive is written back
   for(const [n,d] of Object.entries(z)){if(n.endsWith('/'))continue;
     if(/^page\d+\.svg$/i.test(n)){pages++;out[n]=enc.encode(setLock(dec.decode(d),lock))}
     else out[n]=/\.(png|jpe?g|gif|bmp|webp)$/i.test(n)?[d,{level:0}]:d}   // images are already compressed: store as-is
@@ -22,29 +16,23 @@ async function process(file,lock){
 }
 export function mount(root){
   let mode='lock';
-  const ui=shell(root,{title:t('tool.pagelock'),sub:t('pagelock.sub'),hideFolder:true,
+  const ui=shell(root,{title:t('tool.pagelock'),sub:t('pagelock.sub'),guideKey:'pagelock',hideFolder:true,
     top:`<div class="seg"><button class="btn on" data-m="lock">${t('pagelock.lock')}</button><button class="btn danger" data-m="unlock">${t('pagelock.unlock')}</button></div>
     <div class="warn">${t('pagelock.warn')}</div>`,
-    info:t('pagelock.info'),
     async run(entries,ign,ui){
       const lock=mode==='lock',ing=t(lock?'pagelock.locking':'pagelock.unlocking'),ed=t(lock?'pagelock.locked':'pagelock.unlocked'),failures=[],fallbacks=[];
       await ensureWriteAccess(entries);
       ui.progress(0,entries.length);
       for(let i=0;i<entries.length;i++){
-        const {file,handle}=entries[i];ui.status(t('pagelock.processing',ing,i+1,entries.length,file.name));await new Promise(r=>setTimeout(r));
+        const {file,handle}=entries[i];ui.status(t('pagelock.processing',ing,i+1,entries.length,file.name));await yieldNow();
         try{
           const bytes=await process(file,lock);
-          if(handle){
-            let permission='granted';try{permission=await handle.queryPermission({mode:'readwrite'});if(permission!=='granted')permission=await handle.requestPermission({mode:'readwrite'})}catch{}
-            if(permission==='granted'){
-              try{const w=await handle.createWritable();await w.write(bytes);await w.close()}
-              catch{download(file.name,bytes);fallbacks.push(file.name)}
-            }else{download(file.name,bytes);fallbacks.push(file.name)}
-          }else download(file.name,bytes);
+          if(handle&&await saveToHandle(handle,bytes)){/* saved over the original */}
+          else{download(file.name,bytes);if(handle)fallbacks.push(file.name)}
         }catch(e){failures.push(`${file.name}: ${e.message||e}`)}
         ui.progress(i+1);
       }
-      track('pagelock/run','Page locker run');for(let i=0;i<Math.min(entries.length-failures.length,50);i++)track('pagelock/file','Page locker file');
+      track('pagelock/run','Page locker run');if(entries.length>failures.length)track('pagelock/files/'+countBucket(entries.length-failures.length),'Page locker files '+countBucket(entries.length-failures.length));
       const note=[ign?t('pagelock.ignored',ign):null,fallbacks.length?t('pagelock.fallback',fallbacks.length):null].filter(Boolean);
       const suffix=note.length?` (${note.join('; ')})`:'';
       ui.status(failures.length?t('pagelock.errorStatus',failures.length,suffix):t('pagelock.doneStatus',ed,entries.length,suffix));

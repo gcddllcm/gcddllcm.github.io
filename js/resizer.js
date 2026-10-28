@@ -1,10 +1,10 @@
-import {$,msg,track} from './util.js?v=3.1.5';
-import {bindInstructionPanel} from './instruction-panel.js?v=3.1.5';
-import {t} from './i18n.js?v=3.1.5';
-import {pngSetDpi,jpgSetDpi,bmpEncode,readImageInfo,resizeLanczos,ppm} from './imgcore.js?v=3.1.5';
+import {$,msg,track,countBucket,yieldNow} from './util.js?v=3.2.0';
+import {mountGuide} from './instruction-panel.js?v=3.2.0';
+import {t} from './i18n.js?v=3.2.0';
+import {pngSetDpi,jpgSetDpi,bmpEncode,readImageInfo,resizeLanczos,ppm} from './imgcore.js?v=3.2.0';
 import {zipSync} from './vendor/fflate.js';
 const HAS_FS='showDirectoryPicker' in window;
-const sleep=()=>new Promise(r=>setTimeout(r));
+const sleep=yieldNow;
 const IN_THREAD_MAX_MP=40;     // the page itself only processes images up to this size (fallback path)
 const HEAD_BYTES=262144;       // enough to read width/height from any common image header
 const SUPPORTED=new Set(['.jpg','.jpeg','.png','.bmp','.webp']);
@@ -22,7 +22,7 @@ export async function decode(file){
   const d=x.getImageData(0,0,c.width,c.height);return {width:c.width,height:c.height,data:d.data};
 }
 
-async function encode(img,ext,dpi,quality=0.75){
+async function encode(img,ext,dpi,quality=1.0){
   if(ext==='.bmp')return bmpEncode(img,dpi);
   const c=document.createElement('canvas');c.width=img.width;c.height=img.height;
   c.getContext('2d').putImageData(new ImageData(img.data,img.width,img.height),0,0);
@@ -78,7 +78,7 @@ class ResizerPool {
   }
 
   _spawnWorker(){
-    const w=new Worker(new URL('./resizer-worker.js?v=3.1.5',import.meta.url),{type:'module'});
+    const w=new Worker(new URL('./resizer-worker.js?v=3.2.0',import.meta.url),{type:'module'});
     w.onmessage=e=>{
       const {id,ok,blob,w:rw,h:rh,dpi:rdpi,error}=e.data;
       const h=this.handlers.get(id);
@@ -214,7 +214,8 @@ async function dpiOnly(file,dpi,ext){
   else if(ext==='.jpg'||ext==='.jpeg')outBlob=new Blob([jpgSetDpi(u8,dpi)],{type:'image/jpeg'});
   else if(ext==='.bmp'){
     const v=new DataView(u8.buffer);
-    if(u8.length>=42){v.setInt32(38,ppm(dpi),true);v.setInt32(42,ppm(dpi),true)}
+    if(u8.length<54||v.getUint32(14,true)<40)throw new Error('Unsupported BMP header: DPI cannot be set on this file');   // an old OS/2 header has no DPI fields at these offsets
+    v.setInt32(38,ppm(dpi),true);v.setInt32(42,ppm(dpi),true);
     outBlob=new Blob([u8],{type:'image/bmp'});
   }else outBlob=file;
   const outU8=new Uint8Array(await outBlob.arrayBuffer()),info=readImageInfo(outU8,ext);
@@ -234,22 +235,21 @@ async function processInThread(file,ow,oh,dpi,ext,quality){
 
 // ---- view ----
 export function mount(root){
-  root.innerHTML=`<div class="tool-layout"><div class="tool"><div class="head"><h1>${t('tool.resizer')}</h1><button class="iconbtn instruction-toggle" id="rz-info" title="Instructions" aria-label="Open instructions" aria-controls="rz-instructions" aria-expanded="false">i</button></div>
+  root.innerHTML=`<div class="tool-layout"><div class="tool"><div class="head"><h1>${t('tool.resizer')}</h1></div>
   <div class="sub">${t('resizer.sub')}</div>
   <div class="row3"><label>${t('resizer.dpi')}<input id="rz-dpi" value="300" inputmode="numeric"></label><label>${t('resizer.width')}<input id="rz-w" value="2480" inputmode="numeric"></label><label>${t('resizer.height')}<input id="rz-h" value="3508" inputmode="numeric"></label></div>
-  <div class="quality-row"><label for="rz-q">${t('resizer.quality')}</label><select id="rz-q"><option value="75" selected>${t('resizer.qualityDefault')}</option><option value="85">85%</option><option value="90">90%</option><option value="95">95%</option></select></div>
+  <div class="quality-row"><label for="rz-q">${t('resizer.quality')}</label><select id="rz-q"><option value="75">75%</option><option value="85">85%</option><option value="90">90%</option><option value="95">95%</option><option value="100" selected>${t('resizer.qualityDefault')}</option></select></div>
   <button class="btn reset-btn" id="rz-reset">${t('resizer.reset')}</button>
   <button class="btn primary wide" id="rz-out">${t('resizer.output')}</button><div class="path" id="rz-path">${HAS_FS?t('resizer.noFolder'):t('resizer.downloadMode')}</div>
-  <div class="drop" id="rz-drop" tabindex="0">${t('resizer.drop')}</div>
+  <div class="drop" id="rz-drop" tabindex="0"><span class="drop-label">${t('resizer.drop')}</span></div>
   <div><progress id="rz-prog" max="1" value="0"></progress><div class="sub" id="rz-status">${t('resizer.ready')}</div></div>
   <input type="file" id="rz-file" multiple accept=".jpg,.jpeg,.png,.bmp,.webp" hidden></div>
-  <aside class="instruction-panel" id="rz-instructions" aria-hidden="true" inert><div class="instruction-heading"><div><h2>Instructions</h2><p>How to use</p></div><button class="iconbtn" id="rz-info-close" aria-label="Close instructions">×</button></div><div class="instruction-copy" id="rz-info-copy"></div></aside></div>`;
+  </div>`;
 
   let outDir=null,busy=false;
   const drop=$('rz-drop'),status=t=>$('rz-status').textContent=t;
-  const info=t('resizer.info');
-  bindInstructionPanel(root.querySelector('.tool-layout'),$('rz-info'),$('rz-instructions'),$('rz-info-close'),$('rz-info-copy'),info);
-  $('rz-reset').onclick=()=>{$('rz-dpi').value='300';$('rz-w').value='2480';$('rz-h').value='3508';$('rz-q').value='75'};
+  mountGuide(root.querySelector('.tool-layout'),'resizer');
+  $('rz-reset').onclick=()=>{$('rz-dpi').value='300';$('rz-w').value='2480';$('rz-h').value='3508';$('rz-q').value='100'};
   if(!HAS_FS)$('rz-out').hidden=true;
   $('rz-out').onclick=async()=>{if(busy)return;try{outDir=await showDirectoryPicker({mode:'readwrite'});$('rz-path').textContent=outDir.name;$('rz-path').classList.add('set')}catch{}};
   const pick=async()=>{
@@ -275,16 +275,18 @@ export function mount(root){
       if(r&&+r>32767)return bad(t('resizer.invalid'),t('resizer.dimensionMax',l));
     }
     if(!w!==!h)return bad(t('resizer.invalid'),t('resizer.bothError'));
-    return {dpi:+dpi,w:w?+w:0,h:h?+h:0,quality:(+$('rz-q').value||75)/100};
+    return {dpi:+dpi,w:w?+w:0,h:h?+h:0,quality:(+$('rz-q').value||100)/100};
   }
   async function save(name,blob,src){
     if(!outDir){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000);return blob}
     let n=name;
-    try{const ex=await outDir.getFileHandle(n);if(src&&await ex.isSameEntry(src))n=n.replace(/(\.[^.]*)?$/,'_resized$1')}catch{}
+    // A file with this name already exists. If it is the original (or we cannot tell, e.g. a dragged file has no handle) it must never be replaced.
+    try{const ex=await outDir.getFileHandle(n);let same=true;if(src){try{same=await ex.isSameEntry(src)}catch{same=true}}if(same)n=n.replace(/(\.[^.]*)?$/,'_resized$1')}catch{}
     const fh=await outDir.getFileHandle(n,{create:true}),wr=await fh.createWritable();await wr.write(blob);await wr.close();
     return fh.getFile();
   }
 
+  addEventListener('beforeunload',e=>{if(busy){e.preventDefault();e.returnValue=''}});   // closing the tab mid-run leaves files half written
   async function run(entries){
     if(busy||!entries.length)return;const s=settings();if(!s)return;
     busy=true;
@@ -373,7 +375,7 @@ export function mount(root){
     }
 
     busy=false;drop.classList.remove('off');$('rz-prog').value=0;
-    track('resizer/run','Resizer run');for(let i=0;i<Math.min(ok,50);i++)track('resizer/file','Resizer file');
+    track('resizer/run','Resizer run');if(ok>0)track('resizer/files/'+countBucket(ok),'Resizer files '+countBucket(ok));
     const notes=[stretched?t('resizer.stretchNote',stretched):null,webp?t('resizer.webpNote',webp):null].filter(Boolean),extra=notes.length?'\n\n'+notes.join('\n'):'';
     if(fails.length){status(t('resizer.errorStatus',fails.length));msg(t('resizer.errorTitle'),t('resizer.errorMsg',ok,entries.length,fails.slice(0,10).join('\n')+(fails.length>10?'\n...':''))+extra,'warning')}
     else{status(t('resizer.successStatus',ok));msg(t('resizer.doneTitle'),t('resizer.doneMsg',ok)+extra,notes.length?'warning':'info')}

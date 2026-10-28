@@ -1,5 +1,7 @@
 import { unzipSync, zlibSync } from './vendor/fflate.js';
-import { readImageInfo } from './imgcore.js?v=3.1.5';
+const SKIP_ENTRY = /(^|\/)thumbnails\/|^preview\.png$|\.(mp4|m4v|mov|avi|wmv|mpe?g|webm|mp3|wav|ogg|m4a|wma|swf|flv)$/i;
+import { readImageInfo } from './imgcore.js?v=3.2.0';
+import { fixNames } from './zipnames.js?v=3.2.0';
 
 const PAGE_WIDTH_PT = 595.28;
 const B64_CACHE_LIMIT = 48 * 1024 * 1024;
@@ -477,7 +479,9 @@ self.onmessage = async e => {
   const outputWidth = resolution;
 
   try {
-    const zip = unzipSync(new Uint8Array(data));
+    // Skip entries that are never needed (video/audio/flash attachments, thumbnails): saves time and memory on big notebooks.
+    // Thai (non-ASCII) file names written without the zip UTF-8 flag are repaired so they match the hrefs inside pageN.svg.
+    const zip = fixNames(unzipSync(new Uint8Array(data), { filter: f => !SKIP_ENTRY.test(f.name) }));
     const namesLower = new Map();
     for (const name of Object.keys(zip)) {
       namesLower.set(name.toLowerCase(), name);

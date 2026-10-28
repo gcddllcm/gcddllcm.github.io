@@ -1,4 +1,4 @@
-import {pngSetDpi, jpgSetDpi, bmpEncode, readImageInfo, resizeLanczos, sizeProblem, ppm} from './imgcore.js?v=3.1.5';
+import {pngSetDpi, jpgSetDpi, bmpEncode, readImageInfo, resizeLanczos, sizeProblem, ppm} from './imgcore.js?v=3.2.0';
 
 const HEAD_BYTES = 262144;   // enough to read width/height from any common image header
 const TYPES = {'.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.bmp': 'image/bmp'};
@@ -25,7 +25,7 @@ self.onunhandledrejection = (event) => {
 };
 
 self.onmessage = async e => {
-  const {id, file, ow, oh, dpi, ext, quality = 0.75} = e.data;
+  const {id, file, ow, oh, dpi, ext, quality = 1.0} = e.data;
   _currentTaskId = id;
   try {
     if (!TYPES[ext]) throw new Error(`${ext || 'This file type'} is not supported`);
@@ -46,7 +46,8 @@ self.onmessage = async e => {
       else if (ext === '.jpg' || ext === '.jpeg') outBlob = new Blob([jpgSetDpi(u8, dpi)], {type: 'image/jpeg'});
       else if (ext === '.bmp') {
         const v = new DataView(u8.buffer);
-        if (u8.length >= 42) { v.setInt32(38, ppm(dpi), true); v.setInt32(42, ppm(dpi), true); }
+        if (u8.length < 54 || v.getUint32(14, true) < 40) throw new Error('Unsupported BMP header: DPI cannot be set on this file');   // an old OS/2 header has no DPI fields at these offsets
+        v.setInt32(38, ppm(dpi), true); v.setInt32(42, ppm(dpi), true);
         outBlob = new Blob([u8], {type: 'image/bmp'});
       } else {
         outBlob = file;

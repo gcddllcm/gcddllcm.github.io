@@ -2,31 +2,16 @@
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Penguin Logistics</title>
-<link rel="icon" href="icon.ico"><link rel="stylesheet" href="style.css?v=3.1.5"></head>
+<link rel="icon" href="icon.ico"><link rel="stylesheet" href="style.css?v=3.2.0"></head>
 <body>
-<header id="nav"><div class="brand"><img class="brand-icon" src="icon.ico" alt=""><strong>Penguin Logistics</strong></div><nav class="tabs" aria-label="Main navigation"><kbd class="page-shortcut-key" title="Previous page">Q</kbd><span class="tab-indicator" aria-hidden="true"></span><button class="tab active" data-page="tools">Tools</button><button class="tab" data-page="updates">Release Notes</button><button class="tab" data-page="about">About Us</button><kbd class="page-shortcut-key" title="Next page">E</kbd></nav></header>
-<main id="main"><section id="tools-page" class="page on">
-  <section class="tool-start" id="tool-start" aria-labelledby="tool-start-title">
-    <div class="tool-start-heading"><span class="tool-start-eyebrow">READY TO START</span><h1 id="tool-start-title">Select a tool</h1><p>Choose a tool to begin your task</p></div>
-    <div class="tool-start-grid" id="tool-start-cards"></div>
-  </section>
-  <div class="toolbar is-hidden">
-    <div class="tool-carousel" aria-label="Tool selector">
-      <div class="carousel-topline"><span class="carousel-label">CHOOSE A TOOL</span><button class="all-tools-button" id="all-tools-button" type="button" aria-haspopup="dialog" aria-controls="tool-library"><span>ALL TOOLS</span><kbd>F</kbd></button></div>
-      <div class="carousel-stage" id="carousel-stage" aria-live="polite"></div>
-    </div>
-  </div>
-  <div id="tools" class="is-hidden"></div>
-  <div class="tool-library" id="tool-library" hidden>
-    <button class="library-scrim" type="button" data-library-close aria-label="Close tool library"></button>
-    <section class="library-panel" role="dialog" aria-modal="true" aria-labelledby="library-title" tabindex="-1">
-      <div class="library-glow" aria-hidden="true"></div>
-      <header class="library-header"><div class="library-title-wrap"><span class="library-symbol" aria-hidden="true">▦</span><div><div class="library-eyebrow">TOOL LIBRARY</div><h2 id="library-title">All tools</h2><p>Choose a tool to continue</p></div></div><button class="library-close" id="library-close" type="button" aria-label="Close tool library">×</button></header>
-      <div class="library-groups" id="library-groups"></div>
-      <footer class="library-footer"><span><kbd>F</kbd> or <kbd>Esc</kbd> to close</span></footer>
-    </section>
-  </div>
+<header id="nav"><div class="brand"><img class="brand-icon" src="icon.ico" alt=""><strong>Penguin Logistics</strong></div><nav class="tabs" aria-label="Main navigation"><kbd class="page-shortcut-key" title="Previous page">Q</kbd><span class="tab-indicator" aria-hidden="true"></span><button class="tab" data-page="tools">Tools</button><button class="tab" data-page="updates">Release Notes</button><button class="tab" data-page="about">About Us</button><kbd class="page-shortcut-key" title="Next page">E</kbd></nav></header>
+<main id="main"><section id="landing-page" class="page on" aria-labelledby="landing-title"></section><section id="tools-page" class="page">
+  <aside class="tool-nav" id="tool-nav">
+    <div class="tool-nav-eyebrow" id="tool-nav-eyebrow">Tools</div>
+    <nav class="tool-nav-list" id="tool-nav-list"></nav>
+  </aside>
+  <div id="tools"></div>
 </section><section id="updates-page" class="page"></section><section id="about-page" class="page"></section></main>
 <dialog id="dlg"></dialog>
-<script type="module" src="js/app.js?v=3.1.5"></script>
+<script type="module" src="js/app.js?v=3.2.0"></script>
 </body></html>

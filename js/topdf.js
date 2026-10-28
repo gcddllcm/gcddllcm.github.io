@@ -1,7 +1,8 @@
-import {msg,track} from './util.js?v=3.1.5';
-import {shell,download,ensureWriteAccess} from './nbtool.js?v=3.1.5';
-import {t} from './i18n.js?v=3.1.5';
+import {msg,track,countBucket} from './util.js?v=3.2.0';
+import {shell,download,ensureWriteAccess} from './nbtool.js?v=3.2.0';
+import {t} from './i18n.js?v=3.2.0';
 
+const PDF_RESOLUTION=0;   // always original size: pages are never scaled down (the worker reads 0 as "no downscale")
 let worker=null,seq=0,prepared=false;const waits=new Map();let onStatus=()=>{};
 let lastStatusText=null,lastProgress=null;
 function localStatus(m){                       // the worker sends a code plus the values, so wording and translations live only here
@@ -71,7 +72,7 @@ function drawSvgPage(svgText,width,height,quality){
 }
 function getWorker(){
   if(worker)return worker;
-  worker=new Worker(new URL('./pdfworker.js?v=3.1.5',import.meta.url),{type:'module'});
+  worker=new Worker(new URL('./pdfworker.js?v=3.2.0',import.meta.url),{type:'module'});
   worker.onmessage=async e=>{
     const m=e.data;
     if(m.type==='renderSvg'){
@@ -111,16 +112,15 @@ async function exportNb(entry,decide,onPage,quality,resolution){
   return {state:'done',failed:r.failed,err:r.err,fallback};
 }
 export function mount(root){
-  const ui=shell(root,{title:t('tool.topdf'),sub:t('pdf.sub'),
+  const ui=shell(root,{title:t('tool.topdf'),sub:t('pdf.sub'),guideKey:'topdf',
     hideFolder:true,
-    top:`<div class="quality-row"><label for="pdf-resolution">${t('pdf.resolution')}</label><select id="pdf-resolution" data-q="resolution"><option value="1280">${t('pdf.resFast')}</option><option value="1600" selected>${t('pdf.resStandard')}</option><option value="2480">${t('pdf.resHigh')}</option><option value="0">${t('pdf.resOriginal')}</option></select><label for="pdf-quality">${t('pdf.quality')}</label><select id="pdf-quality" data-q="quality"><option value="70">70%</option><option value="80">80%</option><option value="90" selected>90${t('pdf.recommended')}</option><option value="95">95%</option></select></div>`,
-    info:t('pdf.info'),
+    top:`<div class="quality-row"><label for="pdf-quality">${t('pdf.quality')}</label><select id="pdf-quality" data-q="quality"><option value="70">70%</option><option value="80">80%</option><option value="90" selected>90${t('pdf.recommended')}</option><option value="95">95%</option><option value="100">100%</option></select></div>`,
     async run(entries,ign,ui){
       const quality=+ui.root.querySelector('[data-q=quality]').value;
-      const resolution=+ui.root.querySelector('[data-q=resolution]').value;
+      const resolution=PDF_RESOLUTION;
       onStatus=(text,fraction,code)=>{ui.status(text);if(code==='loadError'){prepared=false;worker?.terminate();worker=null}};let converted=0,kept=0,fallbacks=0,overwriteAll=false;const failures=[],total=entries.length;
       const decide=async name=>{if(overwriteAll)return 'overwrite';const a=await msg(t('pdf.existsTitle'),t('pdf.exists',name),'warning',[t('pdf.skip'),t('pdf.overwrite'),t('pdf.overwriteAll')]);if(a===2){overwriteAll=true;return 'overwrite'}return a===1?'overwrite':'skip'};
-      await ensureWriteAccess(entries);
+      await ensureWriteAccess(entries,{files:false});   // PDFs are only written into folders; asking for every single .notebook file would show one browser prompt per file
       ui.progress(0,total*100);
       for(let i=0;i<total;i++){
         const name=entries[i].file.name;ui.status(t('pdf.converting',i+1,total,name));
@@ -130,7 +130,7 @@ export function mount(root){
         }catch(e){failures.push(`${name}: ${e.message||e}`)}
         ui.progress((i+1)*100);
       }
-      track('topdf/run','Convert to pdf run');for(let i=0;i<Math.min(converted,50);i++)track('topdf/file','Convert to pdf file');
+      track('topdf/run','Convert to pdf run');if(converted>0)track('topdf/files/'+countBucket(converted),'Convert to pdf files '+countBucket(converted));
       const notes=[];if(kept)notes.push(t('pdf.skipped',kept));if(ign)notes.push(t('pdf.ignored',ign));if(fallbacks)notes.push(t('pdf.fallback',fallbacks));
       const note=notes.length?` (${notes.join('; ')})`:'';
       if(failures.length){ui.status(t('pdf.problemStatus',failures.length,note));await msg(t('pdf.errorTitle'),t('pdf.errorMsg',converted,total,note,failures.slice(0,10).join('\n')+(failures.length>10?'\n...':'')),'warning')}

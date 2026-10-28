@@ -168,7 +168,7 @@ export function readImageInfo(u8, ext) {
       }
     }
   } else if (ext === '.bmp') {
-    if (u8.length >= 26 && u8[0] === 0x42 && u8[1] === 0x4D) {
+    if (u8.length >= 26 && u8[0] === 0x42 && u8[1] === 0x4D && v.getUint32(14, true) >= 40) {   // BITMAPINFOHEADER or newer
       width = v.getInt32(18, true);
       height = Math.abs(v.getInt32(22, true));
       if (u8.length >= 42) dpi = Math.round(v.getInt32(38, true) * 0.0254);

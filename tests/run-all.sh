@@ -6,4 +6,5 @@ for f in js/*.js js/locales/*.js config.js; do node --check "$f" || status=1; do
 echo "syntax: checked all scripts"
 node tests/imgcore.test.mjs || status=1
 node tests/pdfworker.test.mjs || status=1
+node tests/regressions.test.mjs || status=1
 exit $status

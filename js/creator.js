@@ -1,11 +1,11 @@
-import {$,msg,track} from './util.js?v=3.1.5';
-import {bindInstructionPanel} from './instruction-panel.js?v=3.1.5';
+import {$,msg,track,countBucket,yieldNow} from './util.js?v=3.2.0';
+import {mountGuide} from './instruction-panel.js?v=3.2.0';
 import {zipSync} from './vendor/fflate.js';
-import * as T from './nbtemplates.js?v=3.1.5';
-import {t} from './i18n.js?v=3.1.5';
+import * as T from './nbtemplates.js?v=3.2.0';
+import {t} from './i18n.js?v=3.2.0';
 const SUP=/\.(png|jpe?g|gif|bmp)$/i,coll=new Intl.Collator(undefined,{numeric:true,sensitivity:'base'});
 const A='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',nid=(n=25)=>Array.from(crypto.getRandomValues(new Uint8Array(n)),b=>A[b%36]).join('');
-const enc=new TextEncoder(),tick=()=>new Promise(r=>setTimeout(r));
+const enc=new TextEncoder(),tick=yieldNow;
 const stem=n=>n.replace(/\.[^.]*$/,'');
 
 function thumbOf(bmp,W,H){                    // centred on white, like the desktop thumbnails
@@ -59,23 +59,23 @@ async function build(items,report){
 }
 
 export function mount(root){
-  root.innerHTML=`<div class="tool-layout"><div class="tool wideview"><div class="head"><h1>${t('tool.creator')}</h1><button class="iconbtn instruction-toggle" id="cr-info" title="Instructions" aria-label="Open instructions" aria-controls="cr-instructions" aria-expanded="false">i</button></div>
+  root.innerHTML=`<div class="tool-layout"><div class="tool wideview"><div class="head"><h1>${t('tool.creator')}</h1></div>
   <div class="sub">${t('creator.sub')}</div>
-  <div class="drop small" id="cr-drop" tabindex="0">${t('creator.drop')}</div>
-  <div class="cr"><div class="pane"><div class="listbox" id="cr-list" tabindex="0"></div>
+  <div class="drop small" id="cr-drop" tabindex="0"><span class="drop-label">${t('creator.drop')}</span></div>
+  <div class="cr"><div class="pane"><div class="listbox" id="cr-list" tabindex="0" role="listbox" aria-multiselectable="true"></div>
    <div class="btnrow cr-actions"><button class="btn" id="cr-top">${t('creator.top')}</button><button class="btn" id="cr-bot">${t('creator.bottom')}</button><button class="btn" id="cr-rm">${t('creator.remove')}</button><button class="btn" id="cr-clr">${t('creator.clear')}</button></div></div>
    <div class="pane"><div class="previewbox" id="cr-prev">${t('creator.selectPreview')}</div><div class="sub" id="cr-cap"></div><div class="preview-controls"><button class="btn" id="cr-zoom-out" aria-label="${t('creator.zoomOut')}">−</button><span id="cr-zoom-label">${t('creator.fit')}</span><button class="btn" id="cr-zoom-in" aria-label="${t('creator.zoomIn')}">+</button><button class="btn" id="cr-zoom-fit">${t('creator.fit')}</button></div></div></div>
   <div><progress id="cr-prog" max="1" value="0"></progress><div class="sub" id="cr-status">${t('creator.ready')}</div></div>
   <button class="btn primary wide" id="cr-save">${t('creator.save')}</button><input type="file" id="cr-file" multiple accept=".png,.jpg,.jpeg,.gif,.bmp" hidden></div>
   <dialog class="imgview" id="cr-view" aria-label="${t('creator.viewAria')}"><img alt="" draggable="false"><button type="button" class="imgview-close" id="cr-view-x" aria-label="${t('creator.viewClose')}" title="${t('creator.viewClose')}">×</button><div class="imgview-zoom" role="group" aria-label="${t('creator.viewZoom')}"><button type="button" id="cr-view-zi" aria-label="${t('creator.zoomIn')}">+</button><button type="button" id="cr-view-zo" aria-label="${t('creator.zoomOut')}">−</button><button type="button" id="cr-view-zf">${t('creator.fit')}</button><span id="cr-view-zl">100%</span></div><div class="imgview-name" id="cr-view-name"></div><div class="imgview-hint">${t('creator.viewHint')}</div></dialog>
-  <aside class="instruction-panel" id="cr-instructions" aria-hidden="true" inert><div class="instruction-heading"><div><h2>Instructions</h2><p>How to use</p></div><button class="iconbtn" id="cr-info-close" aria-label="Close instructions">×</button></div><div class="instruction-copy" id="cr-info-copy"></div></aside></div>`;
-  const info=t('creator.info');
+  </div>`;
   let items=[],sel=new Set(),anchor=-1,busy=false,folder='',purl=null,zoom=1,panX=0,panY=0,previewItem=null;
-  const list=$('cr-list'),status=t=>$('cr-status').textContent=t;
-  bindInstructionPanel(root.querySelector('.tool-layout'),$('cr-info'),$('cr-instructions'),$('cr-info-close'),$('cr-info-copy'),info);
+  const list=$('cr-list'),status=s=>$('cr-status').textContent=s;
+  mountGuide(root.querySelector('.tool-layout'),'creator');
   function preview(){
-    if(purl){URL.revokeObjectURL(purl);purl=null}
     const i=sel.size===1?[...sel][0]:-1,box=$('cr-prev');
+    if(i>=0&&items[i]&&items[i]===previewItem&&purl)return;   // the same image is already shown: do not decode it again
+    if(purl){URL.revokeObjectURL(purl);purl=null}
     if(i<0||!items[i]){box.textContent=t('creator.selectPreview');box.classList.remove('pan','panning');$('cr-cap').textContent='';zoom=1;panX=panY=0;previewItem=null;zoomLabel();return}
     if(items[i]!==previewItem){zoom=1;panX=panY=0;previewItem=items[i]}
     purl=URL.createObjectURL(items[i].file);box.innerHTML='';const im=new Image();im.src=purl;im.draggable=false;im.ondragstart=e=>e.preventDefault();im.style.transform=`translate(${panX}px,${panY}px) scale(${zoom})`;im.onload=applyView;box.append(im,fullBtn);$('cr-cap').textContent=items[i].file.name;zoomLabel();
@@ -168,16 +168,26 @@ export function mount(root){
   pvBox.onclick=e=>{if(e.altKey&&(e.target===pvBox.querySelector('img')||e.target===pvBox)){e.preventDefault();openView()}};
   function render(){
     if(!items.length)folder='';
-    list.innerHTML='';items.forEach((it,i)=>{const r=document.createElement('div');r.className='lrow'+(sel.has(i)?' sel':'');r.draggable=true;r.dataset.i=i;r.textContent=`${String(i+1).padStart(2,'0')}.  ${it.file.name}`;list.append(r)});
+    list.innerHTML='';items.forEach((it,i)=>{const r=document.createElement('div');r.className='lrow'+(sel.has(i)?' sel':'');r.setAttribute('role','option');r.setAttribute('aria-selected',sel.has(i));r.draggable=true;r.dataset.i=i;r.textContent=`${String(i+1).padStart(2,'0')}.  ${it.file.name}`;list.append(r)});
     status(items.length?t('creator.imageReady',items.length):t('creator.ready'));preview();
   }
   list.onclick=e=>{
     const r=e.target.closest('.lrow');if(!r||busy)return;const i=+r.dataset.i;
     if(e.shiftKey&&anchor>=0){sel=new Set();for(let k=Math.min(anchor,i);k<=Math.max(anchor,i);k++)sel.add(k)}
     else if(e.ctrlKey||e.metaKey){sel.has(i)?sel.delete(i):sel.add(i);anchor=i}else{sel=new Set([i]);anchor=i}
-    render();
+    refreshSel();
   };
-  list.onkeydown=e=>{if(e.key==='Delete')remove()};
+  // Selection changed but the list did not: update the classes instead of rebuilding every row.
+  function refreshSel(){list.querySelectorAll('.lrow').forEach(x=>{const on=sel.has(+x.dataset.i);x.classList.toggle('sel',on);x.setAttribute('aria-selected',on)});preview()}
+  list.onkeydown=e=>{
+    if(e.key==='Delete'){remove();return}
+    const k=e.key==='ArrowDown'?1:e.key==='ArrowUp'?-1:0;
+    if(!k||busy||!items.length)return;
+    e.preventDefault();
+    const cur=sel.size?(k>0?Math.max(...sel):Math.min(...sel)):(k>0?-1:items.length),i=Math.min(items.length-1,Math.max(0,cur+k));
+    sel=new Set([i]);anchor=i;refreshSel();
+    list.querySelector(`.lrow[data-i="${i}"]`)?.scrollIntoView({block:'nearest'});
+  };
   function remove(){if(busy||!sel.size)return;const next=Math.min(Math.min(...sel),items.length-sel.size-1);items=items.filter((_,i)=>!sel.has(i));sel=new Set();anchor=-1;if(items.length){const i=Math.max(0,next);sel.add(i);anchor=i}render()}
   function moveSel(toTop){
     if(busy||!sel.size)return;const idx=[...sel].sort((a,b)=>a-b),mv=idx.map(i=>items[i]),rest=items.filter((_,i)=>!sel.has(i));
@@ -207,6 +217,7 @@ export function mount(root){
   $('cr-drop').onclick=pick;$('cr-drop').onkeydown=e=>{if(e.key==='Enter'||e.key===' ')pick()};
   $('cr-file').onchange=e=>{add([...e.target.files]);e.target.value=''};
   addEventListener('paste',e=>{if(root.classList.contains('on')&&!busy&&e.clipboardData.files.length)add([...e.clipboardData.files])});
+  addEventListener('beforeunload',e=>{if(busy||items.length){e.preventDefault();e.returnValue=''}});   // the list of images would be lost
   // ---- drag: files in, or reorder rows ----
   const tool=root.firstElementChild;let dragging=false;
   const clearMarks=()=>list.querySelectorAll('.before,.after').forEach(x=>x.classList.remove('before','after'));
@@ -218,7 +229,7 @@ export function mount(root){
   tool.ondrop=e=>{
     e.preventDefault();$('cr-drop').classList.remove('hot');if(busy)return;
     if(dragging&&!list.contains(e.target)){clearMarks();dragging=false;return}   // dropped outside the list: leave the order alone
-    if(dragging){const {t}=target(e);clearMarks();dragging=false;const idx=[...sel].sort((a,b)=>a-b),mv=idx.map(i=>items[i]),rest=items.filter((_,i)=>!sel.has(i)),at=t-idx.filter(i=>i<t).length;
+    if(dragging){const {t:dropAt}=target(e);clearMarks();dragging=false;const idx=[...sel].sort((a,b)=>a-b),mv=idx.map(i=>items[i]),rest=items.filter((_,i)=>!sel.has(i)),at=dropAt-idx.filter(i=>i<dropAt).length;
       items=[...rest.slice(0,at),...mv,...rest.slice(at)];sel=new Set(mv.map((_,k)=>at+k));render()}
     else fromDrop(e.dataTransfer);
   };
@@ -230,10 +241,10 @@ export function mount(root){
     else{const chosen=prompt(t('creator.prompt'),name);if(!chosen)return;name=chosen.trim();if(!name)return;if(!/\.notebook$/i.test(name))name+='.notebook'}
     busy=true;$('cr-save').disabled=true;$('cr-prog').value=0;
     try{
-      const bytes=await build([...items],(c,t,m)=>{$('cr-prog').max=t;$('cr-prog').value=c;status(m)});
+      const bytes=await build([...items],(c,tot,m)=>{$('cr-prog').max=tot;$('cr-prog').value=c;status(m)});
       if(handle){const w=await handle.createWritable();await w.write(bytes);await w.close()}
       else{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([bytes]));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}
-      track('creator/run','Creator run');for(let i=0;i<Math.min(items.length,50);i++)track('creator/file','Creator page');
+      track('creator/run','Creator run');track('creator/files/'+countBucket(items.length),'Creator pages '+countBucket(items.length));
       status(t('creator.doneStatus',items.length));await msg(t('creator.doneTitle'),t('creator.done',items.length,handle?handle.name:name));
     }catch(e){status(t('creator.failed'));msg(t('creator.failed'),String(e.message||e),'error')}
     busy=false;$('cr-save').disabled=false;$('cr-prog').value=0;

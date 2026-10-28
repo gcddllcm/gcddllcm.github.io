@@ -110,6 +110,30 @@ await check('pages come out in page order and the title is stored (Thai works)',
   assert.ok(text.includes('/Title <FEFF' + [...'สมุด'].map(c => c.charCodeAt(0).toString(16).padStart(4, '0')).join('') + '>'));
 });
 
+// SMART Notebook stores Thai file names as UTF-8 bytes without the zip UTF-8 flag: clear that flag like the real files do.
+function withoutUtf8Flag(u8) {
+  const out = new Uint8Array(u8), dv = new DataView(out.buffer);
+  for (let i = 0; i + 4 < out.length; i++) {
+    const sig = dv.getUint32(i, true);
+    if (sig === 0x04034b50) dv.setUint16(i + 6, dv.getUint16(i + 6, true) & ~0x800, true);
+    else if (sig === 0x02014b50) dv.setUint16(i + 8, dv.getUint16(i + 8, true) & ~0x800, true);
+  }
+  return out;
+}
+await check('Thai image file names: the picture is found even when the zip has no UTF-8 flag', async () => {
+  const href = 'images/Learn Craft 8202_V12_ข้อสอบประยุกต์_01.jpg';
+  const bytes = withoutUtf8Flag(notebook({'page1.svg': pageSvg(1024, 1365, href), [href]: jpeg(1000, 1400)}));
+  assert.ok(Buffer.from(bytes).includes(Buffer.from(href, 'utf8')), 'test archive should hold the raw UTF-8 name');
+  posted.length = 0; canvases.length = 0;
+  await globalThis.onmessage({data: {id: ++seq, data: bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength), title: 't', quality: 90, resolution: 1600}});
+  const done = posted.find(m => m.type === 'done');
+  assert.ok(done, 'no PDF was produced');
+  const text = Buffer.from(done.bytes).toString('latin1');
+  assert.deepEqual([...text.matchAll(/\/Width (\d+) \/Height (\d+)/g)].map(m => [+m[1], +m[2]]), [[1000, 1400]]);   // the original JPEG, not a blank redraw
+  assert.equal(posted.filter(m => m.type === 'renderSvg').length, 0);
+  assert.equal(done.failed, 0);
+});
+
 await check('a notebook with no pages gives a clear error', async () => {
   posted.length = 0;
   const bytes = notebook({'readme.txt': 'x'});
