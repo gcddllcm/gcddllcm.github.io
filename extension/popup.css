@@ -1,0 +1,79 @@
+:root{color-scheme:dark;font:13px/1.45 "Segoe UI",system-ui,-apple-system,sans-serif;background:#1e1f26;color:#f1f2f6}
+*{box-sizing:border-box}
+body{width:380px;max-height:600px;margin:0;overflow:auto;background:radial-gradient(ellipse 75% 45% at 0 0,#51408055,transparent 100%),#1e1f26}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 16px 12px;border-bottom:1px solid #ffffff12}
+.popup-brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand-icon{width:42px;height:42px;object-fit:contain;flex:none}
+h1{margin:0;font-size:17px;line-height:1.3}
+header p{margin:4px 0 0;color:#a9abb5;font-size:11px}
+main{display:grid;gap:10px;padding:12px}
+button{font:inherit}
+.icon-button{width:32px;height:32px;display:grid;place-items:center;padding:0;border:1px solid #ffffff20;border-radius:7px;background:#ffffff08;color:#d9d4ff;font-size:20px;line-height:1;cursor:pointer}
+.icon-button:hover,.course-button:hover:not(:disabled),.confirm-button:hover{border-color:#8f82ff88;background:#6c5ce722}
+.icon-button:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid #9a8fff;outline-offset:2px}
+#status{margin:0;color:#b8bac5;font-size:12px}
+#courses{display:grid;gap:8px}
+.course{display:grid;gap:8px;padding:10px;border:1px solid #ffffff16;border-radius:9px;background:#ffffff05}
+.course-heading{display:grid;gap:2px;min-width:0}
+.course-title{overflow-wrap:anywhere;font-weight:650}
+.course-status{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+.course-meta{color:#9c9eaa;font-size:11px}
+.course-stage{padding:2px 8px;border:1px solid #ffffff1a;border-radius:999px;background:#ffffff08;color:#b0b3be}
+.course-stage-ready{border-color:#00b89466;background:#00b89420;color:#8fe9d6}
+.course-stage-alert{border-color:#ff6b6b80;background:#ff6b6b24;color:#ff9b9b}
+.course-ready-to-go-live{color:#ffb84d}
+.course-error{color:#ffbf65}
+.course-actions{display:flex;align-items:center;gap:8px}
+.course-actions .course-button,.course-actions .variant-toggle{height:32px;min-height:32px}
+.variant-toggle{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:32px;padding:6px 8px;border:1px solid #8f82ff66;border-radius:6px;background:#7566ef12;color:#d9d4ff;text-align:left;font:inherit;font-size:10px;font-weight:650;cursor:pointer}
+.variant-badge{padding:2px 6px;border-radius:999px;background:#8f82ff25;color:#d9d4ff;font-size:9px;font-weight:700}
+.variant-toggle:disabled,.variant-bulk button:disabled{opacity:.5;cursor:not-allowed}
+.variant-panel{display:grid;gap:8px;padding:10px;border:1px solid #ffffff14;border-radius:7px;background:#191a21}
+.variant-panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.variant-panel-head>div:first-child{display:grid;gap:2px}
+.variant-panel-head strong{font-size:11px}
+.variant-panel-head small,.variant-count{color:#a9abb5;font-size:10px}
+.variant-bulk{display:flex;gap:8px;flex:none}
+.variant-bulk button{padding:0;border:0;background:none;color:#b7aeff;font:inherit;font-size:10px;font-weight:650;cursor:pointer}
+.variant-options{display:grid}
+.variant-option{display:flex;align-items:center;gap:8px;padding:7px 1px;border-top:1px solid #ffffff0d;color:#d9dae1;font-size:11px;cursor:pointer}
+.variant-option input{width:14px;height:14px;margin:0;accent-color:#8f82ff}
+.variant-count{padding-top:6px;border-top:1px solid #ffffff12}
+.course-button,.confirm-button{min-height:32px;padding:6px 10px;border:1px solid #ffffff24;border-radius:6px;background:#ffffff08;color:#f1f2f6;font-size:12px;font-weight:650;cursor:pointer}
+.course-button.primary,.confirm-button{border-color:#8f82ff77;background:#6c5ce72c;color:#e3dfff}
+.course-button.primary{background:transparent;border-color:#ffb84d;color:#ffb84d}
+.course-button.primary:hover:not(:disabled){background:#ffb84d1f;border-color:#ffb84d;color:#ffb84d}
+.course-button.primary:disabled{background:#33353f;border-color:#33353f;color:#9498a3;opacity:.72}
+.course-button:disabled{opacity:.48;cursor:not-allowed}
+.option{display:grid;grid-template-columns:16px minmax(0,1fr);align-items:start;gap:10px;padding:10px;border:1px solid #ffffff14;border-radius:8px;background:#ffffff04;cursor:pointer}
+.option input{width:15px;height:15px;margin:2px 0 0;accent-color:#8f82ff}
+.option span{display:grid;gap:2px}
+.option strong{font-size:11px}
+.option small{color:#a9abb5;font-size:11px}
+.confirm{display:grid;gap:8px;padding:10px;border:1px solid #ffbf6570;border-radius:8px;background:#ffbf650c}
+.confirm p{margin:0;color:#e2d9c8;font-size:11px}
+.confirm-actions{display:flex;justify-content:flex-end;gap:7px}
+.quiet-button{min-height:30px;padding:5px 9px;border:1px solid #ffffff20;border-radius:6px;background:#ffffff06;color:#d0d1d9;cursor:pointer}
+#run{display:grid;gap:8px;padding:10px;border:1px solid #ffffff16;border-radius:8px;background:#ffffff05}
+#run[hidden]{display:none}
+.run-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.run-heading strong{font-size:12px}
+.run-message{margin:0;color:#c3c4cd;font-size:11px;overflow-wrap:anywhere}
+.progress-list{display:grid;gap:5px;max-height:210px;overflow:auto}
+.progress-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;align-items:start;padding:6px 7px;border-radius:6px;background:#ffffff06}
+.progress-row.failed{background:#ff6b6b10;color:#ffb4b4}
+.progress-row.done{color:#8fe9d6}
+.progress-row small{grid-column:1/-1;color:#b6b7c1;font-size:11px;overflow-wrap:anywhere}
+.cancel-button{min-height:30px;padding:6px 12px;border:1px solid #ff6b6b55;border-radius:5px;background:#ff6b6b12;color:#ffb4b4;font-size:12px;cursor:pointer}
+.cancel-button:disabled{opacity:.55;cursor:default}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.run-summary{margin:0;color:#d9d4ff;font-size:11px}
+.run-log-controls{display:flex;align-items:flex-start;gap:8px;margin-top:3px;padding-top:7px;border-top:1px solid #ffffff12}
+.run-log{flex:1;min-width:0}
+.run-log summary{color:#b7aeff;font-size:11px;font-weight:650;cursor:pointer}
+.run-log ol{max-height:140px;margin:6px 0 0;padding-left:18px;overflow:auto;color:#c5c6ce;font:11px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.copy-log-button{min-height:26px;padding:4px 7px;border:1px solid #ffffff20;border-radius:5px;background:#ffffff08;color:#d9d4ff;font-size:10px;cursor:pointer}
+.confirm-dialog{width:calc(100% - 24px);max-width:340px;margin:auto;padding:16px;border:1px solid #ffbf6570;border-radius:9px;background:#262832;color:#f1f2f6}
+.confirm-dialog::backdrop{background:#0009}
+.confirm-dialog h2{margin:0 0 8px;font-size:14px}
+.confirm-dialog p{margin:0;color:#e2d9c8;font-size:12px}

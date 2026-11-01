@@ -6,7 +6,8 @@
 Rewrites the ?v=<anything> part of every local reference (index.html, style.css link,
 js/*.js imports, worker URLs, js/locales/*.js) to ?v=<token>. The workflow passes the
 commit SHA, so every deploy gets brand-new URLs for ALL files and a browser can never
-combine a new app.js with an old, cached module. js/vendor/ is left alone.
+combine a new app.js with an old, cached module. The files in js/vendor/ are not edited,
+but the imports that point at them are stamped like every other reference.
 """
 import pathlib
 import re

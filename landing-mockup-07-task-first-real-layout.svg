@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1000" viewBox="0 0 1440 1000" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1440" y2="1000" gradientUnits="userSpaceOnUse"><stop stop-color="#1E1F26"/><stop offset="1" stop-color="#1E1F26"/></linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#292A34"/><stop offset="1" stop-color="#23242B"/></linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="matrix(698 0 0 555 0 0)" gradientUnits="userSpaceOnUse"><stop stop-color="#514080" stop-opacity=".48"/><stop offset="1" stop-color="#514080" stop-opacity="0"/></radialGradient>
+    <radialGradient id="glow2" cx="0" cy="0" r="1" gradientTransform="matrix(-699 0 0 -500 1440 1000)" gradientUnits="userSpaceOnUse"><stop stop-color="#304C70" stop-opacity=".32"/><stop offset="1" stop-color="#304C70" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="1440" height="1000" fill="url(#bg)"/>
+  <rect width="1440" height="555" fill="url(#glow)"/>
+  <rect y="500" width="1440" height="500" fill="url(#glow2)"/>
+
+  <g font-family="Segoe UI,system-ui,-apple-system,Roboto,sans-serif">
+    <rect x="100" y="0" width="1240" height="79" fill="#1E1F26" fill-opacity=".72"/>
+    <image x="108" y="14" width="50" height="50" href="extension/assets/loy-krathong-2026.png"/>
+    <text x="169" y="46" fill="#F1F2F6" font-size="16" font-weight="700" letter-spacing=".16">Penguin Logistics</text>
+    <g transform="translate(931 27)">
+      <rect width="24" height="24" rx="4" fill="#FFFFFF" fill-opacity=".04" stroke="#FFFFFF" stroke-opacity=".07"/>
+      <text x="12" y="16" text-anchor="middle" fill="#A4A6B1" font-size="10" font-weight="700">Q</text>
+      <rect x="35" y="-1" width="78" height="36" rx="8" fill="#30313B"/>
+      <text x="74" y="22" text-anchor="middle" fill="#FFFFFF" font-size="14" font-weight="600">Tools</text>
+      <text x="132" y="22" fill="#9498A3" font-size="14" font-weight="600">Release Notes</text>
+      <text x="270" y="22" fill="#9498A3" font-size="14" font-weight="600">About Us</text>
+      <rect x="351" y="5" width="24" height="24" rx="4" fill="#FFFFFF" fill-opacity=".04" stroke="#FFFFFF" stroke-opacity=".07"/>
+      <text x="363" y="21" text-anchor="middle" fill="#A4A6B1" font-size="10" font-weight="700">E</text>
+    </g>
+    <path d="M100 78.5H1340" stroke="#FFFFFF" stroke-opacity=".06"/>
+
+    <text x="720" y="170" text-anchor="middle" fill="#F1F2F6" font-size="42" font-weight="700" letter-spacing="-1.45">What would you like to do?</text>
+    <text x="720" y="207" text-anchor="middle" fill="#9498A3" font-size="15">Choose a tool to get started.</text>
+
+    <g transform="translate(100 263)">
+      <text x="0" y="0" fill="#AAA0FF" font-size="10" font-weight="750" letter-spacing="1.8">SMART NOTEBOOK</text>
+      <path d="M0 16H392" stroke="#8F82FF" stroke-opacity=".28"/>
+
+      <g transform="translate(0 32)">
+        <rect width="392" height="116" rx="14" fill="url(#card)" stroke="#FFFFFF" stroke-opacity=".07"/>
+        <rect x="18" y="29" width="58" height="58" rx="13" fill="#6C5CE7" fill-opacity=".09" stroke="#8F82FF" stroke-opacity=".21"/>
+        <path d="M31 38h25l12 12v28H31V38Z" stroke="#AAA0FF" stroke-width="2.8" stroke-linejoin="round"/>
+        <path d="M56 39v12h12" stroke="#AAA0FF" stroke-width="2.8" stroke-linejoin="round"/>
+        <rect x="37" y="55" width="25" height="17" rx="2" stroke="#AAA0FF" stroke-width="2"/>
+        <circle cx="55" cy="60" r="2" fill="#85E8D8"/>
+        <path d="m39 69 7-7 5 5 4-4 5 6" stroke="#85E8D8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="92" y="53" fill="#F1F2F6" font-size="16" font-weight="700">File Creator</text>
+        <text x="92" y="76" fill="#9498A3" font-size="12">Images → Notebook</text>
+        <rect x="329" y="73" width="35" height="22" rx="5" fill="#FFFFFF" fill-opacity=".04" stroke="#FFFFFF" stroke-opacity=".09"/>
+        <text x="346.5" y="88" text-anchor="middle" fill="#A4A6B1" font-size="9" font-weight="700" letter-spacing=".3">SPACE</text>
+        <path d="m370 54 7 6-7 6" stroke="#AAA0FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+      <g transform="translate(0 162)">
+        <rect width="392" height="116" rx="14" fill="url(#card)" stroke="#FFFFFF" stroke-opacity=".07"/>
+        <rect x="18" y="29" width="58" height="58" rx="13" fill="#FF927D" fill-opacity=".07" stroke="#FF927D" stroke-opacity=".2"/>
+        <path d="M31 38h25l12 12v28H31V38Z" stroke="#FFB2A4" stroke-width="2.8" stroke-linejoin="round"/>
+        <path d="M56 39v12h12M38 57h18m-18 7h13" stroke="#FFB2A4" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="59" cy="72" r="9" fill="#292A34" stroke="#FF927D" stroke-width="1.7"/>
+        <path d="M57 77v-10h3.5a3 3 0 0 1 0 6H57" stroke="#FF927D" stroke-width="1.5" stroke-linecap="round"/>
+        <text x="92" y="53" fill="#F1F2F6" font-size="16" font-weight="700">Convert to PDF</text>
+        <text x="92" y="76" fill="#9498A3" font-size="12">Notebook → PDF</text>
+        <path d="m370 54 7 6-7 6" stroke="#AAA0FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+      <g transform="translate(0 292)">
+        <rect width="392" height="116" rx="14" fill="url(#card)" stroke="#FFFFFF" stroke-opacity=".07"/>
+        <rect x="18" y="29" width="58" height="58" rx="13" fill="#00B894" fill-opacity=".07" stroke="#00B894" stroke-opacity=".2"/>
+        <path d="M32 57h22v18H32zM37 57v-6a6 6 0 0 1 12 0v6" stroke="#85E8D8" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+        <circle cx="43" cy="65" r="2.4" fill="#85E8D8"/><path d="M43 67v3" stroke="#85E8D8" stroke-width="1.8" stroke-linecap="round"/>
+        <path d="M55 41h12v12" stroke="#85E8D8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="92" y="53" fill="#F1F2F6" font-size="16" font-weight="700">Page Locker</text>
+        <text x="92" y="76" fill="#9498A3" font-size="12">Lock or unlock pages</text>
+        <path d="m370 54 7 6-7 6" stroke="#AAA0FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+    </g>
+
+    <g transform="translate(524 263)">
+      <text x="0" y="0" fill="#AAA0FF" font-size="10" font-weight="750" letter-spacing="1.8">LEARNCRAFT</text>
+      <path d="M0 16H392" stroke="#8F82FF" stroke-opacity=".28"/>
+
+      <g transform="translate(0 32)">
+        <rect width="392" height="116" rx="14" fill="url(#card)" stroke="#FFFFFF" stroke-opacity=".07"/>
+        <rect x="18" y="29" width="58" height="58" rx="13" fill="#6C5CE7" fill-opacity=".09" stroke="#8F82FF" stroke-opacity=".21"/>
+        <rect x="32" y="44" width="30" height="27" rx="3" stroke="#AAA0FF" stroke-width="2.6"/>
+        <path d="M32 52h30M41 57v9m12-9v9" stroke="#AAA0FF" stroke-width="2.1" stroke-linecap="round"/>
+        <path d="M38 39h18" stroke="#AAA0FF" stroke-width="2.3" stroke-linecap="round"/>
+        <text x="92" y="53" fill="#F1F2F6" font-size="16" font-weight="700">Canvas extractor</text>
+        <text x="92" y="76" fill="#9498A3" font-size="12">Read Master Canvas data</text>
+        <path d="m370 54 7 6-7 6" stroke="#AAA0FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+      <g transform="translate(0 162)">
+        <rect width="392" height="116" rx="14" fill="url(#card)" stroke="#FFFFFF" stroke-opacity=".07"/>
+        <rect x="18" y="29" width="58" height="58" rx="13" fill="#6C5CE7" fill-opacity=".09" stroke="#8F82FF" stroke-opacity=".21"/>
+        <circle cx="47" cy="58" r="21" stroke="#AAA0FF" stroke-width="2.7"/>
+        <path d="M42 46v24l19-12-19-12Z" fill="#85E8D8"/>
+        <text x="92" y="53" fill="#F1F2F6" font-size="16" font-weight="700">Ultimate Go Live</text>
+        <text x="92" y="76" fill="#9498A3" font-size="12">Put course to Ready</text>
+        <path d="m370 54 7 6-7 6" stroke="#AAA0FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+    </g>
+
+    <g transform="translate(948 263)">
+      <text x="0" y="0" fill="#85E8D8" font-size="10" font-weight="750" letter-spacing="1.8">IMAGE TOOLS</text>
+      <path d="M0 16H392" stroke="#00B894" stroke-opacity=".27"/>
+
+      <g transform="translate(0 32)">
+        <rect width="392" height="116" rx="14" fill="url(#card)" stroke="#FFFFFF" stroke-opacity=".07"/>
+        <rect x="18" y="29" width="58" height="58" rx="13" fill="#00B894" fill-opacity=".07" stroke="#00B894" stroke-opacity=".2"/>
+        <path d="M38 43H29V34m25 9h9V34M29 65v9h9m25-9v9h-9" stroke="#85E8D8" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="35" y="41" width="23" height="25" rx="2" stroke="#85E8D8" stroke-width="2.3"/>
+        <circle cx="51" cy="48" r="2" fill="#85E8D8"/>
+        <path d="m38 62 6-7 5 5 4-4 4 5" stroke="#85E8D8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="92" y="53" fill="#F1F2F6" font-size="16" font-weight="700">Image Resizer</text>
+        <text x="92" y="76" fill="#9498A3" font-size="12">Resize images in bulk</text>
+        <path d="m370 54 7 6-7 6" stroke="#AAA0FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+    </g>
+  </g>
+</svg>

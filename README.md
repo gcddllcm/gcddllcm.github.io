@@ -23,3 +23,14 @@ Set the repository's Pages source to **GitHub Actions** for the workflow to publ
 
 Checks the syntax of every script, the image helpers (`js/imgcore.js`) and the Notebook to PDF worker (`js/pdfworker.js`).
 Everything runs on Node only; no extra packages are needed.
+
+## Ultimate Go Live
+
+Code: `js/golive.js` (page), `js/glcore.js` (progress helpers, tested in Node), `extension/background.js` (`runGoLive` / `lcGoLiveStep`).
+
+- Canvas Extractor and Ultimate Go Live show a device notice on phones and tablets; desktop and laptop browsers remain available, including narrow windows and touch-screen computers.
+- The page asks the extension to run a Master Canvas tab to Ready; the extension never clicks Go live, Reject, Cancel or Go to Edit.
+- Progress events: a step (`round`, `queue`, `code`, `did`, `state`), `{event: 'variants', codes}` and `{event: 'variant-done', code, ok, message}`.
+- A failed look at a page is retried with `observe: true`, which looks but never clicks.
+- Changing the extension's behaviour or assets? Bump `extension/manifest.json`, `EXT_MIN` in `js/golive.js` and in `js/learncraft.js` together (a test checks they agree).
+- Previous branding assets are kept in `assets/archive/branding/` for future reuse.

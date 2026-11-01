@@ -1,0 +1,114 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1000" viewBox="0 0 1440 1000" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1440" y2="1000" gradientUnits="userSpaceOnUse"><stop stop-color="#1F2027"/><stop offset="1" stop-color="#23252F"/></linearGradient>
+    <linearGradient id="preview" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#302E43"/><stop offset="1" stop-color="#252731"/></linearGradient>
+  </defs>
+  <rect width="1440" height="1000" fill="url(#bg)"/>
+  <rect width="1440" height="82" fill="#20212A"/>
+  <path d="M0 81.5H1440" stroke="#FFFFFF" stroke-opacity=".08"/>
+  <g font-family="Segoe UI,Arial,sans-serif">
+    <g transform="translate(78 18)">
+      <circle cx="23" cy="23" r="23" fill="#6C5CE7" fill-opacity=".2"/>
+      <path d="M13 17c0-6 4-10 10-10s10 4 10 10v12c0 5-4 9-10 9s-10-4-10-9V17Z" fill="#F1F2F6"/>
+      <path d="m18 19 5-3 5 3v6l-5 3-5-3v-6Z" fill="#6C5CE7"/>
+      <text x="58" y="29" fill="#F1F2F6" font-size="18" font-weight="700">Penguin Logistics</text>
+    </g>
+    <g fill="#9498A3" font-size="14" font-weight="600"><text x="1000" y="49">Tools</text><text x="1092" y="49">Release Notes</text><text x="1228" y="49">About Us</text></g>
+    <rect x="986" y="29" width="64" height="34" rx="8" fill="#FFFFFF" fill-opacity=".06"/>
+    <text x="1000" y="51" fill="#F1F2F6" font-size="14" font-weight="600">Tools</text>
+
+    <text x="92" y="146" fill="#A9A0FF" font-size="11" font-weight="700" letter-spacing="2.3">YOUR TOOL WORKBENCH</text>
+    <text x="92" y="193" fill="#F1F2F6" font-size="35" font-weight="700">Choose a tool, see what it does</text>
+    <text x="92" y="224" fill="#A9ABB5" font-size="15">A focused preview makes the next step clear before you open it.</text>
+
+    <rect x="82" y="270" width="393" height="640" rx="18" fill="#252731" stroke="#FFFFFF" stroke-opacity=".1"/>
+    <text x="110" y="309" fill="#777B87" font-size="11" font-weight="700" letter-spacing="1.4">ALL TOOLS</text>
+    <text x="444" y="309" text-anchor="end" fill="#777B87" font-size="11">6</text>
+    <path d="M108 329H449" stroke="#FFFFFF" stroke-opacity=".08"/>
+    <rect x="100" y="346" width="357" height="77" rx="12" fill="#6C5CE7" fill-opacity=".16" stroke="#8F82FF" stroke-opacity=".55"/>
+    <rect x="116" y="362" width="44" height="44" rx="11" fill="#6C5CE7" fill-opacity=".2"/>
+    <path d="M128 370h13l6 6v22h-19v-28Zm13 0v6h6m-15 4h11m-11 5h9" stroke="#C9C3FF" stroke-width="1.7" stroke-linejoin="round"/>
+    <text x="174" y="378" fill="#F1F2F6" font-size="14" font-weight="700">File Creator</text>
+    <text x="174" y="399" fill="#A9ABB5" font-size="11">Images → Notebook</text>
+    <path d="m427 379 7 6-7 6" stroke="#AAA0FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    <g>
+      <rect x="100" y="432" width="357" height="67" rx="11" fill="#FFFFFF" fill-opacity=".02"/>
+      <rect x="116" y="443" width="44" height="44" rx="11" fill="#FF927D" fill-opacity=".1"/>
+      <path d="M128 450h13l6 6v22h-19v-28Zm13 0v6h6m-15 4h9" stroke="#FFB2A4" stroke-width="1.7" stroke-linejoin="round"/>
+      <circle cx="147" cy="479" r="7" fill="#252731" stroke="#FF927D" stroke-width="1.4"/><text x="147" y="481.5" text-anchor="middle" fill="#FFB2A4" font-size="4.5" font-weight="700">PDF</text>
+      <text x="174" y="460" fill="#D9DAE0" font-size="13" font-weight="650">Convert to PDF</text><text x="174" y="480" fill="#858A98" font-size="11">Notebook → PDF</text>
+    </g>
+    <g>
+      <rect x="100" y="508" width="357" height="67" rx="11" fill="#FFFFFF" fill-opacity=".02"/>
+      <rect x="116" y="519" width="44" height="44" rx="11" fill="#00B894" fill-opacity=".1"/>
+      <path d="M128 537h19v15h-19zm4 0v-4a5.5 5.5 0 0 1 11 0v4" stroke="#8FE9D6" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>
+      <text x="174" y="536" fill="#D9DAE0" font-size="13" font-weight="650">Page Locker</text><text x="174" y="556" fill="#858A98" font-size="11">Lock or unlock pages</text>
+    </g>
+    <g>
+      <rect x="100" y="584" width="357" height="67" rx="11" fill="#FFFFFF" fill-opacity=".02"/>
+      <rect x="116" y="595" width="44" height="44" rx="11" fill="#00B894" fill-opacity=".1"/>
+      <path d="M127 607h7v-5m10 5h7v-5m-24 17v7h7m10 0h7v-7" stroke="#8FE9D6" stroke-width="1.8" stroke-linecap="round"/><rect x="133" y="606" width="17" height="19" rx="2" stroke="#8FE9D6" stroke-width="1.7"/>
+      <text x="174" y="612" fill="#D9DAE0" font-size="13" font-weight="650">Image Resizer</text><text x="174" y="632" fill="#858A98" font-size="11">Resize image batches</text>
+    </g>
+    <g>
+      <rect x="100" y="660" width="357" height="67" rx="11" fill="#FFFFFF" fill-opacity=".02"/>
+      <rect x="116" y="671" width="44" height="44" rx="11" fill="#6C5CE7" fill-opacity=".12"/>
+      <rect x="127" y="682" width="22" height="20" rx="3" stroke="#C9C3FF" stroke-width="1.7"/><path d="M127 688h22m-15 5v6m8-6v6" stroke="#C9C3FF" stroke-width="1.5"/>
+      <text x="174" y="688" fill="#D9DAE0" font-size="13" font-weight="650">Canvas extractor</text><text x="174" y="708" fill="#858A98" font-size="11">Read Master Canvas data</text>
+    </g>
+    <g>
+      <rect x="100" y="736" width="357" height="67" rx="11" fill="#FFFFFF" fill-opacity=".02"/>
+      <rect x="116" y="747" width="44" height="44" rx="11" fill="#6C5CE7" fill-opacity=".12"/>
+      <circle cx="138" cy="769" r="13" stroke="#C9C3FF" stroke-width="1.7"/><path d="M135 761v16l13-8-13-8Z" fill="#8FE9D6"/>
+      <text x="174" y="764" fill="#D9DAE0" font-size="13" font-weight="650">Ultimate Go Live</text><text x="174" y="784" fill="#858A98" font-size="11">Take a course to Ready</text>
+    </g>
+    <rect x="100" y="827" width="357" height="55" rx="11" fill="#20222B"/>
+    <text x="119" y="850" fill="#9196A3" font-size="11">Notebook</text><text x="191" y="850" fill="#9196A3" font-size="11">Images</text><text x="250" y="850" fill="#9196A3" font-size="11">LearnCraft</text>
+    <circle cx="109" cy="846" r="3" fill="#8F82FF"/><circle cx="181" cy="846" r="3" fill="#43D7C0"/><circle cx="240" cy="846" r="3" fill="#FFB84D"/>
+
+    <rect x="503" y="270" width="855" height="640" rx="18" fill="#252731" stroke="#FFFFFF" stroke-opacity=".1"/>
+    <rect x="503" y="270" width="855" height="272" rx="18" fill="url(#preview)"/>
+    <path d="M503 542H1358" stroke="#FFFFFF" stroke-opacity=".08"/>
+    <text x="550" y="319" fill="#C6C0FF" font-size="11" font-weight="700" letter-spacing="1.4">SELECTED TOOL</text>
+    <text x="550" y="364" fill="#F1F2F6" font-size="27" font-weight="700">File Creator</text>
+    <text x="550" y="394" fill="#B8BAC5" font-size="14">Turn a set of images into a SMART Notebook file.</text>
+    <rect x="550" y="422" width="172" height="44" rx="11" fill="#7668EF"/>
+    <text x="636" y="450" text-anchor="middle" fill="#FFFFFF" font-size="13" font-weight="700">Open File Creator</text>
+    <text x="550" y="500" fill="#9699A7" font-size="11">One click to start · Your files stay on your device</text>
+    <g transform="translate(1004 309)">
+      <rect width="303" height="194" rx="13" fill="#20222B" stroke="#FFFFFF" stroke-opacity=".11"/>
+      <text x="18" y="25" fill="#858A98" font-size="9" font-weight="700" letter-spacing="1.1">INPUT</text>
+      <rect x="18" y="43" width="73" height="93" rx="8" fill="#2C303C" stroke="#FFFFFF" stroke-opacity=".1"/>
+      <rect x="30" y="56" width="49" height="37" rx="4" fill="#6C5CE7" fill-opacity=".13"/>
+      <circle cx="66" cy="65" r="5" fill="#8FE9D6"/><path d="m34 88 12-13 9 9 8-7 12 11" stroke="#8FE9D6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="54" y="117" text-anchor="middle" fill="#9FA3AF" font-size="9">image-01</text>
+      <rect x="103" y="43" width="73" height="93" rx="8" fill="#2C303C" stroke="#FFFFFF" stroke-opacity=".1"/>
+      <rect x="115" y="56" width="49" height="37" rx="4" fill="#FF927D" fill-opacity=".09"/>
+      <circle cx="151" cy="65" r="5" fill="#FFB84D"/><path d="m119 88 12-13 9 9 8-7 12 11" stroke="#FFB2A4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="139" y="117" text-anchor="middle" fill="#9FA3AF" font-size="9">image-02</text>
+      <path d="M188 89h30m-7-7 7 7-7 7" stroke="#9297A4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="228" y="43" width="57" height="93" rx="8" fill="#292A39" stroke="#8F82FF" stroke-opacity=".5"/>
+      <path d="M241 58h25l7 7v52h-32V58Zm25 0v7h7m-24 8h18m-18 6h18m-18 6h13" stroke="#C9C3FF" stroke-width="1.6" stroke-linejoin="round"/>
+      <text x="256" y="151" text-anchor="middle" fill="#B8B0FF" font-size="9" font-weight="600">.NOTEBOOK</text>
+      <text x="18" y="178" fill="#8B90A0" font-size="10">Images</text><text x="216" y="178" fill="#8B90A0" font-size="10">SMART Notebook</text>
+    </g>
+
+    <text x="550" y="587" fill="#777B87" font-size="11" font-weight="700" letter-spacing="1.3">HOW IT WORKS</text>
+    <g transform="translate(550 611)">
+      <circle cx="18" cy="18" r="18" fill="#6C5CE7" fill-opacity=".18"/><text x="18" y="22" text-anchor="middle" fill="#C9C3FF" font-size="11" font-weight="700">1</text>
+      <text x="49" y="16" fill="#E3E4E9" font-size="13" font-weight="650">Add your images</text><text x="49" y="37" fill="#9297A4" font-size="11">Choose one or more files to include.</text>
+    </g>
+    <g transform="translate(550 683)">
+      <circle cx="18" cy="18" r="18" fill="#6C5CE7" fill-opacity=".18"/><text x="18" y="22" text-anchor="middle" fill="#C9C3FF" font-size="11" font-weight="700">2</text>
+      <text x="49" y="16" fill="#E3E4E9" font-size="13" font-weight="650">Set the page order</text><text x="49" y="37" fill="#9297A4" font-size="11">Arrange the images the way you want.</text>
+    </g>
+    <g transform="translate(550 755)">
+      <circle cx="18" cy="18" r="18" fill="#6C5CE7" fill-opacity=".18"/><text x="18" y="22" text-anchor="middle" fill="#C9C3FF" font-size="11" font-weight="700">3</text>
+      <text x="49" y="16" fill="#E3E4E9" font-size="13" font-weight="650">Create your Notebook</text><text x="49" y="37" fill="#9297A4" font-size="11">Download the generated file.</text>
+    </g>
+    <path d="M550 822H1310" stroke="#FFFFFF" stroke-opacity=".08"/>
+    <text x="550" y="854" fill="#777B87" font-size="10" font-weight="700" letter-spacing="1.1">RELATED TOOLS</text>
+    <text x="550" y="882" fill="#B7B9C2" font-size="12">Image Resizer</text><text x="698" y="882" fill="#777B87" font-size="12">Prepare images before creating a Notebook</text>
+    <text x="92" y="950" fill="#7E8391" font-size="12">The left side stays predictable; the preview on the right explains one selected tool at a time.</text>
+  </g>
+</svg>

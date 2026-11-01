@@ -3,10 +3,10 @@
 
     python tools/release.py 3.1.4
 
-Updates APP_VERSION (config.js), version.json, and the ?v=<version> cache-busting
+Updates APP_VERSION (config.js) and the ?v=<version> cache-busting
 token on every local file reference (index.html, js/*.js, js/locales/*.js, workers).
 Run it once before every release so browsers never mix old and new files.
-Third-party files in js/vendor/ are left alone.
+The vendored library (js/vendor/fflate.js) is imported with ?v= too, so a new build never mixes with a cached copy; its own file is not edited.
 """
 import json, pathlib, re, sys
 
@@ -23,7 +23,6 @@ s = read(cfg)
 s, n = re.subn(r'(APP_VERSION\s*=\s*")[^"]*(")', r"\g<1>%s\g<2>" % ver, s)
 assert n == 1, "APP_VERSION not found in config.js"
 write(cfg, s)
-write(root / "version.json", json.dumps({"version": ver}, separators=(",", ":")))
 
 targets = [root / "index.html", *sorted((root / "js").glob("*.js")), *sorted((root / "js" / "locales").glob("*.js"))]
 total = 0
@@ -33,7 +32,7 @@ for p in targets:
     if n and s2 != s:
         write(p, s2)
     total += n
-print(f"Version {ver}: config.js, version.json and {total} ?v= references updated.")
+print(f"Version {ver}: config.js and {total} ?v= references updated.")
 
 # ---- sanity checks (warnings only) ----
 en = read(root / "js" / "locales" / "en.js")

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ultimate Go Live</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <div class="popup-brand">
+      <img class="brand-icon" src="assets/loy-krathong-2026.png" alt="">
+      <div>
+        <h1>Ultimate Go Live</h1>
+        <p>Take a Master Canvas and its variants to Ready.</p>
+      </div>
+    </div>
+    <button class="icon-button" id="refresh" type="button" aria-label="Refresh tabs" title="Refresh tabs">↻</button>
+  </header>
+  <main>
+    <p id="status" role="status" aria-live="polite">Looking for Master Canvas tabs…</p>
+    <label class="option">
+      <input id="close-ready" type="checkbox" checked>
+      <span><strong>Close variant tabs when they are ready</strong><small>Tabs for variants that need attention will stay open.</small></span>
+    </label>
+    <section id="courses" aria-label="Open Master Canvas tabs"></section>
+    <section id="run" hidden></section>
+    <p id="run-live" class="sr-only" role="status" aria-live="polite"></p>
+    <dialog id="confirm-dialog" class="confirm-dialog" aria-labelledby="confirm-title" aria-describedby="confirm-text">
+      <h2 id="confirm-title">Take course to Ready?</h2>
+      <p id="confirm-text"></p>
+      <div class="confirm-actions"><button class="quiet-button" type="button" data-action="cancel-confirm">Cancel</button><button class="confirm-button" type="button" data-action="start">Start</button></div>
+    </dialog>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>

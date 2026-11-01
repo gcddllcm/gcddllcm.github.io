@@ -1,8 +1,8 @@
-import {$,msg,track,countBucket,yieldNow} from './util.js?v=3.2.1';
-import {mountGuide} from './instruction-panel.js?v=3.2.1';
-import {zipSync} from './vendor/fflate.js';
-import * as T from './nbtemplates.js?v=3.2.1';
-import {t} from './i18n.js?v=3.2.1';
+import {$,msg,track,countBucket,yieldNow} from './util.js?v=3.3.0';
+import {mountGuide} from './instruction-panel.js?v=3.3.0';
+import {zipSync} from './vendor/fflate.js?v=3.3.0';
+import * as T from './nbtemplates.js?v=3.3.0';
+import {t} from './i18n.js?v=3.3.0';
 const SUP=/\.(png|jpe?g|gif|bmp)$/i,coll=new Intl.Collator(undefined,{numeric:true,sensitivity:'base'});
 const A='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',nid=(n=25)=>Array.from(crypto.getRandomValues(new Uint8Array(n)),b=>A[b%36]).join('');
 const enc=new TextEncoder(),tick=yieldNow;
@@ -61,7 +61,7 @@ async function build(items,report){
 export function mount(root){
   root.innerHTML=`<div class="tool-layout"><div class="tool wideview"><div class="head"><h1>${t('tool.creator')}</h1></div>
   <div class="sub">${t('creator.sub')}</div>
-  <div class="drop small" id="cr-drop" tabindex="0"><span class="drop-label">${t('creator.drop')}</span></div>
+  <div class="drop small" id="cr-drop" tabindex="0" role="button" aria-keyshortcuts="Enter Space"><span class="drop-label">${t('creator.drop')}</span></div>
   <div class="cr"><div class="pane"><div class="listbox" id="cr-list" tabindex="0" role="listbox" aria-multiselectable="true"></div>
    <div class="btnrow cr-actions"><button class="btn" id="cr-top">${t('creator.top')}</button><button class="btn" id="cr-bot">${t('creator.bottom')}</button><button class="btn" id="cr-rm">${t('creator.remove')}</button><button class="btn" id="cr-clr">${t('creator.clear')}</button></div></div>
    <div class="pane"><div class="previewbox" id="cr-prev">${t('creator.selectPreview')}</div><div class="sub" id="cr-cap"></div><div class="preview-controls"><button class="btn" id="cr-zoom-out" aria-label="${t('creator.zoomOut')}">−</button><span id="cr-zoom-label">${t('creator.fit')}</span><button class="btn" id="cr-zoom-in" aria-label="${t('creator.zoomIn')}">+</button><button class="btn" id="cr-zoom-fit">${t('creator.fit')}</button></div></div></div>
@@ -214,7 +214,7 @@ export function mount(root){
     add(all);
   }
   const pick=async()=>{if(busy)return;if('showOpenFilePicker' in window){try{const hs=await showOpenFilePicker({multiple:true,types:[{description:'Images',accept:{'image/*':['.png','.jpg','.jpeg','.gif','.bmp']}}]});add(await Promise.all(hs.map(h=>h.getFile())))}catch{}}else $('cr-file').click()};
-  $('cr-drop').onclick=pick;$('cr-drop').onkeydown=e=>{if(e.key==='Enter'||e.key===' ')pick()};
+  $('cr-drop').onclick=pick;$('cr-drop').onkeydown=e=>{if((e.key==='Enter'||e.key===' ')&&!e.repeat){e.preventDefault();pick()}};
   $('cr-file').onchange=e=>{add([...e.target.files]);e.target.value=''};
   addEventListener('paste',e=>{if(root.classList.contains('on')&&root.closest('.page')?.classList.contains('on')&&!busy&&e.clipboardData.files.length)add([...e.clipboardData.files])});   // the view stays "on" while Home / Release Notes / About are shown, so the page must be visible too
   addEventListener('beforeunload',e=>{if(busy||items.length){e.preventDefault();e.returnValue=''}});   // the list of images would be lost
@@ -243,7 +243,7 @@ export function mount(root){
     try{
       const bytes=await build([...items],(c,tot,m)=>{$('cr-prog').max=tot;$('cr-prog').value=c;status(m)});
       if(handle){const w=await handle.createWritable();await w.write(bytes);await w.close()}
-      else{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([bytes]));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000)}
+      else{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([bytes]));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),30000)}
       track('creator/run','Creator run');track('creator/files/'+countBucket(items.length),'Creator pages '+countBucket(items.length));
       status(t('creator.doneStatus',items.length));await msg(t('creator.doneTitle'),t('creator.done',items.length,handle?handle.name:name));
     }catch(e){status(t('creator.failed'));msg(t('creator.failed'),String(e.message||e),'error')}

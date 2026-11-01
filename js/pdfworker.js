@@ -1,7 +1,7 @@
-import { unzipSync, zlibSync } from './vendor/fflate.js';
+import { unzipSync, zlibSync } from './vendor/fflate.js?v=3.3.0';
 const SKIP_ENTRY = /(^|\/)thumbnails\/|^preview\.png$|\.(mp4|m4v|mov|avi|wmv|mpe?g|webm|mp3|wav|ogg|m4a|wma|swf|flv)$/i;
-import { readImageInfo } from './imgcore.js?v=3.2.1';
-import { fixNames } from './zipnames.js?v=3.2.1';
+import { readImageInfo } from './imgcore.js?v=3.3.0';
+import { fixNames } from './zipnames.js?v=3.3.0';
 
 const PAGE_WIDTH_PT = 595.28;
 const B64_CACHE_LIMIT = 48 * 1024 * 1024;
@@ -102,8 +102,7 @@ function stampFancypen(block) {
       if (i + 1 < nums.length) ys.push(nums[i + 1]);
     }
     if (!xs.length || !ys.length) return block;
-    const minX = Math.min(...xs), maxX = Math.max(...xs);
-    const minY = Math.min(...ys), maxY = Math.max(...ys);
+    const [minX, maxX] = extent(xs), [minY, maxY] = extent(ys);
     const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
     const size = Math.max(maxX - minX, maxY - minY);
     if (!points.length || size <= 0) return block;
@@ -119,6 +118,13 @@ function stampFancypen(block) {
   }
 }
 
+// min/max without spreading the array into arguments (a very long pen stroke would overflow the call stack)
+function extent(arr) {
+  let lo = Infinity, hi = -Infinity;
+  for (let i = 0; i < arr.length; i++) { const v = arr[i]; if (v < lo) lo = v; if (v > hi) hi = v; }
+  return [lo, hi];
+}
+
 function fixDotPolyline(tag) {
   const pm = tag.match(/(\spoints\s*=\s*["'])([^"']*)(["'])/i);
   if (!pm) return tag;
@@ -126,7 +132,8 @@ function fixDotPolyline(tag) {
   const pts = rawPts.map(p => p.split(',').map(Number));
   if (!pts.length || pts.some(([x, y]) => isNaN(x) || isNaN(y))) return tag;
   const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
-  if (Math.max(...xs) - Math.min(...xs) < 0.5 && Math.max(...ys) - Math.min(...ys) < 0.5) {
+  const [dotMinX, dotMaxX] = extent(xs), [dotMinY, dotMaxY] = extent(ys);
+  if (dotMaxX - dotMinX < 0.5 && dotMaxY - dotMinY < 0.5) {
     const [x, y] = pts[0];
     const newPts = `${x.toFixed(3)},${y.toFixed(3)} ${(x + 0.5).toFixed(3)},${y.toFixed(3)}`;
     return tag.replace(pm[0], `${pm[1]}${newPts}${pm[3]}`);
@@ -357,6 +364,29 @@ async function resizeToJpeg(rawBytes, mime, targetW, targetH, quality) {
   return { bytes: new Uint8Array(buf), w: targetW, h: targetH };
 }
 
+// One short line out of whatever the browser put in an error (the XML parser adds several lines of noise).
+function shortError(err) {
+  const s = String((err && err.message) || err)
+    .replace(/This page contains the following errors:\s*/i, '')
+    .split(/\n|Below is a rendering/i)[0].trim();
+  return s.length > 160 ? s.slice(0, 157) + '...' : s;
+}
+
+// Placeholder for a page that failed: same shape as the original when it can be read, otherwise like its neighbour.
+function blankPage(svgText, fallbackW, fallbackH) {
+  let w = 0, h = 0;
+  const root = /<svg\b[^>]*>/i.exec(svgText || '');
+  if (root) {
+    w = svgNum(root[0], 'width'); h = svgNum(root[0], 'height');
+    if (!w || !h) {
+      const vb = root[0].match(/viewBox\s*=\s*["']\s*([\d.-]+)[\s,]+([\d.-]+)[\s,]+([\d.-]+)[\s,]+([\d.-]+)/i);
+      if (vb) { w = w || parseFloat(vb[3]); h = h || parseFloat(vb[4]); }
+    }
+  }
+  if (!(w > 0 && h > 0)) { w = fallbackW || 1240; h = fallbackH || 1754; }
+  return { blank: true, width: w, height: h };
+}
+
 function createPdfDocument(pages, title) {
   const enc = new TextEncoder();
   const chunks = [];
@@ -412,6 +442,26 @@ function createPdfDocument(pages, title) {
     const contentId = 5 + i * 3;
     const imgId = 6 + i * 3;
     const pageH = Math.max(1, (PAGE_WIDTH_PT * p.height) / p.width);
+
+    if (p.blank) {
+      // A page that could not be rendered keeps its place (so page numbers stay aligned) and is drawn as an
+      // empty frame with a cross, using vector operators only (no font needed).
+      const w = PAGE_WIDTH_PT.toFixed(2), h = pageH.toFixed(2), m = 12;
+      startObj(pageId);
+      addStr(`<< /Type /Page /Parent 2 0 R /MediaBox [ 0 0 ${w} ${h} ] /Resources << >> /Contents ${contentId} 0 R >>\n`);
+      endObj();
+      const blankBuf = enc.encode(`0.75 G 1 w\n${m} ${m} ${(PAGE_WIDTH_PT - 2 * m).toFixed(2)} ${(pageH - 2 * m).toFixed(2)} re S\n` +
+        `${m} ${m} m ${(PAGE_WIDTH_PT - m).toFixed(2)} ${(pageH - m).toFixed(2)} l S\n${m} ${(pageH - m).toFixed(2)} m ${(PAGE_WIDTH_PT - m).toFixed(2)} ${m} l S\n`);
+      startObj(contentId);
+      addStr(`<< /Length ${blankBuf.length} >>\nstream\n`);
+      addChunk(blankBuf);
+      addStr(`endstream\n`);
+      endObj();
+      startObj(imgId);
+      addStr(`null\n`);
+      endObj();
+      continue;
+    }
 
     startObj(pageId);
     addStr(`<< /Type /Page /Parent 2 0 R /MediaBox [ 0 0 ${PAGE_WIDTH_PT.toFixed(2)} ${pageH.toFixed(2)} ] /Resources << /XObject << /Im1 ${imgId} 0 R >> /ProcSet [ /PDF /ImageC ] >> /Contents ${contentId} 0 R >>\n`);
@@ -504,10 +554,13 @@ self.onmessage = async e => {
     const b64Cache = new Map();
     const b64Ref = { size: 0 };
 
+    let lastW = 0, lastH = 0;     // size of the last good page, used when a page's own size cannot be read
     for (let i = 0; i < pageEntries.length; i++) {
       const { num, name } = pageEntries[i];
+      let rawSvg = '';
       try {
         let svgText = dec.decode(zip[name]).replace(/^\uFEFF/, '');
+        rawSvg = svgText;
         let doneFast = false;
 
         if (isSimpleImagePage(svgText)) {
@@ -598,8 +651,11 @@ self.onmessage = async e => {
         }
       } catch (err) {
         failed++;
-        errs.push(`page ${num}: ${err.message || err}`);
+        errs.push(`page ${num}: ${shortError(err)}`);
+        pages.push(blankPage(rawSvg, lastW, lastH));
       }
+      const lastGood = pages[pages.length - 1];
+      if (lastGood && !lastGood.blank) { lastW = lastGood.width; lastH = lastGood.height; }
       postMessage({ type: 'page', id, d: i + 1, t: pageEntries.length });
     }
 

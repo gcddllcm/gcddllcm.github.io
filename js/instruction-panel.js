@@ -1,6 +1,52 @@
-import {t} from './i18n.js?v=3.2.1';
+import {t} from './i18n.js?v=3.3.0';
 
 const GUIDES = {
+  learncraft: {
+    steps: [
+      {
+        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11H19V7a2 2 0 0 0-2-2h-4V3.5a2.5 2.5 0 0 0-5 0V5H4a2 2 0 0 0-2 2v3.8h1.5a2.7 2.7 0 0 1 0 5.4H2V20a2 2 0 0 0 2 2h3.8v-1.5a2.7 2.7 0 0 1 5.4 0V22H17a2 2 0 0 0 2-2v-4h1.5a2.5 2.5 0 0 0 0-5Z"/></svg>',
+        title: 'guide.learncraft.step1.title',
+        desc: 'guide.learncraft.step1.desc',
+        targets: ['#lc-status']
+      },
+      {
+        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 5V3"/></svg>',
+        title: 'guide.learncraft.step2.title',
+        desc: 'guide.learncraft.step2.desc',
+        targets: ['#lc-tabs']
+      },
+      {
+        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+        title: 'guide.learncraft.step3.title',
+        desc: 'guide.learncraft.step3.desc',
+        targets: ['#lc-result']
+      }
+    ],
+    detailsKey: 'guide.learncraft.details'
+  },
+  golive: {
+    steps: [
+      {
+        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 11H19V7a2 2 0 0 0-2-2h-4V3.5a2.5 2.5 0 0 0-5 0V5H4a2 2 0 0 0-2 2v3.8h1.5a2.7 2.7 0 0 1 0 5.4H2V20a2 2 0 0 0 2 2h3.8v-1.5a2.7 2.7 0 0 1 5.4 0V22H17a2 2 0 0 0 2-2v-4h1.5a2.5 2.5 0 0 0 0-5z"/></svg>',
+        title: 'guide.golive.step1.title',
+        desc: 'guide.golive.step1.desc',
+        targets: ['#gl-status']
+      },
+      {
+        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18"/><path d="m10 11 5 3-5 3z"/></svg>',
+        title: 'guide.golive.step2.title',
+        desc: 'guide.golive.step2.desc',
+        targets: ['#gl-courses']
+      },
+      {
+        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13"/><path d="m3 6 1 1 2-2M3 12l1 1 2-2M3 18l1 1 2-2"/></svg>',
+        title: 'guide.golive.step3.title',
+        desc: 'guide.golive.step3.desc',
+        targets: ['#gl-result']
+      }
+    ],
+    detailsKey: 'guide.golive.details'
+  },
   creator: {
     steps: [
       {

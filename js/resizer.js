@@ -1,8 +1,8 @@
-import {$,msg,track,countBucket,yieldNow} from './util.js?v=3.2.1';
-import {mountGuide} from './instruction-panel.js?v=3.2.1';
-import {t} from './i18n.js?v=3.2.1';
-import {pngSetDpi,jpgSetDpi,bmpEncode,readImageInfo,resizeLanczos,ppm} from './imgcore.js?v=3.2.1';
-import {zipSync} from './vendor/fflate.js';
+import {$,msg,track,countBucket,yieldNow} from './util.js?v=3.3.0';
+import {mountGuide} from './instruction-panel.js?v=3.3.0';
+import {t} from './i18n.js?v=3.3.0';
+import {pngSetDpi,jpgSetDpi,bmpEncode,readImageInfo,resizeLanczos,ppm} from './imgcore.js?v=3.3.0';
+import {zipSync} from './vendor/fflate.js?v=3.3.0';
 const HAS_FS='showDirectoryPicker' in window;
 const sleep=yieldNow;
 const IN_THREAD_MAX_MP=40;     // the page itself only processes images up to this size (fallback path)
@@ -78,7 +78,7 @@ class ResizerPool {
   }
 
   _spawnWorker(){
-    const w=new Worker(new URL('./resizer-worker.js?v=3.2.1',import.meta.url),{type:'module'});
+    const w=new Worker(new URL('./resizer-worker.js?v=3.3.0',import.meta.url),{type:'module'});
     w.onmessage=e=>{
       const {id,ok,blob,w:rw,h:rh,dpi:rdpi,error}=e.data;
       const h=this.handlers.get(id);
@@ -241,7 +241,7 @@ export function mount(root){
   <div class="resizer-settings"><div class="quality-row"><label for="rz-q">${t('resizer.quality')}</label><select id="rz-q"><option value="75">75%</option><option value="85">85%</option><option value="90">90%</option><option value="95">95%</option><option value="100" selected>${t('resizer.qualityDefault')}</option></select></div>
   <button class="btn reset-btn" id="rz-reset">${t('resizer.reset')}</button></div>
   <div class="resizer-output-row"><button class="btn primary" id="rz-out">${t('resizer.output')}</button><div class="path" id="rz-path">${HAS_FS?t('resizer.noFolder'):t('resizer.downloadMode')}</div></div>
-  <div class="drop" id="rz-drop" tabindex="0"><span class="drop-label">${t('resizer.drop')}</span></div>
+  <div class="drop" id="rz-drop" tabindex="0" role="button" aria-keyshortcuts="Enter Space"><span class="drop-label">${t('resizer.drop')}</span></div>
   <div class="tool-progress"><progress id="rz-prog" max="1" value="0"></progress><div class="sub" id="rz-status">${t('resizer.ready')}</div></div>
   <input type="file" id="rz-file" multiple accept=".jpg,.jpeg,.png,.bmp,.webp" hidden></div>
   </div>`;
@@ -257,7 +257,7 @@ export function mount(root){
     if('showOpenFilePicker' in window){try{const hs=await showOpenFilePicker({multiple:true,types:[{description:'Images',accept:{'image/*':['.jpg','.jpeg','.png','.bmp','.webp']}}]});run(await Promise.all(hs.map(async h=>({file:await h.getFile(),handle:h}))))}catch{}}
     else $('rz-file').click();
   };
-  drop.onclick=pick;drop.onkeydown=e=>{if(e.key==='Enter'||e.key===' ')pick()};
+  drop.onclick=pick;drop.onkeydown=e=>{if((e.key==='Enter'||e.key===' ')&&!e.repeat){e.preventDefault();pick()}};
   $('rz-file').onchange=e=>{run([...e.target.files].map(file=>({file,handle:null})));e.target.value=''};
   drop.ondragover=e=>{e.preventDefault();drop.classList.add('hot')};drop.ondragleave=()=>drop.classList.remove('hot');
   drop.ondrop=async e=>{
@@ -278,7 +278,7 @@ export function mount(root){
     return {dpi:+dpi,w:w?+w:0,h:h?+h:0,quality:(+$('rz-q').value||100)/100};
   }
   async function save(name,blob,src){
-    if(!outDir){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000);return blob}
+    if(!outDir){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),30000);return blob}
     let n=name;
     // A file with this name already exists. If it is the original (or we cannot tell, e.g. a dragged file has no handle) it must never be replaced.
     try{const ex=await outDir.getFileHandle(n);let same=true;if(src){try{same=await ex.isSameEntry(src)}catch{same=true}}if(same)n=n.replace(/(\.[^.]*)?$/,'_resized$1')}catch{}
@@ -359,7 +359,7 @@ export function mount(root){
         const files={};
         for(const r of results)files[uniqueName(r.file.name)]=[new Uint8Array(await r.blob.arrayBuffer()),{level:0}];
         const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([zipSync(files)],{type:'application/zip'}));a.download='resized_images.zip';a.click();
-        setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+        setTimeout(()=>URL.revokeObjectURL(a.href),30000);
         ok+=results.length;results.length=0;$('rz-prog').value=entries.length*2;
       }catch{/* zip failed (for example not enough memory): fall back to one download per file below */}
     }

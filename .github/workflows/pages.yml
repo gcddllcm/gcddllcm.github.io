@@ -1,23 +1,19 @@
 name: Deploy static site to GitHub Pages
 
 on:
-  push:
-    branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}      # a branch or pull request never cancels the deploy of main
   cancel-in-progress: true
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pages: read
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -27,6 +23,17 @@ jobs:
           node-version: "22"
       - name: Run tests
         run: sh tests/run-all.sh
+
+  build:
+    if: github.ref == 'refs/heads/main'
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
