@@ -2,13 +2,13 @@ Penguin Logistics - LearnCraft bridge
 =====================================
 
 Deployment version note
-  This release resets the extension version to 1.0.0. Chrome may not automatically
-  update an existing 1.4.23 installation to this lower version.
+  This release is version 1.1.0. Chrome may not automatically update an existing
+  installation whose version is higher.
 
 What it does
   Lets the Ultimate Go Live popup work directly with your open LearnCraft Master
-  Canvas tabs. The Penguin Logistics page can also list LearnCraft tabs and read
-  course structure from the tab you pick. It only touches
+  Canvas tabs. The Penguin Logistics page can also list LearnCraft tabs, read
+  course structure, and fill timestamp fields in the tab you pick. It only touches
   https://craft.learn.co.th/* tabs. Nothing is sent over the internet.
 
 Install (Chrome, one time)
@@ -26,6 +26,16 @@ Included features
   Click the extension icon while LearnCraft is open to preview or take a Master
   Canvas and its variants to Ready. The popup shows progress and asks you to
   confirm before it starts clicking. It never clicks LearnCraft's Go live button.
+  Timestamp Maker lists the assets in a Master Canvas and fills Page no. / Pb no.
+  in each asset's Video overlay timestamp. Selected assets in the same subsection
+  are filled and saved together, then verified before moving to the next
+  subsection; assets outside subsections are handled individually. The Master
+  Canvas itself is not saved by the tool. A Stop button ends the run after the
+  current asset group has been saved and verified. When all selected assets have
+  been processed, the browser returns to the Timestamp Maker tab and scrolls
+  the final result into view.
+  If LearnCraft shows an error dialog with a Refresh button during timestamp
+  entry, the tool presses Refresh and resumes waiting for the current step.
 
 Update
   Download the extension again, replace the old folder, then press the

@@ -11,9 +11,10 @@ let failed = 0;
 const check = (name, fn) => { try { fn(); console.log('PASS ' + name); } catch (e) { failed++; console.log('FAIL ' + name + '\n  ' + e.message.split('\n')[0]); } };
 
 check('bridge forwards the golive action with its options', () => {
-  assert.match(bridge, /m\.action !== 'extract' && m\.action !== 'golive'/);
+  assert.match(bridge, /m\.action !== 'list' && m\.action !== 'extract' && m\.action !== 'list-timestamp-assets' && m\.action !== 'fill-timestamps' && m\.action !== 'golive'/);
   assert.match(bridge, /dryRun: !!m\.dryRun/);
   assert.match(bridge, /variantCodes: m\.variantCodes/);
+  assert.match(bridge, /courseCode: m\.courseCode, entries: m\.entries/);
 });
 check('course stage appears before Ready to Go Live except when already Ready', () => {
   assert.match(page, /const stage = masterStage\(r\)/);
@@ -34,11 +35,10 @@ check('missing extension offers Force refresh instead of Check again', () => {
   assert.match(page, /\$s\.querySelector\('\[data-q=forcereset\]'\)\.onclick = forceReset/);
   assert.doesNotMatch(page, /data-q="retry">\$\{t\('golive\.checkAgain'\)\}/);
 });
-check('Go Live keeps the Installation guide available after the extension connects', () => {
-  assert.match(page, /const headerActions = old \|\| updateAvailable \? '' : `<button class="btn" data-q="installation-guide">\$\{t\('learncraft\.installationGuide'\)\}<\/button>`/);
-  assert.match(page, /const installationGuide = \$s\.querySelector\('\[data-q=installation-guide\]'\)/);
-  assert.match(page, /if \(installationGuide\) installationGuide\.onclick = showMissing/);
-  assert.equal(en['learncraft.installationGuide'], 'Installation guide');
+check('Go Live hides connected status unless update guidance is needed', () => {
+  assert.doesNotMatch(page, /installation-guide|learncraft\.connected/);
+  assert.match(page, /\$s\.innerHTML = panel;\s*\$s\.hidden = !panel/);
+  assert.match(page, /function showMissing\(\) \{\s*\$s\.hidden = false/);
 });
 check('Go Live is disabled when the Master Canvas is already Ready', () => {
   assert.match(background, /courseStatus: null/);
@@ -210,7 +210,7 @@ check('an outdated extension shows but disables the close-ready-tabs option', ()
   assert.match(page, /\$\{closeOption\}/);
   assert.match(page, /if \(closeOptionInput\) closeOptionInput\.onchange =/);
   assert.match(read('style.css'), /\.gl-option\.disabled\{cursor:not-allowed\}/);
-  assert.doesNotMatch(read('style.css'), /\.gl-option\.disabled\{[^}]*opacity:/);
+  assert.match(read('style.css'), /\.gl-option\.disabled \.gl-option-copy\{opacity:\.48;filter:grayscale\(\.55\)\}/);
 });
 check('close-ready-tabs option appears before course tabs on the web page and popup', () => {
   const popupHtml = read('extension/popup.html');
@@ -231,11 +231,13 @@ check('Go Live uses the Canvas extractor extension update guide and checks the l
   assert.match(page, /fetch\(freshUrl\('extension\/manifest\.json', document\.baseURI\), FRESH\)/);
   assert.match(page, /const updateAvailable = latestVersion && older\(ext\.version, latestVersion\)/);
   assert.match(page, /learncraft\.updateStepsLabel/);
-  assert.match(page, /learncraft\.updateDetail4/);
+  assert.doesNotMatch(page, /learncraft\.updateDetail[1-5]|learncraft\.updateDetails/);
   assert.match(page, /data-q="update"/);
   assert.match(page, /data-q="forcereset"/);
   assert.match(page, /data-q="copyChromeExtensions"/);
   assert.match(page, /const extensionOld = older\(ext\.version, EXT_MIN\) \|\| !!\(latestVersion && older\(ext\.version, latestVersion\)\)/);
+  assert.match(page, /extensionOld \? ' update-locked' : ''/);
+  assert.match(page, /data-tab="\$\{r\.tabId\}"\$\{extensionOld \? ' aria-disabled="true"' : ''\}/);
 });
 check('extension downloads include the packaged manifest version in their filename', () => {
   for (const source of [page, learncraft]) {
@@ -248,7 +250,7 @@ check('extension downloads include the packaged manifest version in their filena
 });
 check('extension popup is trusted, can list/run Go Live, and does not steal focus', () => {
   const popup = read('extension/popup.js');
-  assert.equal(manifest.version, '1.0.0');
+  assert.equal(manifest.version, '1.1.0');
   assert.deepEqual(manifest.action, {default_title: 'Ultimate Go Live', default_popup: 'popup.html'});
   assert.ok(manifest.permissions.includes('storage'));
   assert.match(background, /m\.ns === 'pl-lc-popup' && fromPopup\(sender\)/);
@@ -358,16 +360,18 @@ check('popup remembers the close-ready checkbox across reopening and Refresh', (
   assert.match(popup, /if \(clearRun\) \{\s*try \{ await request\(\{ns: 'pl-lc-popup', action: 'clear-run'\}\);/);
 });
 check('web app and extension popup share the Penguin Logistics logo', () => {
-  const index = read('index.html'), popupHtml = read('extension/popup.html'), app = read('js/app.js');
-  assert.match(index, /src="extension\/assets\/loy-krathong-2026\.png"/);
-  assert.match(index, /href="extension\/assets\/loy-krathong-2026\.png"/);
-  assert.match(popupHtml, /src="assets\/loy-krathong-2026\.png"/);
+  const index = read('index.html'), popupHtml = read('extension/popup.html'), app = read('js/app.js'), assets = read('js/assets.js');
+  assert.match(index, /src="assets\/images\/loy-krathong-2026\.png"/);
+  assert.match(index, /href="assets\/images\/loy-krathong-2026\.png"/);
+  assert.match(popupHtml, /src="assets\/images\/loy-krathong-2026\.png"/);
   assert.match(popupHtml, /class="popup-brand"/);
-  assert.match(app, /extension\/assets\/loy-krathong-2026\.png/);
-  assert.doesNotMatch(app, /src="assets\/loy-krathong-2026\.png"/);
-  assert.match(page, /add\('assets\/loy-krathong-2026\.png'\)/);
-  assert.match(learncraft, /add\('assets\/loy-krathong-2026\.png'\)/);
-  assert.ok(fs.statSync(new URL('../extension/assets/loy-krathong-2026.png', import.meta.url)).size > 10000);
+  assert.match(popupHtml, /class="site-button" href="https:\/\/gcddllcm\.github\.io\/" target="_blank" rel="noopener noreferrer">Visit site<\/a>/);
+  assert.match(read('extension/popup.css'), /\.site-button\{[^}]*text-decoration:none/);
+  assert.match(app, /ASSETS\.brandLogo/);
+  assert.match(assets, /'assets\/images\/loy-krathong-2026\.png':ASSETS\.brandLogo/);
+  assert.match(page, /extensionAssetUrl\(n\)/);
+  assert.match(learncraft, /extensionAssetUrl\(n\)/);
+  assert.ok(fs.statSync(new URL('../assets/images/loy-krathong-2026.png', import.meta.url)).size > 10000);
   assert.match(read('js/app.js'), /<svg aria-hidden="true" focusable="false" viewBox="0 0 80 80"/);
 });
 check('the app and LearnCraft modules use a fresh cache key for this extension version', () => {
@@ -472,11 +476,11 @@ check('Go Live uses vector status favicons and text instead of emoji in the tab 
   assert.match(page, /setTitle\('running'\)/);
   assert.match(page, /setTitle\(res\.ok \? 'complete' : 'attention'\)/);
   assert.match(page, /statusTitles = \{running: 'Running', complete: 'Complete', attention: 'Needs attention'\}/);
-  assert.match(page, /new URL\(`assets\/golive-\$\{status\}\.svg`, document\.baseURI\)\.href/);
+  assert.match(page, /ASSETS\.goLiveStatus\[status\]/);
   assert.match(page, /favicon\.href = status \?/);
   assert.doesNotMatch(page, /setTitle\('\u23f3'\)|setTitle\(res\.ok \? '\u2713' : '\u26a0'\)/);
   for (const name of ['running', 'complete', 'attention']) {
-    const svg = read(`assets/golive-${name}.svg`);
+    const svg = read(`assets/images/golive-${name}.svg`);
     assert.match(svg, /<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg"/, `${name} icon is SVG`);
     assert.doesNotMatch(svg, /<text\b/, `${name} icon uses vector shapes, not text glyphs`);
   }
@@ -631,7 +635,7 @@ check('Go Live has a Quick Guide whose steps all have texts', () => {
   for (const key of ['golive.flowTitle', 'golive.flow.master', 'golive.flow.masterSteps', 'golive.flow.variants', 'golive.flow.variantSteps']) assert.equal(key in en, false, key);
 });
 check('Go Live heading uses the reflective LearnCraft penguin mascot', () => {
-  assert.match(page, /class="lc-heading"[\s\S]*class="lc-mascot-wrap" aria-hidden="true"><img class="lc-mascot" src="assets\/learncraft-mascot\.png"[^>]*><span class="lc-scope-glint"><\/span><span class="lc-laser-beam"><\/span>/);
+  assert.match(page, /class="lc-heading"[\s\S]*class="lc-mascot-wrap" aria-hidden="true"><img class="lc-mascot" src="\$\{ASSETS\.learncraftMascot\}"[^>]*><span class="lc-scope-glint"><\/span><span class="lc-laser-beam"><\/span>/);
   assert.match(page, /mascotHeading\.addEventListener\('pointermove', updateMascot\)/);
   assert.match(page, /mascotHeading\.addEventListener\('pointerleave', resetMascot\)/);
   const css = read('style.css');
@@ -656,15 +660,13 @@ check('safety section is removed from the Detailed Guide', () => {
   assert.doesNotMatch(page, /golive\.ignoreHelp|Assets without a timestamp/);
   assert.equal('golive.ignoreHelp' in en, false);
 });
-check('v3.3.0 release notes cover the requested tools, landing categories, PDF fix and Loy Krathong logo', () => {
-  assert.equal(en.RELEASES[0].version, 'v3.3.0');
+check('v3.4.0 release notes cover Timestamp Maker and LearnCraft tool updates', () => {
+  assert.equal(en.RELEASES[0].version, 'v3.4.0');
   const release = en.RELEASES[0].sections.map(x => x.items.join(' ')).join(' ');
-  assert.match(release, /LearnCraft : Master Canvas Extractor/);
-  assert.match(release, /LearnCraft : Ultimate Go Live/);
-  assert.match(release, /SMART Notebook, Image Tools and LearnCraft/);
-  assert.match(release, /SMART Notebook : Convert to PDF/);
-  assert.match(release, /crossed-out blank pages/);
-  assert.match(release, /Loy Krathong/);
+  assert.match(release, /LearnCraft : Timestamp Maker/);
+  assert.match(release, /How to use/);
+  assert.match(release, /up to date/);
+  assert.match(release, /stay in place/);
 });
 if (failed) { console.log(`\n${failed} FAILED`); process.exit(1); }
 console.log('Ultimate Go Live checks passed');

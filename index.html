@@ -3,16 +3,20 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="penguin-logistics" content="1">
 <title>Penguin Logistics</title>
-<link rel="icon" type="image/png" href="extension/assets/loy-krathong-2026.png"><link rel="stylesheet" href="style.css?v=3.3.0"></head>
+<link rel="icon" type="image/png" href="assets/images/loy-krathong-2026.png"><link rel="stylesheet" href="style.css?v=3.4.0"></head>
 <body>
-<header id="nav"><a class="brand" href="#" aria-label="Penguin Logistics home"><img class="brand-icon" src="extension/assets/loy-krathong-2026.png" alt=""><strong>Penguin Logistics</strong></a><nav class="tabs" aria-label="Main navigation"><kbd class="page-shortcut-key" aria-hidden="true">Q</kbd><span class="tab-indicator" aria-hidden="true"></span><button class="tab" data-page="tools">Tools</button><button class="tab" data-page="updates">Release Notes</button><button class="tab" data-page="about">About Us</button><kbd class="page-shortcut-key" aria-hidden="true">E</kbd></nav></header>
+<header id="nav"><a class="brand" href="#" aria-label="Penguin Logistics home"><img class="brand-icon" src="assets/images/loy-krathong-2026.png" alt=""><strong>Penguin Logistics</strong></a><nav class="tabs" aria-label="Main navigation"><kbd class="page-shortcut-key" aria-hidden="true">Q</kbd><span class="tab-indicator" aria-hidden="true"></span><button class="tab" data-page="tools">Tools</button><button class="tab" data-page="updates">Release Notes</button><button class="tab" data-page="about">About Us</button><kbd class="page-shortcut-key" aria-hidden="true">E</kbd></nav></header>
 <main id="main"><section id="landing-page" class="page on" aria-labelledby="landing-title"></section><section id="tools-page" class="page">
-  <aside class="tool-nav" id="tool-nav">
-    <div class="tool-nav-eyebrow" id="tool-nav-eyebrow">Tools</div>
-    <nav class="tool-nav-list" id="tool-nav-list"></nav>
-  </aside>
+  <nav class="tool-nav" id="tool-nav" aria-label="Tool navigation">
+    <div class="tool-picker-row"><div class="tool-nav-list" id="tool-nav-list"></div><div class="tool-nav-actions" id="tool-nav-actions"></div></div>
+  </nav>
   <div id="tools"></div>
 </section><section id="updates-page" class="page"></section><section id="about-page" class="page"></section></main>
 <dialog id="dlg"></dialog>
-<script type="module" src="js/app.js?v=3.3.0"></script>
+<dialog class="tool-search-dialog" id="tool-search-dialog" aria-labelledby="tool-search-title">
+  <div class="tool-search-heading"><h2 id="tool-search-title">Search tools</h2><button type="button" class="tool-search-close" aria-label="Close search">×</button></div>
+  <label class="tool-search-field"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg></span><input id="tool-search-input" type="search" autocomplete="off" placeholder="Search by name, category, or task…"><kbd>ESC</kbd></label>
+  <div class="tool-search-results" id="tool-search-results" role="listbox" aria-label="Tools"></div>
+</dialog>
+<script type="module" src="js/app.js?v=3.4.0"></script>
 </body></html>

@@ -2,17 +2,18 @@
 // Takes one open Master Canvas tab and takes the course to ready: approves the master, then updates every variant.
 // It talks to the same companion extension as the Master Canvas extractor (extension/), and every click happens
 // inside the course tab through that extension. Nothing is sent over the internet.
-import {track,msg} from './util.js?v=3.3.0';
-import {download} from './nbtool.js?v=3.3.0';
-import {t} from './i18n.js?v=3.3.0';
-import {initMascot} from './mascot.js?v=3.3.0';
-import {copyInternalPage,installStepsHtml} from './install-help.js?v=3.3.0';
-import {zipSync} from './vendor/fflate.js?v=3.3.0';
-import {older,summarizeBridges,staleDownload,freshUrl,FRESH} from './extcore.js?v=3.3.0';
-import {mountGuide} from './instruction-panel.js?v=3.3.0';
-import {fmtElapsed, newRun, applyProgress, logLine, summarize, tabProblem, masterIsReady, masterStage} from './glcore.js?v=3.3.0';
+import {track,msg} from './util.js?v=3.4.0';
+import {download} from './nbtool.js?v=3.4.0';
+import {t} from './i18n.js?v=3.4.0';
+import {initMascot} from './mascot.js?v=3.4.0';
+import {copyInternalPage,installStepsHtml,updateStepsHtml} from './install-help.js?v=3.4.0';
+import {zipSync} from './vendor/fflate.js?v=3.4.0';
+import {older,summarizeBridges,staleDownload,freshUrl,FRESH} from './extcore.js?v=3.4.0';
+import {mountGuide} from './instruction-panel.js?v=3.4.0';
+import {fmtElapsed, newRun, applyProgress, logLine, summarize, tabProblem, masterIsReady, masterStage} from './glcore.js?v=3.4.0';
+import {ASSETS,extensionAssetUrl} from './assets.js?v=3.4.0';
 
-const EXT_MIN = '1.0.0';
+const EXT_MIN = '1.1.0';
 const FORCE_RESET_PARAM = '__pl_gl_reset';
 if (new URL(location.href).searchParams.has(FORCE_RESET_PARAM)) {
   const cleanUrl = new URL(location.href);
@@ -40,7 +41,7 @@ addEventListener('message', e => {
   }
 });
 // Asks every installed copy of the extension who it is. Normally one answers; after a careless update there can be two.
-function pingAll(wait = 450) {
+function pingAll(wait = 200) {
   return new Promise(res => {
     const id = 'gl' + (++seq) + '-' + Date.now(), replies = [];
     const timer = setTimeout(() => { waiting.delete(id); res(replies); }, wait);
@@ -69,7 +70,7 @@ function extensionFiles(manifest) {
   const add = f => { if (typeof f === 'string' && /^[\w./-]+$/.test(f) && !f.includes('..')) files.add(f.replace(/^\.?\//, '')); };
   add(manifest.background?.service_worker);
   add(manifest.action?.default_popup);
-  if (manifest.action?.default_popup) { add('popup.js'); add('popup.css'); add('assets/loy-krathong-2026.png'); }
+  if (manifest.action?.default_popup) { add('popup.js'); add('popup.css'); }
   (manifest.content_scripts || []).forEach(c => [...(c.js || []), ...(c.css || [])].forEach(add));
   Object.values(manifest.icons || {}).forEach(add);
   return [...files];
@@ -88,7 +89,7 @@ async function downloadExtension(button) {
     if (stale) throw new Error(stale);
     for (const n of extensionFiles(manifest)) {
       if (n === 'manifest.json') continue;
-      const r = await fetch(freshUrl('extension/' + n, document.baseURI), FRESH);
+      const r = await fetch(freshUrl(extensionAssetUrl(n)||'extension/' + n, document.baseURI), FRESH);
       if (!r.ok) throw new Error(n + ' (' + r.status + ')');
       files[n] = new Uint8Array(await r.arrayBuffer());
     }
@@ -108,8 +109,10 @@ const L = {
 };
 
 export function mount(root) {
+  root.dataset.extensionUpToDate = 'false';
+  root.dataset.extensionState = 'unknown';
   root.innerHTML = `<div class="tool-layout"><div class="tool wideview lc">
-    <div class="lc-heading"><div><h1>${t('tool.golive')}</h1><div class="sub">${t('golive.sub')}</div></div><div class="lc-mascot-wrap" aria-hidden="true"><img class="lc-mascot" src="assets/learncraft-mascot.png" alt="" loading="lazy" decoding="async"><span class="lc-scope-glint"></span><span class="lc-laser-beam"></span></div></div>
+    <div class="lc-heading"><div><h1>${t('tool.golive')}</h1><div class="sub">${t('golive.sub')}</div></div><div class="lc-mascot-wrap" aria-hidden="true"><div class="lc-mascot-body"><img class="lc-mascot" src="${ASSETS.learncraftMascot}" alt="" loading="lazy" decoding="async"><span class="lc-scope-glint"></span><span class="lc-laser-beam"></span></div></div></div>
     <div class="lc-card" id="gl-status"></div>
     <div class="lc-card" id="gl-courses" hidden></div>
     <div class="lc-card" id="gl-result" hidden></div>
@@ -139,6 +142,7 @@ export function mount(root) {
   let busy = false, checking = false, checkingUpdate = false, closeDone = true, current = null;
   const excludedVariants = new Map(), openVariantPickers = new Set();
   let latestVersion = null, courseRows = null;
+  const setExtensionState = state => { root.dataset.extensionState = state; root.dataset.extensionUpToDate = String(state === 'up-to-date'); root.dispatchEvent(new Event('extensionstatechange')); };
   const visible = () => root.classList.contains('on');
   const baseTitle = document.title;
   const favicon = document.querySelector('link[rel="icon"]');
@@ -146,23 +150,24 @@ export function mount(root) {
   const statusTitles = {running: 'Running', complete: 'Complete', attention: 'Needs attention'};
   const setTitle = status => {
     document.title = status ? `${statusTitles[status]} | ${baseTitle}` : baseTitle;
-    favicon.href = status ? new URL(`assets/golive-${status}.svg`, document.baseURI).href : baseFavicon;
+    favicon.href = status ? ASSETS.goLiveStatus[status] : baseFavicon;
   };
   // Leaving the page while a run is going would orphan the clicking in the course tabs.
   const leaveGuard = e => { e.preventDefault(); e.returnValue = ''; };
   addEventListener('focus', () => { if (!busy) setTitle(''); });
 
   function showChecking() {
+    $s.hidden = false;
     $s.className = 'lc-card';
     $s.innerHTML = `<div class="lc-line"><span class="lc-spin" aria-hidden="true"></span>${t('learncraft.checking')}</div>`;
     $c.hidden = true;
   }
   function showMissing() {
+    $s.hidden = false;
     $s.className = 'lc-card';
     $c.hidden = true;
     $s.innerHTML = `<h2 class="lc-h">${t('learncraft.missingTitle')}</h2>
-      <p class="lc-p">${t('learncraft.missingText')}</p>${installStepsHtml()}
-      <div class="btnrow"><button class="btn primary" data-q="dl">${t('learncraft.download')}</button><button class="btn" data-q="forcereset">${t('learncraft.forceReset')}</button></div>`;
+      <p class="lc-p">${t('learncraft.missingText')}</p>${installStepsHtml()}`;
     $s.querySelector('[data-q=dl]').onclick = e => downloadExtension(e.currentTarget);
     $s.querySelector('[data-q=forcereset]').onclick = forceReset;
     $s.querySelectorAll('[data-q=copyChromeExtensions]').forEach(b => b.onclick = () => copyInternalPage('chrome://extensions'));
@@ -175,17 +180,10 @@ export function mount(root) {
   function showConnected(updateCheckError = null) {
     const old = older(ext.version, EXT_MIN);
     const updateAvailable = latestVersion && older(ext.version, latestVersion);
-    const headerActions = old || updateAvailable ? '' : `<button class="btn" data-q="installation-guide">${t('learncraft.installationGuide')}</button>`;
-    const updateSteps = [
-      [t('learncraft.updateStep1'), '<path d="M13 5h15l9 9v29H13z"/><path d="M28 5v9h9"/><path d="M25 21v13m-6-6 6 6 6-6"/>'],
-      [t('learncraft.updateStep2'), '<rect x="5" y="9" width="38" height="30" rx="4"/><path d="M5 18h38"/><circle cx="10.5" cy="13.5" r=".6" fill="currentColor"/><circle cx="15.5" cy="13.5" r=".6" fill="currentColor"/><rect x="12" y="24" width="24" height="9" rx="2" fill="currentColor" fill-opacity=".2"/>'],
-      [t('learncraft.updateStep3'), '<rect x="15" y="4" width="18" height="18" rx="2.5"/><path d="M24 4v4m0 4v4m0 4v2" stroke-width="2"/><path d="M24 27v9m-5-5 5 5 5-5"/><path d="M8 37v3a3 3 0 0 0 3 3h26a3 3 0 0 0 3-3v-3"/>'],
-      [t('learncraft.updateStep4'), '<path d="M38 24a14 14 0 1 1-3.3-9"/><path d="M35 7v8h-8"/>'],
-    ];
-    $s.className = 'lc-card lc-slim';
-    $s.innerHTML = `<div class="lc-line"><span class="lc-dot ok" aria-hidden="true"></span><span>${t('learncraft.connected', esc(ext.version))}</span><span class="lc-grow"></span>${headerActions}</div>${dup ? `<div class="warn"><strong>${t('learncraft.duplicateTitle')}</strong><br>${t('learncraft.duplicateText', dup.count, esc(dup.versions.map(v => 'v' + v).join(', ')))}<ol class="lc-steps"><li>${t('learncraft.duplicate1')}</li><li>${t('learncraft.duplicate2')}</li><li>${t('learncraft.duplicate3')}</li></ol><button class="btn primary" data-q="dup-recheck">${t('learncraft.updateForceRefresh')}</button></div>` : ''}${old || updateAvailable ? `<section class="lc-update-panel" aria-labelledby="lc-update-title"><h2 class="lc-h" id="lc-update-title">${t('learncraft.updateAvailableTitle')}</h2><p class="lc-p">${updateAvailable ? t('learncraft.updateAvailable', esc(latestVersion)) : t('learncraft.outdated', esc(ext.version))}</p><ol class="lc-install-visual" aria-label="${t('learncraft.updateStepsLabel')}">${updateSteps.map(([text, icon], index) => `<li class="lc-install-step"><span class="lc-install-number">${index + 1}</span><svg aria-hidden="true" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${icon}</svg><span class="lc-install-text">${text}</span>${index === 1 ? `<span class="lc-update-step-actions"><button type="button" class="lc-install-copy" data-q="copyChromeExtensions">${t('learncraft.updateChrome')}</button></span>` : ''}</li>`).join('')}</ol><details class="lc-install-details"><summary>${t('learncraft.updateDetails')}</summary><ol class="lc-steps"><li>${t('learncraft.updateDetail1')}</li><li>${t('learncraft.updateDetail2')}</li><li>${t('learncraft.updateDetail3')}</li><li>${t('learncraft.updateDetail4')}</li></ol></details><div class="btnrow"><button class="btn primary" data-q="update">${t('learncraft.downloadUpdate')}</button><button class="btn" data-q="forcereset">${t('learncraft.updateForceRefresh')}</button></div></section>` : ''}${updateCheckError ? `<div class="warn">${t('learncraft.updateCheckFailed', esc(updateCheckError.message || updateCheckError))}</div>` : ''}`;
-    const installationGuide = $s.querySelector('[data-q=installation-guide]');
-    if (installationGuide) installationGuide.onclick = showMissing;
+    $s.className = 'lc-card';
+    const panel = `${dup ? `<div class="warn"><strong>${t('learncraft.duplicateTitle')}</strong><br>${t('learncraft.duplicateText', dup.count, esc(dup.versions.map(v => 'v' + v).join(', ')))}<ol class="lc-steps"><li>${t('learncraft.duplicate1')}</li><li>${t('learncraft.duplicate2')}</li><li>${t('learncraft.duplicate3')}</li></ol><button class="btn primary" data-q="dup-recheck">${t('learncraft.updateForceRefresh')}</button></div>` : ''}${old || updateAvailable ? `<section class="lc-update-panel" aria-labelledby="lc-update-title"><h2 class="lc-h" id="lc-update-title">${t('learncraft.updateAvailableTitle')}</h2><p class="lc-p">${updateAvailable ? t('learncraft.updateAvailable', esc(latestVersion)) : t('learncraft.outdated', esc(ext.version))}</p>${updateStepsHtml()}</section>` : ''}${updateCheckError ? `<div class="warn">${t('learncraft.updateCheckFailed', esc(updateCheckError.message || updateCheckError))}</div>` : ''}`;
+    $s.innerHTML = panel;
+    $s.hidden = !panel;
     const recheck = $s.querySelector('[data-q=dup-recheck]');
     if (recheck) recheck.onclick = forceReset;
     const updateButton = $s.querySelector('[data-q=update]');
@@ -204,12 +202,15 @@ export function mount(root) {
   async function checkUpdates() {
     if (!ext || checkingUpdate) return;
     checkingUpdate = true;
+    setExtensionState(older(ext.version, EXT_MIN) ? 'outdated' : 'checking');
     try {
       latestVersion = await latestExtensionVersion();
       showConnected();
+      setExtensionState(dup ? 'duplicate' : older(ext.version, EXT_MIN) || older(ext.version, latestVersion) ? 'outdated' : 'up-to-date');
     } catch (error) {
       latestVersion = null;
       showConnected(error);
+      setExtensionState(dup ? 'duplicate' : older(ext.version, EXT_MIN) ? 'outdated' : 'unknown');
     } finally {
       checkingUpdate = false;
       if (courseRows && !busy) renderCourses(courseRows);
@@ -218,17 +219,15 @@ export function mount(root) {
   async function connect() {
     if (checking) return;
     checking = true;
+    setExtensionState('checking');
     showChecking();
-    let answers = [];
-    for (let i = 0; i < 3 && !answers.length; i++) {
-      answers = await pingAll();
-      if (!answers.length) await new Promise(r => setTimeout(r, i ? 500 : 250));
-    }
+    const answers = await pingAll();
     checking = false;
     const info = summarizeBridges(answers);   // newest version heard; flags a second installed copy
-    if (!info) { ext = null; dup = null; showMissing(); return; }
+    if (!info) { ext = null; dup = null; setExtensionState('missing'); showMissing(); return; }
     ext = info;
     dup = info.duplicate ? info : null;
+    setExtensionState(dup ? 'duplicate' : older(ext.version, EXT_MIN) ? 'outdated' : 'checking');
     latestVersion = null;
     showConnected();
     refresh();
@@ -294,7 +293,7 @@ export function mount(root) {
             <div class="gl-variant-options">${variantCodes.map(code => `<label class="gl-variant-option"><input type="checkbox" data-q="variant-choice" data-tab="${r.tabId}" value="${esc(code)}"${excluded.has(code) ? '' : ' checked'}${pickerDisabled ? ' disabled' : ''}><span>${esc(code)}</span></label>`).join('')}</div>
             <small class="gl-variant-count" data-q="variant-count" data-tab="${r.tabId}">${t('golive.selectedVariants', selectedVariants.length, variantCodes.length)}</small>
           </div>` : '';
-        return `<div class="lc-tab${ok ? '' : ' off'}${extensionOld && !alreadyReady ? ' update-locked' : ''}" data-tab="${r.tabId}">
+        return `<div class="lc-tab${ok ? '' : ' off'}${extensionOld ? ' update-locked' : ''}" data-tab="${r.tabId}"${extensionOld ? ' aria-disabled="true"' : ''}>
           <div class="lc-tab-main"><div class="lc-code">${esc(r.code)}</div><div class="lc-tab-info"><div class="lc-tab-title">${esc(title || r.url)}</div><div class="lc-tab-meta">${stageChip}${state}${readyNote}</div></div></div>
           <div class="lc-tab-act">${variantPicker}
             <button class="btn gl-go" data-golive="${r.tabId}" data-code="${esc(r.code)}" title="${alreadyReady ? t('golive.ready') : t('golive.goLive')}"${ok && !busy && !extensionOld && !alreadyReady ? '' : ' disabled'}>${t('golive.goLive')}</button>

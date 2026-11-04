@@ -1,14 +1,13 @@
-import { unzipSync, zlibSync } from './vendor/fflate.js?v=3.3.0';
+import { unzipSync, zlibSync } from './vendor/fflate.js?v=3.4.0';
 const SKIP_ENTRY = /(^|\/)thumbnails\/|^preview\.png$|\.(mp4|m4v|mov|avi|wmv|mpe?g|webm|mp3|wav|ogg|m4a|wma|swf|flv)$/i;
-import { readImageInfo } from './imgcore.js?v=3.3.0';
-import { fixNames } from './zipnames.js?v=3.3.0';
+import { readImageInfo } from './imgcore.js?v=3.4.0';
+import { fixNames } from './zipnames.js?v=3.4.0';
+import { prepareSvg } from './svgfix.js?v=3.4.0';
 
 const PAGE_WIDTH_PT = 595.28;
 const B64_CACHE_LIMIT = 48 * 1024 * 1024;
 const WHITE_SET = new Set(['none', 'transparent', 'white', '#fff', '#ffffff', 'rgb(255,255,255)']);
 const DISALLOWED_TAGS = ['<path', '<polyline', '<polygon', '<text', '<circle', '<ellipse', '<line', '<use', '<pattern', '<foreignObject', '<clipPath', '<mask', '<filter'];
-const FANCY_RE = /<g\s[^>]*class="fancypen"[^>]*>[\s\S]*?<\/g><\/g><\/g>/gi;
-const POLY_RE = /<polyline\b[^>]*>/gi;
 
 let renderReqSeq = 0;
 const renderWaits = new Map();
@@ -79,76 +78,6 @@ function mimeOf(filename) {
   const ext = (filename.match(/\.[^.]+$/) || [''])[0].toLowerCase();
   const map = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif', '.bmp': 'image/bmp', '.svg': 'image/svg+xml' };
   return map[ext] || 'image/jpeg';
-}
-
-function stampFancypen(block) {
-  try {
-    const headMatch = block.match(/^<g\s[^>]*>/);
-    if (!headMatch) return block;
-    const head = headMatch[0];
-    const ptsMatch = head.match(/\spoints\s*=\s*["']([^"']*)["']/i);
-    const widthMatch = head.match(/\sstroke-width\s*=\s*["']([\d.]+)["']/i);
-    const shapeMatch = block.slice(head.length).match(/<path\b[^>]*\sd\s*=\s*["']([^"']*)["'][^>]*\/>/i);
-    if (!ptsMatch || !widthMatch || !shapeMatch) return block;
-    const points = ptsMatch[1].trim().split(/\s+/).map(p => {
-      const [x, y] = p.split(',').map(Number);
-      return [x, y];
-    });
-    const nums = (shapeMatch[1].match(/-?(?:\d+\.?\d*|\.\d+)/g) || []).map(Number);
-    if (!nums.length) return block;
-    const xs = [], ys = [];
-    for (let i = 0; i < nums.length; i += 2) {
-      xs.push(nums[i]);
-      if (i + 1 < nums.length) ys.push(nums[i + 1]);
-    }
-    if (!xs.length || !ys.length) return block;
-    const [minX, maxX] = extent(xs), [minY, maxY] = extent(ys);
-    const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
-    const size = Math.max(maxX - minX, maxY - minY);
-    if (!points.length || size <= 0) return block;
-    const k = parseFloat(widthMatch[1]) / size;
-    const trMatch = head.match(/\stransform\s*=\s*["']([^"']*)["']/i);
-    const tr = trMatch ? trMatch[1] : '';
-    const stamps = points.map(([x, y]) =>
-      `<g transform="translate(${x.toFixed(3)},${y.toFixed(3)}) scale(${k.toFixed(4)}) translate(${(-cx).toFixed(3)},${(-cy).toFixed(3)})">${shapeMatch[0]}</g>`
-    ).join('');
-    return `<g transform="${tr}">${stamps}</g>`;
-  } catch {
-    return block;
-  }
-}
-
-// min/max without spreading the array into arguments (a very long pen stroke would overflow the call stack)
-function extent(arr) {
-  let lo = Infinity, hi = -Infinity;
-  for (let i = 0; i < arr.length; i++) { const v = arr[i]; if (v < lo) lo = v; if (v > hi) hi = v; }
-  return [lo, hi];
-}
-
-function fixDotPolyline(tag) {
-  const pm = tag.match(/(\spoints\s*=\s*["'])([^"']*)(["'])/i);
-  if (!pm) return tag;
-  const rawPts = pm[2].trim().split(/\s+/);
-  const pts = rawPts.map(p => p.split(',').map(Number));
-  if (!pts.length || pts.some(([x, y]) => isNaN(x) || isNaN(y))) return tag;
-  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
-  const [dotMinX, dotMaxX] = extent(xs), [dotMinY, dotMaxY] = extent(ys);
-  if (dotMaxX - dotMinX < 0.5 && dotMaxY - dotMinY < 0.5) {
-    const [x, y] = pts[0];
-    const newPts = `${x.toFixed(3)},${y.toFixed(3)} ${(x + 0.5).toFixed(3)},${y.toFixed(3)}`;
-    return tag.replace(pm[0], `${pm[1]}${newPts}${pm[3]}`);
-  }
-  return tag;
-}
-
-function prepareSvg(svgText) {
-  if (svgText.includes('class="fancypen"') || svgText.includes("class='fancypen'")) {
-    svgText = svgText.replace(FANCY_RE, stampFancypen);
-  }
-  if (svgText.includes('<polyline')) {
-    svgText = svgText.replace(POLY_RE, fixDotPolyline);
-  }
-  return svgText;
 }
 
 function inlineImages(svgText, zip, namesLower, b64Cache, b64Ref) {

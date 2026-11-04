@@ -133,29 +133,33 @@ function cancelJob(reqId) {
 
 async function activateCourseTab(reqId) {
   const job = jobs.get(reqId);
-  if (!job || job.cancelled) return;
+  if (!job || job.cancelled) return false;
   try {
     const [pageTab, focusedWindow] = await Promise.all([
       chrome.tabs.get(job.pageTabId),
       chrome.windows.getLastFocused(),
     ]);
-    if (!pageTab.active || focusedWindow.id !== job.pageWindowId || job.cancelled) return;
+    if (!pageTab.active || focusedWindow.id !== job.pageWindowId || job.cancelled) return false;
     await chrome.tabs.update(job.tabId, {active: true});
     job.switchedToCourse = true;
     await chrome.windows.update(job.courseWindowId, {focused: true});
+    return true;
   } catch (e) {
     console.warn('Could not switch to the LearnCraft tab:', e);
+    return false;
   }
 }
 
-async function restorePageTab(job) {
-  if (!job.switchedToCourse) return;
+async function restorePageTab(job, force = false) {
+  if (!job.switchedToCourse && !force) return;
   try {
-    const [courseTab, focusedWindow] = await Promise.all([
-      chrome.tabs.get(job.tabId),
-      chrome.windows.getLastFocused(),
-    ]);
-    if (!courseTab.active || focusedWindow.id !== job.courseWindowId) return;
+    if (!force) {
+      const [courseTab, focusedWindow] = await Promise.all([
+        chrome.tabs.get(job.tabId),
+        chrome.windows.getLastFocused(),
+      ]);
+      if (!courseTab.active || focusedWindow.id !== job.courseWindowId) return;
+    }
     await chrome.tabs.update(job.pageTabId, {active: true});
     await chrome.windows.update(job.pageWindowId, {focused: true});
   } catch (e) {
@@ -166,6 +170,8 @@ async function restorePageTab(job) {
 async function handle(m, sender) {
   if (m.action === 'list') return listTabs();
   if (m.action === 'golive') return runGoLive(m, sender);
+  if (m.action === 'list-timestamp-assets') return listTimestampAssets(m);
+  if (m.action === 'fill-timestamps') return fillTimestamps(m, sender);
   if (m.action === 'cancel') {
     const job = typeof m.reqId === 'string' ? jobs.get(m.reqId) : null;
     if (job && job.pageTabId === sender.tab.id) cancelJob(m.reqId);
@@ -531,7 +537,7 @@ async function lcExtract(job) {
         let row = nav;
         while (row.parentElement && row.parentElement !== scope && row.parentElement.querySelectorAll('nav').length === 1) row = row.parentElement;
         const titleEl = nav.parentElement.querySelector('h6');
-        const a = {type: clean(nav.querySelector('li').textContent), title: clean(titleEl && titleEl.textContent), version: '', time: null, detail: [], href: ''};
+        const a = {type: clean(nav.querySelector('li').textContent), title: clean(titleEl && titleEl.textContent), version: '', time: null, detail: [], href: '', sourceIndex: hi, assetIndex: node.assets.length};
         for (const t of [...row.querySelectorAll('h6')].filter(x => x !== titleEl).map(x => clean(x.textContent))) {
           if (!t || t === 'Label Duration:') continue;
           if (/^Ver\.?\s*\d/i.test(t)) a.version = t;
@@ -547,6 +553,479 @@ async function lcExtract(job) {
   });
   res.ok = true; res.meta = meta; res.levels = levels; res.tree = root;
   return res;
+}
+
+async function listTimestampAssets(m) {
+  const tabId = Number(m.tabId), courseCode = typeof m.courseCode === 'string' ? m.courseCode : '';
+  if (!Number.isInteger(tabId) || !courseCode) throw new Error('Bad Timestamp Maker asset-list request.');
+  const tab = await chrome.tabs.get(tabId);
+  const url = tab?.url ? new URL(tab.url) : null;
+  const match = url && /^\/master-canvas\/[^/]+\/([^/]+)\/?/.exec(url.pathname);
+  if (!url || url.protocol !== 'https:' || url.hostname !== HOST || !match || decodeURIComponent(match[1]) !== courseCode) {
+    throw new Error('That tab is not the selected Master Canvas any more.');
+  }
+  if (tab.discarded || tab.status !== 'complete') throw new Error('The LearnCraft tab is still loading or asleep. Open it once, wait until it finishes, then try again.');
+  if (busyTabs.has(tabId)) throw new Error('This tab is already being read. Wait for it to finish.');
+  busyTabs.add(tabId);
+  // Lazy cover images only load for a visible tab, so show the course tab while it is read and put the previous tab back afterwards.
+  let previousTabId = null;
+  try {
+    const [current] = await chrome.tabs.query({active: true, windowId: tab.windowId});
+    if (current && current.id !== tabId) {
+      previousTabId = current.id;
+      await chrome.tabs.update(tabId, {active: true});
+    }
+  } catch (e) {
+    previousTabId = null;
+  }
+  try {
+    const result = await withTimeout(run(tabId, lcListTimestampAssets, [courseCode]), 120000);
+    if (!result || result.ok !== true || !Array.isArray(result.assets) || !Array.isArray(result.tree)) {
+      throw new Error('The LearnCraft page did not return an asset list. Reload the extension and refresh this page.');
+    }
+    return result;
+  } finally {
+    if (previousTabId !== null) chrome.tabs.update(previousTabId, {active: true}).catch(() => {});
+    busyTabs.delete(tabId);
+  }
+}
+
+async function fillTimestamps(m, sender) {
+  const tabId = Number(m.tabId), courseCode = typeof m.courseCode === 'string' ? m.courseCode : '';
+  if (!Number.isInteger(tabId) || !courseCode || !Array.isArray(m.entries) || !m.entries.length || m.entries.length > 2000 ||
+      !Array.isArray(m.groups) || !m.groups.length || m.groups.length > m.entries.length) {
+    throw new Error('Bad Timestamp Maker request.');
+  }
+  const entries = m.entries.map(entry => {
+    if (!entry || !Number.isInteger(entry.assetIndex) || entry.assetIndex < 0 ||
+        typeof entry.title !== 'string' || entry.title.length > 500 ||
+        typeof entry.type !== 'string' || entry.type.length > 80 ||
+        entry.type.trim().toUpperCase() !== 'VIDEO' ||
+        typeof entry.href !== 'string' || entry.href.length > 2000 ||
+        typeof entry.pageNo !== 'string' || entry.pageNo.length > 40 ||
+        typeof entry.problemNo !== 'string' || entry.problemNo.length > 40 ||
+        /[\r\n\t]/.test(entry.pageNo + entry.problemNo) ||
+        (!entry.pageNo.trim() && !entry.problemNo.trim())) {
+      throw new Error('Timestamp Maker contains an invalid asset or value.');
+    }
+    return {
+      assetIndex: entry.assetIndex, title: entry.title, type: entry.type, href: entry.href,
+      pageNo: entry.pageNo.trim(), problemNo: entry.problemNo.trim(),
+    };
+  });
+  const entryByIndex = new Map(entries.map(entry => [entry.assetIndex, entry]));
+  const assigned = new Set();
+  const groups = m.groups.map(group => {
+    if (!Array.isArray(group) || !group.length) throw new Error('Timestamp Maker contains an invalid subsection group.');
+    return group.map(assetIndex => {
+      if (!Number.isInteger(assetIndex) || !entryByIndex.has(assetIndex) || assigned.has(assetIndex)) {
+        throw new Error('Timestamp Maker contains an invalid subsection group.');
+      }
+      assigned.add(assetIndex);
+      return entryByIndex.get(assetIndex);
+    });
+  });
+  if (assigned.size !== entries.length) throw new Error('Timestamp Maker contains an incomplete subsection group list.');
+  const tab = await chrome.tabs.get(tabId);
+  const url = tab?.url ? new URL(tab.url) : null;
+  const match = url && /^\/master-canvas\/[^/]+\/([^/]+)\/?/.exec(url.pathname);
+  if (!url || url.protocol !== 'https:' || url.hostname !== HOST || !match || decodeURIComponent(match[1]) !== courseCode) {
+    throw new Error('That tab is not the selected Master Canvas any more.');
+  }
+  if (tab.discarded || tab.status !== 'complete') throw new Error('The LearnCraft tab is still loading or asleep. Open it once, wait until it finishes, then try again.');
+  if (busyTabs.has(tabId)) throw new Error('This tab is already being read. Wait for it to finish.');
+  const reqId = typeof m.reqId === 'string' ? m.reqId.slice(0, 80) : '';
+  if (!reqId || !sender.tab || !Number.isInteger(sender.tab.id) || !Number.isInteger(sender.tab.windowId)) {
+    throw new Error('Timestamp Maker could not identify the tool tab to return to.');
+  }
+  const job = {
+    tabId, pageTabId: sender.tab.id, pageWindowId: sender.tab.windowId, courseWindowId: tab.windowId,
+    cancelled: false, switchedToCourse: false,
+  };
+  busyTabs.add(tabId);
+  jobs.set(reqId, job);
+  let scriptStarted = false, completed = false;
+  try {
+    if (!(await activateCourseTab(reqId))) {
+      if (job.cancelled) return {ok: false, state: 'cancelled', updated: 0, results: []};
+      throw new Error('Could not switch to the LearnCraft tab. Keep the Timestamp Maker tab active and try again.');
+    }
+    await waitForCompleteTab(tabId);
+    if (job.cancelled) return {ok: false, state: 'cancelled', updated: 0, results: []};
+    scriptStarted = true;
+    const result = await withTimeout(run(tabId, lcFillTimestamps, [groups, courseCode, reqId]), 300000);
+    if (!result || !Array.isArray(result.results)) throw new Error('The LearnCraft page did not return an update report.');
+    completed = result.state === 'done';
+    return result;
+  } catch (e) {
+    if (scriptStarted) cancelJob(reqId);
+    throw e;
+  } finally {
+    await restorePageTab(job, completed);
+    busyTabs.delete(tabId);
+    setTimeout(() => jobs.delete(reqId), 5000);
+  }
+}
+
+// INJECTED into the current Master Canvas layout, where Course Canvas is a breadcrumb rather than a card.
+async function lcListTimestampAssets(expectedCode) {
+  const clean = value => String(value || '').replace(/\s+/g, ' ').trim();
+  const durationInfo = scope => {
+    const heading = [...scope.querySelectorAll('h6.MuiTypography-subtitle1')]
+      .find(item => /^(Part|Section|Mission|Subsection) duration:/i.test(clean(item.textContent)));
+    if (!heading) return null;
+    const match = /^(Part|Section|Mission|Subsection) duration:\s*(.*)$/i.exec(clean(heading.textContent));
+    return match ? {level: match[1].toLowerCase(), duration: match[2]} : null;
+  };
+  const assetTitle = (nav, root) => {
+    for (let scope = nav.parentElement; scope && scope !== root; scope = scope.parentElement) {
+      const heading = [...scope.querySelectorAll('h6')].find(item => !item.closest('nav'));
+      if (heading) return clean(heading.textContent);
+    }
+    return '';
+  };
+  const codeMatch = /^\/master-canvas\/[^/]+\/([^/]+)/.exec(location.pathname);
+  if (!codeMatch || decodeURIComponent(codeMatch[1]) !== expectedCode) throw new Error('The Master Canvas changed before its assets could be listed.');
+  const root = document.querySelector('main');
+  if (!root) throw new Error('The Master Canvas page content is unavailable.');
+  // LearnCraft only creates a row's cover <img> once the row has been scrolled into view. Without this pass, videos that were never
+  // shown have no preview URL, so their recording date is unknown and the date filter would silently leave them out.
+  const rowOf = nav => {
+    let row = nav;
+    while (row.parentElement && row.parentElement !== root && row.parentElement.querySelectorAll('nav').length === 1) row = row.parentElement;
+    return row;
+  };
+  const previewOf = row => [...row.querySelectorAll('img[src]')]
+    .map(image => image.getAttribute('src'))
+    .find(src => {
+      try {
+        return /\/video\/[^/]+\/\d{4}-\d{2}-\d{2}\/preview\.(?:png|gif)$/i.test(new URL(src, location.origin).pathname);
+      } catch {
+        return false;
+      }
+    }) || '';
+  const assetNavs = [...root.querySelectorAll('nav')].filter(nav =>
+    nav.classList.contains('MuiBreadcrumbs-root') && nav.querySelectorAll('li').length === 1);
+  let coversMissing = 0;
+  {
+    const startX = window.scrollX, startY = window.scrollY, deadline = Date.now() + 60000;
+    const waitFor = async (test, ms) => {
+      const end = Date.now() + ms;
+      while (!test()) {
+        if (Date.now() >= end) return false;
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+      return true;
+    };
+    for (const nav of assetNavs) {
+      if (clean(nav.querySelector('li')?.textContent).toUpperCase() !== 'VIDEO') continue;
+      const row = rowOf(nav);
+      if (previewOf(row)) continue;
+      if (Date.now() >= deadline) { coversMissing++; continue; }
+      (row.querySelector('.lazy-load-image-background') || row).scrollIntoView({block: 'center', behavior: 'instant'});
+      if (!(await waitFor(() => previewOf(row), 700))) coversMissing++;
+    }
+    window.scrollTo(startX, startY);
+  }
+  const events = [
+    ...[...root.querySelectorAll('h6.MuiTypography-h6')].map(element => ({kind: 'heading', element})),
+    ...assetNavs.map(element => ({kind: 'asset', element})),
+  ].sort((a, b) => a.element === b.element ? 0 :
+    (a.element.compareDocumentPosition(b.element) & Node.DOCUMENT_POSITION_FOLLOWING) ? -1 : 1);
+  const tree = [], stack = [];
+  const navs = [];
+  for (const event of events) {
+    if (event.kind === 'heading') {
+      const heading = event.element;
+      let scope = heading.parentElement, info = null;
+      while (scope && scope !== root) {
+        info = durationInfo(scope);
+        if (info) break;
+        scope = scope.parentElement;
+      }
+      if (!info) continue;
+      const node = {
+        level: info.level, title: clean(heading.textContent), duration: info.duration,
+        rank: {part: 0, section: 1, mission: 2, subsection: 3}[info.level],
+        children: [], assetIndices: [],
+      };
+      while (stack.length && stack[stack.length - 1].rank >= node.rank) stack.pop();
+      (stack.length ? stack[stack.length - 1].children : tree).push(node);
+      stack.push(node);
+      continue;
+    }
+    const nav = event.element;
+    const assetIndex = navs.length;
+    navs.push(nav);
+    if (stack.length) stack[stack.length - 1].assetIndices.push(assetIndex);
+  }
+  const assets = navs.map((nav, assetIndex) => {
+    const type = clean(nav.querySelector('li')?.textContent);
+    const row = rowOf(nav);
+    const title = assetTitle(nav, root);
+    if (!type || !title) throw new Error('An asset title or type could not be read. Refresh the Master Canvas and try again.');
+    const link = row.querySelector('a[href]');
+    const href = link ? new URL(link.getAttribute('href'), location.origin).href : '';
+    const previewUrl = previewOf(row);
+    const timestampLabel = [...row.querySelectorAll('button')]
+      .map(button => clean(button.textContent))
+      .find(text => /^Timestamp(?:\s*\(\d+\))?$/.test(text)) || '';
+    return {assetIndex, title, type, href, previewUrl, hasNumberedTimestamp: /^Timestamp\s*\(\d+\)$/.test(timestampLabel)};
+  });
+  const serialize = node => ({
+    level: node.level, title: node.title, duration: node.duration,
+    children: node.children.map(serialize), assetIndices: node.assetIndices,
+  });
+  const assigned = new Set();
+  const collectAssigned = nodes => nodes.forEach(node => {
+    node.assetIndices.forEach(index => assigned.add(index));
+    collectAssigned(node.children);
+  });
+  collectAssigned(tree);
+  return {ok: true, coversMissing, assets, tree: tree.map(serialize), assetIndices: assets.filter(asset => !assigned.has(asset.assetIndex)).map(asset => asset.assetIndex)};
+}
+
+// INJECTED into the selected Master Canvas tab. Each subsection is saved and verified before moving on.
+// The Master Canvas itself is never saved here.
+async function lcFillTimestamps(groups, expectedCode, reqId) {
+  const clean = value => String(value || '').replace(/\s+/g, ' ').trim();
+  const shown = element => !!element && element.getClientRects().length > 0;
+  const entries = groups.flat();
+  const tick = progress => {
+    try {
+      const request = chrome.runtime.sendMessage({ns: 'pl-lc-tick', job: reqId, progress});
+      if (request && request.catch) request.catch(() => {});
+    } catch {}
+  };
+  const assetTitle = (nav, root) => {
+    for (let scope = nav.parentElement; scope && scope !== root; scope = scope.parentElement) {
+      const heading = [...scope.querySelectorAll('h6')].find(item => !item.closest('nav'));
+      if (heading) return clean(heading.textContent);
+    }
+    return '';
+  };
+  const assetNavs = root => [...root.querySelectorAll('nav')].filter(item =>
+    item.classList.contains('MuiBreadcrumbs-root') && item.querySelectorAll('li').length === 1);
+  const assetRow = (nav, root) => {
+    let row = nav;
+    while (row.parentElement && row.parentElement !== root && row.parentElement.querySelectorAll('nav').length === 1) row = row.parentElement;
+    return row;
+  };
+  const assetRecord = (nav, root, index) => {
+    const row = assetRow(nav, root), link = row.querySelector('a[href]');
+    return {
+      index, nav, row, title: assetTitle(nav, root),
+      type: clean(nav.querySelector('li')?.textContent),
+      href: link ? new URL(link.getAttribute('href'), location.origin).href : '',
+    };
+  };
+  const codeMatch = /^\/master-canvas\/[^/]+\/([^/]+)/.exec(location.pathname);
+  if (!codeMatch || decodeURIComponent(codeMatch[1]) !== expectedCode) throw new Error('The Master Canvas changed before the values could be applied.');
+  if (!document.querySelector('main')) throw new Error('The Master Canvas page content is no longer available.');
+  const deadline = Date.now() + 240000;
+  const findDialog = () => [...document.querySelectorAll('[role="dialog"]')].find(shown);
+  const buttonByText = (root, text) => [...root.querySelectorAll('button')].find(button => shown(button) && clean(button.textContent) === text && !button.disabled);
+  let errorRefreshAttempts = 0;
+  const refreshErrorDialog = async () => {
+    const dialog = [...document.querySelectorAll('[role="dialog"],[role="alertdialog"]')].find(item =>
+      shown(item) && /เกิดข้อผิดพลาด|error\s*:/i.test(clean(item.textContent)) && buttonByText(item, 'Refresh'));
+    if (!dialog) return false;
+    if (++errorRefreshAttempts > 10) throw new Error('LearnCraft showed too many error dialogs while applying timestamps.');
+    buttonByText(dialog, 'Refresh').click();
+    const end = Math.min(deadline, Date.now() + 10000);
+    while (Date.now() < end) {
+      if (!shown(dialog) || !document.contains(dialog)) return true;
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    throw new Error('The LearnCraft error dialog did not close after Refresh.');
+  };
+  const clickWithErrorRecovery = async element => {
+    await refreshErrorDialog();
+    if (!element || !element.isConnected || !shown(element) || element.disabled) {
+      throw new Error('The LearnCraft control changed while recovering from an error. Review the course before continuing.');
+    }
+    element.click();
+  };
+  const waitFor = async (find, label, timeout = 10000) => {
+    const end = Math.min(deadline, Date.now() + timeout);
+    while (Date.now() < end) {
+      if (await refreshErrorDialog()) continue;
+      const element = find();
+      if (element) return element;
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    if (Date.now() >= deadline) throw new Error('The run reached its time limit. Remaining assets were not attempted.');
+    throw new Error(`Timed out waiting for ${label}.`);
+  };
+  const settleTimestampEditor = () => new Promise(resolve => setTimeout(resolve, 300));
+  const findMainAsset = (entry, root) => {
+    const nav = assetNavs(root)[entry.assetIndex];
+    if (!nav) throw new Error(`The asset "${entry.title}" could not be found. Refresh the asset list and try again.`);
+    const record = assetRecord(nav, root, entry.assetIndex);
+    if (record.title !== entry.title || record.type !== entry.type || record.href !== entry.href) {
+      throw new Error('The asset list changed since it was loaded. Refresh the list before applying values.');
+    }
+    return record;
+  };
+  const findDialogAsset = (entry, dialog) => {
+    const records = assetNavs(dialog).map((nav, index) => assetRecord(nav, dialog, index));
+    const matches = records.filter(record =>
+      record.title === entry.title && record.type === entry.type && record.href === entry.href);
+    if (matches.length !== 1) throw new Error(`Could not uniquely identify "${entry.title}" in its subsection dialog.`);
+    return matches[0];
+  };
+  const setInputValue = (input, value) => {
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set;
+    if (!setter) throw new Error('LearnCraft input controls are not supported.');
+    setter.call(input, value);
+    input.dispatchEvent(new Event('input', {bubbles: true}));
+    input.dispatchEvent(new Event('change', {bubbles: true}));
+    input.blur();
+    if (input.value !== value) throw new Error('LearnCraft did not accept the entered value.');
+  };
+  const results = [];
+  let updated = 0;
+  const cancelled = () => !!(globalThis.__plLcCancel && globalThis.__plLcCancel[reqId]);
+  tick({phase: 'start', total: entries.length});
+  let completedEntries = 0;
+  for (const group of groups) {
+    if (cancelled()) break;
+    const groupStart = completedEntries;
+    if (Date.now() >= deadline) {
+      const message = 'The run reached its time limit. Remaining assets were not attempted.';
+      group.forEach((entry, index) => {
+        results.push({ok: false, title: entry.title, message});
+        tick({phase: 'asset', current: groupStart + index + 1, total: entries.length, title: entry.title, state: 'error', message});
+      });
+      break;
+    }
+    const root = document.querySelector('main');
+    if (!root) {
+      const message = 'The Master Canvas page content is no longer available.';
+      group.forEach((entry, index) => {
+        results.push({ok: false, title: entry.title, message});
+        tick({phase: 'asset', current: groupStart + index + 1, total: entries.length, title: entry.title, state: 'error', message});
+      });
+      break;
+    }
+    let dialog;
+    let saved = false;
+    try {
+      await refreshErrorDialog();
+      const records = group.map(entry => findMainAsset(entry, root));
+      for (let index = 0; index < records.length; index++) {
+        const timestampButtons = [...records[index].row.querySelectorAll('button')].filter(button =>
+          shown(button) && /^Timestamp(?:\s*\(\d+\))?$/.test(clean(button.textContent)));
+        if (timestampButtons.some(button => /^Timestamp\s*\(\d+\)$/.test(clean(button.textContent)))) {
+          throw new Error(`"${group[index].title}" already has a filled timestamp.`);
+        }
+        if (!timestampButtons.some(button => clean(button.textContent) === 'Timestamp' && !button.disabled)) {
+          throw new Error(`"${group[index].title}" does not have an available Timestamp button.`);
+        }
+      }
+      if (findDialog()) throw new Error('Close any open LearnCraft dialog before applying timestamp values.');
+      const openButton = [...records[0].row.querySelectorAll('button')].find(button =>
+        shown(button) && clean(button.textContent) === 'Timestamp' && !button.disabled);
+      await clickWithErrorRecovery(openButton);
+      dialog = await waitFor(() => {
+        const current = findDialog();
+        return current && clean(current.querySelector('h2')?.textContent) === 'Add Timestamp' ? current : null;
+      }, 'the Add Timestamp dialog');
+      const dialogRecords = group.map(entry => findDialogAsset(entry, dialog));
+      for (let index = 0; index < group.length; index++) {
+        const entry = group[index], targetAsset = dialogRecords[index];
+        tick({phase: 'asset', current: groupStart + index + 1, total: entries.length, title: entry.title, state: 'working'});
+        await clickWithErrorRecovery(targetAsset.row);
+        await settleTimestampEditor();
+        const inputPrefix = `assets.${targetAsset.index}.timestamps.`;
+        const typeInputs = () => [...dialog.querySelectorAll('input[name$=".type"]')]
+          .filter(input => input.name.startsWith(inputPrefix));
+        const before = typeInputs().length;
+        const addButton = buttonByText(dialog, 'Timestamp');
+        if (!addButton) throw new Error('The dialog does not have an enabled Add Timestamp button.');
+        await clickWithErrorRecovery(addButton);
+        const overlayInput = await waitFor(() => typeInputs().find(input => input.value === '') || null,
+          `a new timestamp row for "${entry.title}"`);
+        if (typeInputs().length <= before) throw new Error(`LearnCraft did not add a timestamp row for "${entry.title}".`);
+        const control = overlayInput.closest('.MuiFormControl-root');
+        const select = control && control.querySelector('[role="combobox"]');
+        if (!select) throw new Error('The timestamp type selector is unavailable.');
+        select.focus();
+        select.dispatchEvent(new MouseEvent('mousedown', {
+          bubbles: true, cancelable: true, button: 0, buttons: 1, view: window,
+        }));
+        const listboxId = select.getAttribute('aria-controls');
+        const listbox = await waitFor(() => {
+          if (select.getAttribute('aria-expanded') !== 'true') return null;
+          const controlledListbox = listboxId && document.getElementById(listboxId);
+          if (controlledListbox && shown(controlledListbox)) return controlledListbox;
+          return [...document.querySelectorAll('[role="listbox"]')].find(shown) || null;
+        }, 'the timestamp type options');
+        const option = await waitFor(() => [...listbox.querySelectorAll('[role="option"]')].find(item =>
+          shown(item) && /^Video overlay$/i.test(clean(item.textContent))), 'the Video overlay option');
+        await clickWithErrorRecovery(option);
+        await waitFor(() => overlayInput.value === 'VIDEO_OVERLAY' ? overlayInput : null, 'the selected Video overlay type');
+        const prefix = overlayInput.name.replace(/\.type$/, '');
+        const pageInput = dialog.querySelector(`input[name="${prefix}.pageNo"]`);
+        const problemInput = dialog.querySelector(`input[name="${prefix}.problemNo"]`);
+        if ((entry.pageNo && !pageInput) || (entry.problemNo && !problemInput)) throw new Error('The Page no. or Pb no. field is missing.');
+        if (entry.pageNo) setInputValue(pageInput, entry.pageNo);
+        if (entry.problemNo) setInputValue(problemInput, entry.problemNo);
+        if (index + 1 < group.length) await settleTimestampEditor();
+      }
+      const save = buttonByText(dialog, 'Save');
+      if (!save) throw new Error('The timestamp dialog does not have an enabled Save button.');
+      await clickWithErrorRecovery(save);
+      saved = true;
+      await waitFor(() => !findDialog(), 'the timestamp dialog to close');
+      await waitFor(() => {
+        const currentRoot = document.querySelector('main');
+        if (!currentRoot) return null;
+        return group.every(entry => {
+          const currentRecords = assetNavs(currentRoot);
+          const currentNav = currentRecords[entry.assetIndex];
+          if (!currentNav) return false;
+          const current = assetRecord(currentNav, currentRoot, entry.assetIndex);
+          return current.title === entry.title && current.type === entry.type && current.href === entry.href &&
+            [...current.row.querySelectorAll('button')].some(button =>
+              shown(button) && /^Timestamp\s*\(\d+\)$/.test(clean(button.textContent)));
+        }) ? true : null;
+      }, 'all subsection assets to show their filled timestamps');
+      group.forEach((entry, index) => {
+        updated++;
+        results.push({ok: true, title: entry.title});
+        tick({phase: 'asset', current: groupStart + index + 1, total: entries.length, title: entry.title, state: 'done'});
+      });
+    } catch (error) {
+      const message = String(error && error.message || error);
+      if (saved) {
+        const currentRoot = document.querySelector('main');
+        const currentRecords = currentRoot ? assetNavs(currentRoot) : [];
+        for (let index = 0; index < group.length; index++) {
+          const entry = group[index], nav = currentRecords[entry.assetIndex];
+          const current = nav && assetRecord(nav, currentRoot, entry.assetIndex);
+          const ok = !!current && current.title === entry.title && current.type === entry.type && current.href === entry.href &&
+            [...current.row.querySelectorAll('button')].some(button =>
+              shown(button) && /^Timestamp\s*\(\d+\)$/.test(clean(button.textContent)));
+          if (ok) updated++;
+          results.push(ok ? {ok: true, title: entry.title} : {ok: false, title: entry.title, message});
+          tick({
+            phase: 'asset', current: groupStart + index + 1, total: entries.length, title: entry.title,
+            state: ok ? 'done' : 'error', ...(ok ? {} : {message}),
+          });
+        }
+      } else {
+        group.forEach((entry, index) => {
+          results.push({ok: false, title: entry.title, message});
+          tick({phase: 'asset', current: groupStart + index + 1, total: entries.length, title: entry.title, state: 'error', message});
+        });
+      }
+      break;
+    }
+    completedEntries += group.length;
+  }
+  const stopped = cancelled() && results.length < entries.length;
+  return {ok: !stopped && results.every(result => result.ok), state: stopped ? 'cancelled' : 'done', updated, results};
 }
 
 // ---------------------------------------------------------------------------

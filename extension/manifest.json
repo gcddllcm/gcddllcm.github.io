@@ -1,17 +1,17 @@
 {
   "manifest_version": 3,
   "name": "Penguin Logistics - LearnCraft bridge",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "minimum_chrome_version": "102",
-  "description": "Adds the Ultimate Go Live popup and lets your Penguin Logistics page read LearnCraft course structure.",
+  "description": "Adds the Ultimate Go Live popup and lets Penguin Logistics read course structure and fill timestamp fields.",
   "action": {
     "default_title": "Ultimate Go Live",
     "default_popup": "popup.html"
   },
   "icons": {
-    "16": "assets/loy-krathong-2026.png",
-    "48": "assets/loy-krathong-2026.png",
-    "128": "assets/loy-krathong-2026.png"
+    "16": "assets/images/loy-krathong-2026.png",
+    "48": "assets/images/loy-krathong-2026.png",
+    "128": "assets/images/loy-krathong-2026.png"
   },
   "permissions": ["scripting", "clipboardWrite", "storage"],
   "host_permissions": ["https://craft.learn.co.th/*"],

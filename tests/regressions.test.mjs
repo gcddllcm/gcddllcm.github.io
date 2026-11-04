@@ -5,6 +5,7 @@ import {countBucket} from '../js/util.js';
 import {fixName, fixNames} from '../js/zipnames.js';
 import {ensureWriteAccess} from '../js/nbtool.js';
 import {isMobileOrTabletDevice} from '../js/device-support.js';
+import {ASSETS,extensionAssetUrl} from '../js/assets.js';
 import en from '../js/locales/en.js';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -22,10 +23,10 @@ await check('device support: phones and tablets are blocked while computers and 
   assert.equal(isMobileOrTabletDevice({userAgent:'Mozilla/5.0 (Macintosh; Intel Mac OS X 15_0) AppleWebKit/605.1.15 Safari/605.1.15',platform:'MacIntel',maxTouchPoints:0}), false);
   assert.equal(isMobileOrTabletDevice({userAgent:'Mozilla/5.0 (X11; Linux x86_64) Chrome/130 Safari/537.36',userAgentData:{mobile:true}}), true);
   const app = fs.readFileSync(new URL('../js/app.js', import.meta.url), 'utf8');
-  assert.match(app, /new Set\(\['learncraft','golive'\]\)/);
+  assert.match(app, /new Set\(\['learncraft','golive','timestamp-maker'\]\)/);
   assert.match(app, /isMobileOrTablet&&desktopOnlyTools\.has\(key\)/);
-  assert.match(app, /Apologetic%20Tactical%20Penguin%20Bowing\.png/);
-  assert.ok(fs.existsSync(new URL('../Apologetic Tactical Penguin Bowing.png', import.meta.url)));
+  assert.match(app, /ASSETS\.deviceNoticeMascot/);
+  assert.ok(fs.existsSync(new URL(ASSETS.deviceNoticeMascot)));
   assert.equal(en['device.desktopOnlyTitle'], 'This tool needs a computer');
   assert.equal(en['device.desktopOnlyBack'], 'Back to all tools');
 });
@@ -39,18 +40,73 @@ await check('landing: category order, concise titles, new badges and card arrows
   assert.match(app, /100\+TOOLS\.findIndex\(item=>item\[0\]===key\)\*80/);
   assert.match(app, /className:'notebook'\},\s*\{label:t\('library\.categoryImages'\),className:'images'\},\s*\{label:t\('library\.categoryLearnCraft'\),className:'learncraft'\}/);
   assert.match(app, /TOOLS\.filter\(item=>item\[3\]===category\.label\)/);
+  assert.doesNotMatch(app, /landing-archive|archiveDetails|expandArchiveAtBottom/);
+  assert.match(app, /\{label:t\('library\.categoryArchive'\),tools:TOOLS\.filter\(item=>item\[3\]===t\('library\.categoryArchive'\)\)\}/);
   assert.match(app, /card\.onclick=\(\)=>\{hasChosenTool=true;selectTool\(key\);showPage\('tools'\)\}/);
   assert.match(css, /\.landing-tool-action\{[^}]*width:24px;height:24px;display:grid;place-items:center/);
   assert.match(css, /\.landing-tool-new\{position:absolute;top:11px;right:11px/);
-  assert.match(css, /\.landing-tool-action \.page-shortcut-key\{position:absolute/);
+  assert.match(css, /\.landing-tool-shortcut\{position:absolute;top:11px;right:11px/);
+  assert.match(app, /key==='creator'\?`<kbd class="page-shortcut-key landing-tool-shortcut" aria-hidden="true">SPACE<\/kbd>`:''/);
   assert.match(css, /grid-template-columns:52px minmax\(0,1fr\) 24px/);
   assert.match(index, /style\.css\?v=3\.3\.0/);
   assert.match(index, /app\.js\?v=3\.3\.0/);
   assert.match(app, /i18n\.js\?v=3\.3\.0/);
   const i18n = fs.readFileSync(new URL('../js/i18n.js', import.meta.url), 'utf8');
   assert.match(i18n, /locales\/en\.js\?v=3\.3\.0/);
-  assert.match(app, /key==='learncraft'\|\|key==='golive'/);
+  assert.match(app, /key==='learncraft'\|\|key==='golive'\|\|key==='timestamp-maker'/);
   assert.match(app, /\$\{isNewTool\?\`<span class="landing-tool-new" aria-hidden="true">\$\{t\('landing\.new'\)\}<\/span>\`:''\}/);
+});
+await check('keyboard: Space does not switch tools while a Timestamp Maker video preview is open', () => {
+  const app = fs.readFileSync(new URL('../js/app.js', import.meta.url), 'utf8');
+  assert.match(app, /if\(e\.code==='Space'&&document\.querySelector\('\.tf-video-dialog\[open\]'\)\)return;/);
+});
+await check('Timestamp Maker: Page/Pb input text is vertically centered in its field', () => {
+  const css = fs.readFileSync(new URL('../style.css', import.meta.url), 'utf8');
+  assert.match(css, /\.tf-inline-field \.tf-value\{[^}]*margin:0;/);
+});
+await check('Timestamp Maker: outdated extensions still list tabs in a locked state', () => {
+  const app = fs.readFileSync(new URL('../js/timestamp-maker.js', import.meta.url), 'utf8');
+  assert.match(app, /if\(older\(info\.version,EXT_MIN\)\)\{extension=info;showOutdated\(info\.version\);await refresh\(true\);return\}/);
+  assert.match(app, /function renderTabs\(rows,updateRequired=false\)/);
+  assert.doesNotMatch(app, /timestampMaker\.chooseCourse|tf-course-heading/);
+  assert.match(app, /updateRequired\?' update-locked':''/);
+  assert.match(app, /updateRequired\?' aria-disabled="true"':''/);
+  assert.match(app, /updateRequired\?t\('golive\.needUpdate'\)/);
+  assert.match(app, /const isReady=!!tab\.code&&state==='ready',canUse=isReady&&!updateRequired/);
+  assert.match(app, /if\(!updateRequired\)connectedStatus\(extension\.version\)/);
+});
+await check('Timestamp Maker: arrow keys navigate Page/Pb fields without interrupting text editing', () => {
+  const app = fs.readFileSync(new URL('../js/timestamp-maker.js', import.meta.url), 'utf8');
+  assert.match(app, /event\.key==='ArrowUp'\|\|event\.key==='ArrowDown'/);
+  assert.match(app, /input\.selectionStart!==0\|\|input\.selectionEnd!==0/);
+  assert.match(app, /input\.selectionStart!==input\.value\.length\|\|input\.selectionEnd!==input\.value\.length/);
+  assert.doesNotMatch(app, /suggestionBox\.querySelector\('button'\)\?\.focus\(\)/);
+});
+await check('Timestamp Maker: A/D keys select visible suggestions', () => {
+  const app = fs.readFileSync(new URL('../js/timestamp-maker.js', import.meta.url), 'utf8');
+  assert.match(app, /lastEnteredInteger,lastEnteredInteger\+1\]\.filter\(Number\.isSafeInteger\)/);
+  assert.match(app, /!\/\^\[ad\]\$\/i\.test\(event\.key\)/);
+  assert.match(app, /suggestionBox\.querySelectorAll\('button'\)\['ad'\.indexOf\(event\.key\.toLowerCase\(\)\)\]/);
+  assert.match(app, /tf-suggestion-key/);
+  assert.match(app, /tf-suggestion-arrows/);
+  assert.match(app, /for\(const key of \['↑','←','↓','→'\]\)\{const keycap=document\.createElement\('kbd'\)/);
+  assert.match(app, /\['A','D'\]\[index\]/);
+  const css = fs.readFileSync(new URL('../style.css', import.meta.url), 'utf8');
+  assert.match(css, /\.tf-suggestion-key\{/);
+  assert.match(css, /\.tf-suggestion-arrows\{[^}]*display:grid;[^}]*grid-template-columns:repeat\(3,17px\)/);
+  assert.match(css, /\.tf-suggestion-arrows kbd:nth-child\(4\)\{grid-row:2;grid-column:3\}/);
+});
+await check('LearnCraft tools use one short extension check', () => {
+  const extractor = fs.readFileSync(new URL('../js/learncraft.js', import.meta.url), 'utf8');
+  const goLive = fs.readFileSync(new URL('../js/golive.js', import.meta.url), 'utf8');
+  const timestampMaker = fs.readFileSync(new URL('../js/timestamp-maker.js', import.meta.url), 'utf8');
+  assert.match(extractor, /function pingAll\(wait=200\)/);
+  assert.match(extractor, /const answers=await pingAll\(\)/);
+  assert.doesNotMatch(extractor, /for\(let i=0;i<3&&!answers\.length;i\+\+\)/);
+  assert.match(goLive, /function pingAll\(wait = 200\)/);
+  assert.match(goLive, /const answers = await pingAll\(\)/);
+  assert.doesNotMatch(goLive, /for \(let i = 0; i < 3 && !answers\.length; i\+\+\)/);
+  assert.match(timestampMaker, /setTimeout\(\(\)=>\{waiting\.delete\(id\);resolve\(replies\)\},200\)/);
 });
 await check('i18n: full page headings and concise card labels stay distinct', () => {
   for (const [key, expected] of [
@@ -60,6 +116,7 @@ await check('i18n: full page headings and concise card labels stay distinct', ()
     ['tool.resizer', 'Image Resizer'],
     ['tool.learncraft', 'LearnCraft : Master Canvas Extractor'],
     ['tool.golive', 'LearnCraft : Ultimate Go Live'],
+    ['tool.timestampMaker', 'LearnCraft : Timestamp Maker'],
   ]) assert.equal(en[key], expected);
   for (const [key, expected] of [
     ['tool.creator.short', 'File Creator'],
@@ -68,10 +125,12 @@ await check('i18n: full page headings and concise card labels stay distinct', ()
     ['tool.resizer.short', 'Image Resizer'],
     ['tool.learncraft.short', 'Canvas Extractor'],
     ['tool.golive.short', 'Ultimate Go Live'],
+    ['tool.timestampMaker.short', 'Timestamp Maker'],
   ]) assert.equal(en[key], expected);
   const app = fs.readFileSync(new URL('../js/app.js', import.meta.url), 'utf8');
   assert.match(app, /<strong>\$\{shortLabel\}<\/strong>/);
   assert.match(app, /setAttribute\('aria-label',`\$\{shortLabel\}\./);
+  assert.match(app, /<kbd>Ctrl\+K<\/kbd>/);
 });
 await check('lock: self-closing <image/> gets the attribute before the slash', () => {
   assert.equal(setLock('<svg><image x="0" href="a.png"/></svg>', true), `<svg><image x="0" href="a.png"${L}/></svg>`);
@@ -162,35 +221,37 @@ await check('i18n: every key used as t(\'...\') in js/ exists in en.js', () => {
   assert.deepEqual(missing, [], 'missing keys: ' + missing.join(', '));
 });
 await check('LearnCraft install instructions: download and drag the ZIP into Chrome extensions', () => {
-  const step = en['learncraft.install2'];
-  assert.equal(en['learncraft.install1'], 'Download the extension file.');
-  assert.equal(en['learncraft.installVisual4'], 'Drop the ZIP file');
+  const src = fs.readFileSync(new URL('../js/install-help.js', import.meta.url), 'utf8');
+  assert.equal(en['learncraft.installVisual4'], 'Drag and drop the ZIP file');
   assert.equal(en['learncraft.installVisual2'], 'Open Chrome extensions page');
-  assert.ok(step.startsWith('Open Chrome extensions page by copy the address given below, paste it into your browser address bar, and press Enter:'));
-  assert.match(step, /data-q="copyChromeExtensions"/);
-  assert.match(en['learncraft.install4'], /drag and drop the downloaded ZIP onto the extensions page/i);
-  assert.equal(en['learncraft.install3'], 'Turn on Developer mode.');
-  assert.equal(en['learncraft.install5'], 'Come back here and press “Force refresh”.');
-  assert.equal(en['learncraft.installVisual5'], 'Come back and press Force refresh');
+  assert.equal(en['learncraft.installVisual5'], 'Come back to this page and press');
   assert.equal(en['learncraft.forceReset'], 'Force refresh');
   assert.equal(en['learncraft.installVisualLabel'], 'Five visual steps to install the extension');
-  assert.equal(en['learncraft.installDetails'], 'Show detailed instructions');
-  const src = fs.readFileSync(new URL('../js/install-help.js', import.meta.url), 'utf8');
   assert.match(src, /class="lc-install-visual" aria-label="\$\{t\('learncraft\.installVisualLabel'\)\}"/);
   assert.equal((src.match(/class="lc-install-step"/g) || []).length, 5);
-  assert.match(src, /<details class="lc-install-details"><summary>\$\{t\('learncraft\.installDetails'\)\}<\/summary><ol class="lc-steps">/);
+  const step1 = /<article class="lc-install-step lc-install-step-guide"><span class="lc-install-number">1<\/span>[\s\S]*?<\/article>/.exec(src)?.[0] || '';
+  const step5 = /<article class="lc-install-step lc-install-step-guide"><span class="lc-install-number">5<\/span>[\s\S]*?<\/article>/.exec(src)?.[0] || '';
+  assert.match(step1, /<span class="lc-install-content">[\s\S]*?<span class="lc-install-text">[\s\S]*?<\/span><button[^>]*data-q="dl"/);
+  assert.match(src, /<span class="lc-install-content">[\s\S]*?<span class="lc-install-text">\$\{t\('learncraft\.installVisual2'\)\}<\/span><button[^>]*data-q="copyChromeExtensions"/);
+  assert.match(step5, /<span class="lc-install-content">[\s\S]*?<span class="lc-install-text">[\s\S]*?<\/span><button[^>]*data-q="forcereset"/);
+  assert.match(step1, /data-q="dl"/);
+  assert.match(step5, /data-q="forcereset"/);
+  assert.doesNotMatch(src, /lc-install-details|learncraft\.installDetails|learncraft\.install[1-5]/);
   const page = fs.readFileSync(new URL('../js/learncraft.js', import.meta.url), 'utf8');
   assert.match(page, /querySelectorAll\('\[data-q=copyChromeExtensions\]'\)\.forEach/);
   assert.doesNotMatch(page, /data-q="recheck"|data-q=recheck|learncraft\.recheck/);
-  assert.match(src, /t\('learncraft\.install5'\)/);
   assert.match(src, /await navigator\.clipboard\.writeText\(url\)/);
   assert.match(page, /copyInternalPage\('chrome:\/\/extensions'\)/);
   const golive = fs.readFileSync(new URL('../js/golive.js', import.meta.url), 'utf8');
+  const timestampMaker = fs.readFileSync(new URL('../js/timestamp-maker.js', import.meta.url), 'utf8');
   assert.match(page, /from '\.\/install-help\.js\?v=3\.3\.0'/);
   assert.match(golive, /from '\.\/install-help\.js\?v=3\.3\.0'/);
   assert.doesNotMatch(golive, /from '\.\/learncraft\.js/);
-  assert.match(golive, /data-q="forcereset">\$\{t\('learncraft\.forceReset'\)\}/);
   assert.match(golive, /\$s\.querySelector\('\[data-q=forcereset\]'\)\.onclick = forceReset/);
+  assert.match(timestampMaker, /bindRefresh=\(\)=> \$status\.querySelectorAll\('\[data-q=forcereset\]'\)/);
+  assert.match(page, /\$s\.querySelector\('\[data-q=dl\]'\)\.onclick=e=>downloadExtension\(e\.currentTarget\)/);
+  assert.match(golive, /\$s\.querySelector\('\[data-q=dl\]'\)\.onclick = e => downloadExtension\(e\.currentTarget\)/);
+  assert.match(timestampMaker, /querySelector\('\[data-q=dl\]'\)\.addEventListener\('click',event=>downloadExtension\(event\.currentTarget\)\)/);
 });
 await check('LearnCraft: Force refresh reloads the page with a one-time cache-busting parameter', () => {
   const src = fs.readFileSync(new URL('../js/learncraft.js', import.meta.url), 'utf8');
@@ -203,11 +264,15 @@ await check('LearnCraft extension version: the page asks for the version that is
   const manifest = JSON.parse(fs.readFileSync(new URL('../extension/manifest.json', import.meta.url), 'utf8'));
   const src = fs.readFileSync(new URL('../js/learncraft.js', import.meta.url), 'utf8');
   assert.deepEqual(manifest.icons, {
-    '16': 'assets/loy-krathong-2026.png',
-    '48': 'assets/loy-krathong-2026.png',
-    '128': 'assets/loy-krathong-2026.png'
+    '16': 'assets/images/loy-krathong-2026.png',
+    '48': 'assets/images/loy-krathong-2026.png',
+    '128': 'assets/images/loy-krathong-2026.png'
   });
-  assert.ok(fs.existsSync(new URL('../extension/assets/loy-krathong-2026.png', import.meta.url)));
+  assert.equal(extensionAssetUrl(manifest.icons['16']),ASSETS.brandLogo);
+  assert.ok(fs.existsSync(new URL(ASSETS.brandLogo)));
+  assert.ok(fs.existsSync(new URL(ASSETS.learncraftMascot)));
+  assert.deepEqual(Object.keys(ASSETS.goLiveStatus),['running','complete','attention']);
+  for(const imageUrl of Object.values(ASSETS.goLiveStatus))assert.ok(fs.existsSync(new URL(imageUrl)));
   for (const archivedLogo of [
     '../assets/archive/branding/legacy-web-favicon.png',
     '../assets/archive/branding/legacy-extension-favicon.png',
@@ -228,32 +293,34 @@ await check('LearnCraft: notify about a newer extension and explain manual updat
   assert.match(src, /latestExtensionVersion\(\)/);
   assert.match(src, /fetch\(freshUrl\('extension\/manifest\.json',document\.baseURI\),FRESH\)/);
   assert.match(src, /older\(ext\.version,latestVersion\)/);
-  assert.match(src, /data-q="update"/);
   assert.match(src, /downloadExtension\(updateButton\)/);
   assert.match(src, /\[data-q=copyChromeExtensions\]/);
-  assert.ok(en['learncraft.install2'].includes('data-q="copyChromeExtensions"'), 'the Chrome copy button is part of the install text');
   assert.equal(en['learncraft.updateAvailable']('3.3.2'), 'Update available: v3.3.2. Update to continue.');
   assert.equal(en['learncraft.updateStep1'], 'Download the extension file');
   assert.equal(en['learncraft.updateStep2'], 'Open Chrome extensions page');
-  assert.equal(en['learncraft.updateStep3'], 'Drop the ZIP file you just downloaded');
+  assert.equal(en['learncraft.updateStep3'], 'Turn on Developer mode');
+  assert.equal(en['learncraft.updateStep4'], 'Drag and drop the ZIP file');
   assert.equal(en['learncraft.updateChrome'], 'Copy chrome://extensions');
   const installHelp = fs.readFileSync(new URL('../js/install-help.js', import.meta.url), 'utf8');
-  const installStep4Icon = installHelp.match(/<article class="lc-install-step"><span class="lc-install-number">4<\/span><svg[^>]*>([\s\S]*?)<\/svg><span class="lc-install-text">\$\{t\('learncraft\.installVisual4'\)\}<\/span><\/article>/);
-  assert.ok(installStep4Icon, 'installation step 4 icon exists');
-  assert.ok(src.includes(`[t('learncraft.updateStep3'),'${installStep4Icon[1]}']`), 'update step 3 reuses the installation step 4 icon');
-  assert.equal(en['learncraft.updateStep4'], 'Come back and press Force refresh');
-  assert.equal(en['learncraft.updateStepsLabel'], 'Four visual steps to update the extension');
-  assert.equal(en['learncraft.updateDetail1'], 'Download the extension file.');
-  assert.ok(en['learncraft.updateDetail2'].includes('Copy chrome://extensions'));
-  assert.match(en['learncraft.updateDetail3'], /Drag and drop the ZIP file you just downloaded.*No need to unzip it/);
-  assert.equal(en['learncraft.updateDetail4'], 'Come back here and press Force refresh.');
-  assert.equal(en['learncraft.updateStep5'], undefined);
+  assert.match(installHelp, /export function updateStepsHtml\(\)/);
+  assert.match(installHelp, /data-q="update" aria-label="\$\{t\('learncraft\.downloadUpdate'\)\}"/);
+  assert.match(installHelp, /data-q="copyChromeExtensions"/);
+  assert.match(installHelp, /data-q="forcereset"/);
+  assert.equal((installHelp.match(/class="lc-install-step lc-install-step-guide"/g) || []).length, 11);
+  assert.match(src, /updateStepsHtml\(\)/);
+  for (const file of ['golive.js', 'timestamp-maker.js']) {
+    const app = fs.readFileSync(new URL('../js/' + file, import.meta.url), 'utf8');
+    assert.match(app, /updateStepsHtml\(\)/, `${file} uses the shared update guide`);
+    assert.match(app, /from '\.\/install-help\.js\?v=3\.3\.0'/, `${file} imports the shared guide`);
+  }
+  assert.equal(en['learncraft.updateStep5'], 'Remove the old version');
+  assert.equal(en['learncraft.updateStep6'], 'Come back to this page and press');
+  assert.equal(en['learncraft.updateStepsLabel'], 'Six visual steps to update the extension');
+  for (const key of ['updateDetails', 'updateDetail1', 'updateDetail2', 'updateDetail3', 'updateDetail4', 'updateDetail5']) {
+    assert.equal(en[`learncraft.${key}`], undefined, `obsolete update-detail key ${key} must be removed`);
+  }
   assert.equal(en['learncraft.updateForceRefresh'], 'Force refresh');
-  assert.match(src, /lc-install-visual" aria-label="\$\{t\('learncraft\.updateStepsLabel'\)\}/);
-  assert.match(src, /lc-install-details"><summary>\$\{t\('learncraft\.updateDetails'\)\}/);
-  assert.match(src, /lc-update-step-actions.*data-q="copyChromeExtensions"/);
-  assert.match(src, /data-q="forcereset"/);
-  assert.match(src, /t\('learncraft\.updateStep4'\)/);
+  assert.doesNotMatch(src, /lc-install-details|updateDetail[1-5]|updateDetails/);
   assert.match(src, /forceRefreshButton\.onclick=forceReset/);
   assert.match(src, /needsExtensionUpdate\?' update-locked':''/);
   assert.match(src, /lc-line\$\{needsExtensionUpdate\?' lc-tabs-count-locked':''\}/);
@@ -325,21 +392,43 @@ await check('LearnCraft result: selected assets show a live total duration', () 
 await check('LearnCraft status chips use the current Ready colors', () => {
   const src = fs.readFileSync(new URL('../js/learncraft.js', import.meta.url), 'utf8');
   const css = fs.readFileSync(new URL('../style.css', import.meta.url), 'utf8');
-  assert.match(src, /m\.status\.toLowerCase\(\)==='ready'\?' lc-status-ready':''/);
-  assert.match(css, /\.lc-chip\.dim\.lc-status-ready\{border-color:#d99a2b80;background:#d99a2b24;color:#ffd27a\}/);
+  assert.match(src, /m\.status\.toLowerCase\(\)==='ready'\?' lc-status-ready-green':''/);
+  assert.match(src, /m\.status\.toLowerCase\(\)==='ready'\?'Ready':m\.status/);
   assert.match(css, /\.lc-chip\.dim\.lc-status-ready-green\{border-color:#00b89466;background:#00b89420;color:#8fe9d6\}/);
 });
-await check('LearnCraft: installation guide remains accessible after extension connects', () => {
+await check('Canvas Extractor uses plain Ready to extract text beside its action', () => {
   const src = fs.readFileSync(new URL('../js/learncraft.js', import.meta.url), 'utf8');
   const css = fs.readFileSync(new URL('../style.css', import.meta.url), 'utf8');
-  assert.match(src, /data-q="installation-guide">\$\{t\('learncraft\.installationGuide'\)\}/);
-  assert.match(src, /const headerActions=old\|\|updateAvailable\?'':`<button class="btn" data-q="installation-guide">/);
-  assert.match(src, /\$\{headerActions\}<\/div>/);
-  assert.match(src, /if\(installationGuide\)installationGuide\.onclick=showMissing/);
+  assert.match(src, /st\.ok\?`<span class="lc-extract-ready">\$\{t\('learncraft\.extractReady'\)\}<\/span>`/);
+  assert.match(css, /\.lc-extract-ready\{color:#8fe9d6;font-size:12px\}/);
+  assert.equal(en['learncraft.extractReady'], 'Ready to extract');
+});
+await check('Canvas Extractor course-type chip matches Timestamp Maker', () => {
+  const extractor = fs.readFileSync(new URL('../js/learncraft.js', import.meta.url), 'utf8');
+  const timestampMaker = fs.readFileSync(new URL('../js/timestamp-maker.js', import.meta.url), 'utf8');
+  assert.match(extractor, /p\.kindLabel\?`<span class="lc-chip">\$\{esc\(p\.kindLabel\)\}<\/span>`:''/);
+  assert.match(timestampMaker, /tab\.probe\?\.kindLabel\?`<span class="lc-chip">\$\{esc\(tab\.probe\.kindLabel\)\}<\/span>`:''/);
+  assert.doesNotMatch(extractor, /kindOf\(/);
+});
+await check('Canvas Extractor result uses the course-type label from the course tab and styles Ready green', () => {
+  const extractor = fs.readFileSync(new URL('../js/learncraft.js', import.meta.url), 'utf8');
+  assert.match(extractor, /esc\(m\.kindLabel\|\|kindName\(m\.kind\)\)/);
+  assert.match(extractor, /m\.status\.toLowerCase\(\)==='ready'\?'Ready':m\.status/);
+  assert.match(extractor, /lc-status-ready-green/);
+});
+await check('LearnCraft hides connected status unless update guidance is needed', () => {
+  const src = fs.readFileSync(new URL('../js/learncraft.js', import.meta.url), 'utf8');
+  const css = fs.readFileSync(new URL('../style.css', import.meta.url), 'utf8');
+  assert.doesNotMatch(src, /installation-guide|learncraft\.connected/);
+  assert.match(src, /\$s\.innerHTML=panel;\s*\$s\.hidden=!panel/);
+  assert.match(src, /function showMissing\(\)\{\$s\.hidden=false/);
   assert.match(src, /dup=null,latestVersion=null/);
   assert.match(src, /try\{latestVersion=await latestExtensionVersion\(\);showConnected\(latestVersion\)\}/);
   assert.match(src, /catch\(error\)\{latestVersion=null;showConnected\(null,error\)\}/);
   assert.match(src, /const refreshButton=updateRequired\?'':`<button class="btn" data-q="refresh"/);
+  assert.match(src, /const masters=rows\.filter\(r=>r\.code&&r\.url&&new URL\(r\.url\)\.pathname\.startsWith\('\/master-canvas\/'\)\)/);
+  assert.match(src, /const order=\[\.\.\.masters\]\.sort/);
+  assert.match(src, /rows\.length\?t\('golive\.noMaster'\):t\('learncraft\.noTabs'\)/);
   assert.match(src, /const tabsCount=`<div class="lc-line\$\{needsExtensionUpdate\?' lc-tabs-count-locked':''\}"><strong>\$\{t\('learncraft\.tabsFound',rows\.length,courses\.length\)\}<\/strong><span class="lc-grow"><\/span>\$\{refreshButton\}<\/div>`/);
   assert.match(src, /if\(refreshButtonEl\)refreshButtonEl\.onclick=\(\)=>\{refresh\(\);checkUpdates\(\)\}/);
   assert.match(src, /if\(!rows\.length\)\{\$t\.innerHTML=`\$\{tabsCount\}<div class="lc-p">\$\{t\('learncraft\.noTabs'\)\}<\/div>`/);
@@ -347,8 +436,9 @@ await check('LearnCraft: installation guide remains accessible after extension c
   assert.match(src, /if\(!ext\|\|busy\|\|refreshingTabs\)return/);
   assert.match(src, /if\(!Array\.isArray\(rows\)\)throw new Error\('The extension returned an invalid tab list\.'\)/);
   assert.match(src, /finally\{refreshingTabs=false\}/);
-  assert.match(src, /data-q="dl">\$\{t\('learncraft\.download'\)\}/);
-  assert.equal(en['learncraft.installationGuide'], 'Installation guide');
+  const installHelp = fs.readFileSync(new URL('../js/install-help.js', import.meta.url), 'utf8');
+  assert.match(installHelp, /class="btn primary lc-install-action lc-install-download" data-q="dl" aria-label="\$\{t\('learncraft\.download'\)\}" title="\$\{t\('learncraft\.download'\)\}"><svg aria-hidden="true"/);
+  assert.match(installHelp, /class="lc-install-copy lc-install-action" data-q="forcereset"/);
   assert.match(css, /\.btn\.primary\{background:var\(--accent\);border-color:var\(--accent\);color:#fff\}/);
   assert.match(css, /\.btn\.primary:hover:not\(:disabled\)\{background:var\(--accent-h\)\}/);
   assert.match(css, /\.btn:disabled\{background:var\(--border\);cursor:not-allowed\}/);
@@ -356,7 +446,15 @@ await check('LearnCraft: installation guide remains accessible after extension c
   assert.match(css, /\.lc-install-step\{[^}]*grid-template-columns:30px 44px minmax\(0,1fr\) auto/);
   assert.match(css, /@container \(max-width:520px\)\{\.lc-install-step\{grid-template-columns:30px 44px minmax\(0,1fr\)/);
   assert.match(css, /\.lc-install-step:not\(:last-child\)::after\{position:absolute/);
+  assert.match(css, /\.lc-install-download\{display:grid;place-items:center;flex:none;width:38px;height:38px;padding:0/);
+  assert.match(css, /\.lc-install-step \.lc-install-download svg\{width:21px;height:21px;padding:0/);
   assert.match(css, /\.lc-install-details>summary/);
+});
+await check('Timestamp Maker hides connected status after listing tabs', () => {
+  const src = fs.readFileSync(new URL('../js/timestamp-maker.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(src, /connectedStatus|timestampMaker\.connected/);
+  assert.match(src, /const clearStatus=\(\)=>\{\$status\.hidden=true;\$status\.textContent=''\}/);
+  assert.match(src, /renderTabs\(result,updateRequired\);\s*if\(!updateRequired\)clearStatus\(\)/);
 });
 await check('LearnCraft result: progress rail and Part navigation are removed', () => {
   const src = fs.readFileSync(new URL('../js/learncraft.js', import.meta.url), 'utf8');
@@ -379,7 +477,7 @@ await check('LearnCraft result: completeness and warnings are grouped together b
   assert.match(src, /if\(unconfirmed\.length&&!failed\.length\)addNotice\(t\('learncraft\.extractCompleteShort'\)\)/);
   assert.equal(en['learncraft.extractCompleteShort'], 'Extraction complete');
   assert.match(en['learncraft.extractIncomplete'](4, 5, 'Part 1'), /Not confirmed: Part 1/);
-  assert.match(src, /const sourceIndex=Number\.isInteger\(n\.sourceIndex\)\?` data-source-index="\$\{n\.sourceIndex\}"`:\x27\x27/);
+  assert.match(src, /const sourceIndex=` data-view-index="\$\{nodeSelectionIndices\.get\(n\)\}"\$\{Number\.isInteger\(n\.sourceIndex\)/);
   assert.match(src, /const jumpLink=\(label,index\)=>Number\.isInteger\(index\)\?`<button type="button" class="lc-notice-jump" data-jump-index="\$\{index\}"/);
   assert.match(src, /button\.onclick=\(\)=>\{/);
   const css = fs.readFileSync(new URL('../style.css', import.meta.url), 'utf8');
@@ -424,11 +522,20 @@ await check('LearnCraft result: CSV download uses the same repeat setting as Cop
   assert.match(css, /\.lc-depth-controls \.lc-clear\{margin-left:0\}/);
   assert.match(css, /\.lc-rhead \.lc-download-csv\{align-self:flex-end\}/);
 });
+await check('LearnCraft: Copy current view exports collapsed nodes as summary rows', () => {
+  const src = fs.readFileSync(new URL('../js/learncraft.js', import.meta.url), 'utf8');
+  const core = fs.readFileSync(new URL('../js/lccore.js', import.meta.url), 'utf8');
+  assert.equal(en['learncraft.copyCurrentView'], 'Copy current view');
+  assert.match(src, /data-q="copy-current-view">\$\{t\('learncraft\.copyCurrentView'\)\}/);
+  assert.match(src, /tree\.querySelectorAll\('details\.lc-node:not\(\[open\]\)'\)/);
+  assert.match(src, /tableTsv\(r,options\)/);
+  assert.match(core, /collapsedNodes\.has\(n\)/);
+});
 await check('LearnCraft: transparent penguin mascot is used in the tool heading', () => {
   const src = fs.readFileSync(new URL('../js/learncraft.js', import.meta.url), 'utf8');
-  assert.match(src, /src="assets\/learncraft-mascot\.png"/);
+  assert.match(src, /src="\$\{ASSETS\.learncraftMascot\}"/);
   assert.match(src, /class="lc-scope-glint"/);
-  assert.ok(fs.existsSync(new URL('../assets/learncraft-mascot.png', import.meta.url)));
+  assert.ok(fs.existsSync(new URL(ASSETS.learncraftMascot)));
   const css = fs.readFileSync(new URL('../style.css', import.meta.url), 'utf8');
   assert.match(css, /\.lc-scope-glint\{[^}]*background:transparent;box-shadow:none/);
   assert.match(css, /\.lc-scope-glint::before\{[^}]*background:linear-gradient\(90deg,transparent,rgba\(255,255,255,\.92\),rgba\(255,255,255,\.72\),transparent\)/);
@@ -479,6 +586,13 @@ await check('keyboard shortcuts stay enabled, focus styling persists until point
   const background = fs.readFileSync(new URL('../extension/background.js', import.meta.url), 'utf8');
   const page = fs.readFileSync(new URL('../js/learncraft.js', import.meta.url), 'utf8');
   assert.doesNotMatch(app, /singleKeyShortcutsEnabled|app-operation-running/);
+  assert.doesNotMatch(app, /numberShortcut|TOOLS\[\(activeIndex\+1\)%TOOLS\.length\]/);
+  assert.doesNotMatch(app, /tool-nav-shortcut|tool\.shortcutNumber/);
+  assert.match(app, /if\(e\.code==='Space'&&landing\.classList\.contains\('on'\)/);
+  assert.doesNotMatch(css, /tool-nav-shortcut/);
+  assert.match(app, /setAttribute\('aria-keyshortcuts','G'\)/);
+  assert.match(app, /KeyG:'g'/);
+  assert.match(app, /if\(guide\?\.openGuide&&\(!interactive\|\|isOpen\|\|target===guideButton\)\)\{[\s\S]*?if\(isOpen\)guide\.closeGuide\(true\);else guide\.openGuide\(\)/);
   assert.match(app, /if\(e\.key==='Tab'\)document\.body\.classList\.add\('keyboard-tab-nav'\)/);
   assert.match(css, /body\.keyboard-tab-nav :focus-visible\{outline:2px solid #8e82ff/);
   assert.doesNotMatch(index, /shortcut-toggle/);
@@ -557,6 +671,22 @@ await check('creator: pasting only adds images while the Tools page is the one o
 await check('i18n: no old carousel / library strings or the stale PDF-engine sentence are left', () => {
   for (const k of Object.keys(en)) assert.ok(!/^(carousel|start|home)\./.test(k), k + ' is unused and should stay removed');
   assert.ok(!en['guide.topdf.details'].includes('PDF engine'), 'the converter is built in now: nothing is cached');
+});
+
+await check('Timestamp Maker: Quick Guide is mounted and covers the workflow', () => {
+  const tool = fs.readFileSync(new URL('../js/timestamp-maker.js', import.meta.url), 'utf8');
+  const guide = fs.readFileSync(new URL('../js/instruction-panel.js', import.meta.url), 'utf8');
+  assert.match(tool, /mountGuide\(root\.querySelector\('\.tool-layout'\),'timestampMaker'\)/);
+  assert.match(guide, /timestampMaker:\s*\{[\s\S]*?targets: \['\.tf-courses'\][\s\S]*?targets: \['\.tf-date-panel', '\.tf-tree'\][\s\S]*?targets: \['\.tf-submit'\]/);
+  for (const key of [
+    'guide.timestampMaker.step1.title',
+    'guide.timestampMaker.step1.desc',
+    'guide.timestampMaker.step2.title',
+    'guide.timestampMaker.step2.desc',
+    'guide.timestampMaker.step3.title',
+    'guide.timestampMaker.step3.desc',
+    'guide.timestampMaker.details'
+  ]) assert.equal(typeof en[key], 'string', `${key} should be translated`);
 });
 
 await check('analytics: file counts are grouped into buckets', () => {

@@ -20,9 +20,13 @@ check('reduced motion switches the penguin animations off', () => {
   assert.match(css, /prefers-reduced-motion:reduce\)\{\.lc-mascot,[^}]*animation:none/);
   assert.match(mascot, /prefers-reduced-motion: reduce/);
 });
-check('speech bubble stays inside the clipped heading and wraps long lines', () => {
-  assert.match(css, /\.lc-bubble\{position:absolute;z-index:2;right:8px;top:8px;max-width:min\(280px,calc\(100% - 16px\)\);[^}]*white-space:normal;overflow-wrap:anywhere/);
-  assert.match(css, /\.lc-bubble::after\{[^}]*right:10px;bottom:-5px/);
+check('speech bubble stays beside the penguin without covering its head', () => {
+  assert.match(css, /\.lc-bubble\{position:absolute;z-index:2;right:144px;top:8px;max-width:min\(280px,calc\(100% - 152px\)\);[^}]*white-space:pre-line;overflow-wrap:anywhere/);
+  assert.match(css, /\.lc-bubble::after\{[^}]*right:-5px;top:10px/);
+});
+check('Go Live idle quote uses two lines in its speech bubble', () => {
+  assert.match(en, /'mascot\.idleGolive':\['Standing by\.\\nPick a course and I will take it to Ready\./);
+  assert.match(css, /\.lc-bubble\{[^}]*white-space:pre-line/);
 });
 check('penguin firing flash and tracer use red light', () => {
   assert.match(css, /\.lc-muzzle\{[^}]*radial-gradient\(circle,#fff 0 22%,#ff5268 42%,#e6002e 62%,transparent 72%\)/);

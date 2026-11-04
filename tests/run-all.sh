@@ -6,9 +6,11 @@ for f in js/*.js js/locales/*.js extension/*.js config.js; do node --check "$f" 
 echo "syntax: checked all scripts"
 node tests/imgcore.test.mjs || status=1
 node tests/pdfworker.test.mjs || status=1
+node tests/jpgcore.test.mjs || status=1
 node tests/regressions.test.mjs || status=1
 node tests/lccore.test.mjs || status=1
 node tests/golive.test.mjs || status=1
 node tests/extcore.test.mjs || status=1
+node tests/timestampcore.test.mjs || status=1
 node tests/mascot.test.mjs || status=1
 exit $status

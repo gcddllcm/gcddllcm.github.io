@@ -95,7 +95,7 @@ export function tableHeader(levels) {
 }
 
 // One row per asset (a subsection without assets still gets a row). repeat=false blanks cells that repeat the row above.
-export function tableRows(result, {repeat = true} = {}) {
+export function tableRows(result, {repeat = true, collapsedNodes = new Set()} = {}) {
   const levels = result.levels || [];
   const rows = [], prev = [];
   const walk = (nodes, ctx) => {
@@ -103,8 +103,9 @@ export function tableRows(result, {repeat = true} = {}) {
       const i = levels.indexOf(n.level);
       const cx = ctx.slice();
       if (i >= 0) cx[i] = n;
-      if (n.children && n.children.length) { walk(n.children, cx); continue; }
-      const list = n.assets && n.assets.length ? n.assets : [null];
+      const collapsed = collapsedNodes.has(n);
+      if (!collapsed && n.children && n.children.length) { walk(n.children, cx); continue; }
+      const list = !collapsed && n.assets && n.assets.length ? n.assets : [null];
       for (const a of list) {
         const row = [];
         let same = true;

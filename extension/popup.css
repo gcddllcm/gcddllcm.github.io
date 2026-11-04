@@ -9,6 +9,8 @@ header p{margin:4px 0 0;color:#a9abb5;font-size:11px}
 main{display:grid;gap:10px;padding:12px}
 button{font:inherit}
 .icon-button{width:32px;height:32px;display:grid;place-items:center;padding:0;border:1px solid #ffffff20;border-radius:7px;background:#ffffff08;color:#d9d4ff;font-size:20px;line-height:1;cursor:pointer}
+.site-button{flex:none;padding:7px 9px;border:1px solid #8f82ff55;border-radius:7px;background:#7566ef14;color:#d9d4ff;font-size:11px;font-weight:650;text-decoration:none;white-space:nowrap}
+.site-button:hover{border-color:#8f82ff99;background:#6c5ce72c;color:#fff}
 .icon-button:hover,.course-button:hover:not(:disabled),.confirm-button:hover{border-color:#8f82ff88;background:#6c5ce722}
 .icon-button:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid #9a8fff;outline-offset:2px}
 #status{margin:0;color:#b8bac5;font-size:12px}

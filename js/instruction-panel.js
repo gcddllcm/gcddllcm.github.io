@@ -1,4 +1,4 @@
-import {t} from './i18n.js?v=3.3.0';
+import {t} from './i18n.js?v=3.4.0';
 
 const GUIDES = {
   learncraft: {
@@ -99,6 +99,29 @@ const GUIDES = {
     ],
     detailsKey: 'guide.topdf.details'
   },
+  'jpg-maker': {
+    steps: [
+      {
+        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M8 16h8"/></svg>',
+        title: 'guide.jpgMaker.step1.title',
+        desc: 'guide.jpgMaker.step1.desc',
+        targets: ['[data-q="drop"]']
+      },
+      {
+        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 8h.01M21 15l-5-5L5 21"/></svg>',
+        title: 'guide.jpgMaker.step2.title',
+        desc: 'guide.jpgMaker.step2.desc',
+        targets: ['[data-q="pages"]']
+      },
+      {
+        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
+        title: 'guide.jpgMaker.step3.title',
+        desc: 'guide.jpgMaker.step3.desc',
+        targets: ['[data-q="all"]', '[data-q="selected"]']
+      }
+    ],
+    detailsKey: 'guide.jpgMaker.details'
+  },
   pagelock: {
     steps: [
       {
@@ -144,6 +167,35 @@ const GUIDES = {
       }
     ],
     detailsKey: 'guide.resizer.details'
+  },
+  timestampMaker: {
+    steps: [
+      {
+        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6 4 4M4 20l4.2-.8L19 8.4a2.1 2.1 0 0 0-3-3L5.2 16.2 4 20Z"/><path d="M12 8 16 12"/></svg>',
+        title: 'guide.timestampMaker.step1.title',
+        desc: 'guide.timestampMaker.step1.desc',
+        targets: []
+      },
+      {
+        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h18v16H3z"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>',
+        title: 'guide.timestampMaker.step2.title',
+        desc: 'guide.timestampMaker.step2.desc',
+        targets: ['.tf-courses']
+      },
+      {
+        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 12h16M4 19h16"/><circle cx="8" cy="5" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="10" cy="19" r="2"/></svg>',
+        title: 'guide.timestampMaker.step3.title',
+        desc: 'guide.timestampMaker.step3.desc',
+        targets: ['.tf-date-panel', '.tf-tree']
+      },
+      {
+        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l4 4L19 6"/></svg>',
+        title: 'guide.timestampMaker.step4.title',
+        desc: 'guide.timestampMaker.step4.desc',
+        targets: ['.tf-submit']
+      }
+    ],
+    detailsKey: 'guide.timestampMaker.details'
   }
 };
 
@@ -157,6 +209,10 @@ export function mountGuide(layout, toolKey){
   const guideEl = document.createElement('aside');
   guideEl.className = 'tool-guide';
   guideEl.setAttribute('aria-label', t('guide.title'));
+  guideEl.setAttribute('role', 'dialog');
+  guideEl.setAttribute('aria-modal', 'true');
+  guideEl.setAttribute('aria-hidden', 'true');
+  guideEl.tabIndex = -1;
 
   const stepsHtml = conf.steps.map((s, index) => `
     <li class="guide-step" data-guide-step="${index}">
@@ -172,8 +228,8 @@ export function mountGuide(layout, toolKey){
 
   guideEl.innerHTML = `
     <div class="guide-header">
-      <div class="guide-eyebrow">${t('guide.title')}</div>
-      <div class="guide-sub">${t('guide.sub')}</div>
+      <div><div class="guide-eyebrow">${t('guide.title')}</div><div class="guide-sub">${t('guide.sub')}</div></div>
+      <button type="button" class="guide-close" aria-label="${t('guide.close')}" title="${t('guide.close')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
     </div>
     <ol class="guide-steps">
       ${stepsHtml}
@@ -188,26 +244,31 @@ export function mountGuide(layout, toolKey){
     </details>
   `;
 
+  let activeHighlightCleanup=null;
   const tool = layout.querySelector('.tool');
   if(tool)guideEl.querySelectorAll('.guide-step').forEach((step, index) => {
-    const targets = conf.steps[index].targets.flatMap(selector => [...tool.querySelectorAll(selector)]);
+    let targets = [];
     let overlays = [];
-    const updateHighlights = () => overlays.forEach((overlay, targetIndex) => {
-      const rect = targets[targetIndex].getBoundingClientRect();
-      overlay.style.left = `${rect.left}px`;
-      overlay.style.top = `${rect.top}px`;
-      overlay.style.width = `${rect.width}px`;
-      overlay.style.height = `${rect.height}px`;
-    });
+    const updateHighlights = () => {
+      overlays.forEach((overlay,targetIndex)=>{
+        const rect=targets[targetIndex].getBoundingClientRect();
+        overlay.style.left=`${rect.left}px`;
+        overlay.style.top=`${rect.top}px`;
+        overlay.style.width=`${rect.width}px`;
+        overlay.style.height=`${rect.height}px`;
+      });
+    };
     const clearHighlight = () => {
       step.classList.remove('is-hovered');
       overlays.forEach(overlay => overlay.remove());
       overlays = [];
       document.removeEventListener('scroll', updateHighlights, true);
       window.removeEventListener('resize', updateHighlights);
+      if(activeHighlightCleanup===clearHighlight)activeHighlightCleanup=null;
     };
     step.addEventListener('pointerenter', () => {
-      clearHighlight();
+      activeHighlightCleanup?.();
+      targets = conf.steps[index].targets.flatMap(selector => [...tool.querySelectorAll(selector)]);
       step.classList.add('is-hovered');
       overlays = targets.map(target => {
         const overlay = document.createElement('span');
@@ -219,6 +280,7 @@ export function mountGuide(layout, toolKey){
         return overlay;
       });
       updateHighlights();
+      activeHighlightCleanup=clearHighlight;
       document.addEventListener('scroll', updateHighlights, true);
       window.addEventListener('resize', updateHighlights);
     });
@@ -270,6 +332,34 @@ export function mountGuide(layout, toolKey){
     event.preventDefault();
     guideEl.toggleDetails();
   });
-
-  layout.appendChild(guideEl);
+  const scrim = document.createElement('button');
+  scrim.type = 'button';scrim.className = 'tool-guide-scrim';scrim.setAttribute('aria-label', t('guide.close'));scrim.tabIndex = -1;
+  const closeGuide = restoreFocus => {
+    activeHighlightCleanup?.();
+    layout.classList.remove('guide-open');
+    guideEl.setAttribute('aria-hidden', 'true');
+    guideEl.inert = true;
+    if(restoreFocus)document.getElementById('tool-guide-open')?.focus();
+  };
+  guideEl.inert = true;
+  guideEl.openGuide = () => {
+    layout.classList.add('guide-open');
+    guideEl.inert = false;
+    guideEl.setAttribute('aria-hidden', 'false');
+    requestAnimationFrame(()=>guideEl.querySelector('.guide-close')?.focus());
+  };
+  guideEl.closeGuide = closeGuide;
+  guideEl.querySelector('.guide-close').addEventListener('click',()=>closeGuide(true));
+  scrim.addEventListener('click',()=>closeGuide(true));
+  document.addEventListener('keydown',event=>{
+    if(!layout.classList.contains('guide-open'))return;
+    if(event.key==='Escape'){event.preventDefault();closeGuide(true);return}
+    if(event.key!=='Tab')return;
+    const focusable=[...guideEl.querySelectorAll('button:not(:disabled),summary,[href],[tabindex]:not([tabindex="-1"])')].filter(el=>el.getClientRects().length);
+    if(!focusable.length){event.preventDefault();guideEl.focus();return}
+    const first=focusable[0],last=focusable.at(-1);
+    if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}
+    else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}
+  });
+  layout.append(scrim,guideEl);
 }

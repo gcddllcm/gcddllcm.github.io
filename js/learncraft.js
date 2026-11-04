@@ -1,25 +1,26 @@
 // LearnCraft : Master Canvas extractor.
 // A web page cannot read other browser tabs, so a small companion extension (extension/) does the reading and this
 // tool talks to it through window.postMessage (extension/bridge.js). Course data stays in this browser tab.
-import {msg,track} from './util.js?v=3.3.0';
-import {mountGuide} from './instruction-panel.js?v=3.3.0';
-import {download} from './nbtool.js?v=3.3.0';
-import {t} from './i18n.js?v=3.3.0';
-import {initMascot} from './mascot.js?v=3.3.0';
-import {copyInternalPage,installStepsHtml} from './install-help.js?v=3.3.0';
-import {zipSync} from './vendor/fflate.js?v=3.3.0';
-import {older,summarizeBridges,staleDownload,freshUrl,FRESH} from './extcore.js?v=3.3.0';
-import {countTree,checkTimes,findGaps,tableTsv,tableCsv,tableRows,summaryTsv,fmtTime,normTime,toSeconds,sumAssetTimes} from './lccore.js?v=3.3.0';
-import {fmtElapsed} from './glcore.js?v=3.3.0';
+import {msg,track} from './util.js?v=3.4.0';
+import {mountGuide} from './instruction-panel.js?v=3.4.0';
+import {download} from './nbtool.js?v=3.4.0';
+import {t} from './i18n.js?v=3.4.0';
+import {initMascot} from './mascot.js?v=3.4.0';
+import {copyInternalPage,installStepsHtml,updateStepsHtml} from './install-help.js?v=3.4.0';
+import {zipSync} from './vendor/fflate.js?v=3.4.0';
+import {older,summarizeBridges,staleDownload,freshUrl,FRESH} from './extcore.js?v=3.4.0';
+import {countTree,checkTimes,findGaps,tableTsv,tableCsv,tableRows,summaryTsv,fmtTime,normTime,toSeconds,sumAssetTimes} from './lccore.js?v=3.4.0';
+import {fmtElapsed} from './glcore.js?v=3.4.0';
+import {ASSETS,extensionAssetUrl} from './assets.js?v=3.4.0';
 
-const EXT_MIN='1.0.0';
+const EXT_MIN='1.1.0';
 // Every file the extension needs, read from its own manifest, so adding a file to the extension never needs a change here.
 function extensionFiles(manifest){
   const files=new Set(['manifest.json','README.txt']);
   const add=f=>{if(typeof f==='string'&&/^[\w./-]+$/.test(f)&&!f.includes('..'))files.add(f.replace(/^\.?\//,''))};
   add(manifest.background?.service_worker);
   add(manifest.action?.default_popup);
-  if(manifest.action?.default_popup){add('popup.js');add('popup.css');add('assets/loy-krathong-2026.png');}
+  if(manifest.action?.default_popup){add('popup.js');add('popup.css');}
   (manifest.content_scripts||[]).forEach(c=>[...(c.js||[]),...(c.css||[])].forEach(add));
   Object.values(manifest.icons||{}).forEach(add);
   return[...files];
@@ -64,7 +65,7 @@ function ask(action,extra={},timeout=10000,onProgress=null){
 }
 
 // Asks every installed copy of the extension who it is. Normally one answers; after a careless update there can be two.
-function pingAll(wait=450){
+function pingAll(wait=200){
   return new Promise(res=>{
     const id='lc'+(++seq)+'-'+Date.now(),replies=[];
     const timer=setTimeout(()=>{waiting.delete(id);res(replies)},wait);
@@ -77,17 +78,13 @@ function pingAll(wait=450){
 const STATE_KEY={ready:'learncraft.state.ready',loading:'learncraft.state.loading',asleep:'learncraft.state.asleep',notOverview:'learncraft.state.notOverview',login:'learncraft.state.login',other:'learncraft.state.other',noAccess:'learncraft.state.noAccess'};
 const LV_KEY={part:'learncraft.lv.part',section:'learncraft.lv.section',mission:'learncraft.lv.mission',subsection:'learncraft.lv.subsection'};
 const STAT_KEY={part:'learncraft.stat.part',section:'learncraft.stat.section',mission:'learncraft.stat.mission',subsection:'learncraft.stat.subsection',asset:'learncraft.stat.asset',time:'learncraft.stat.time'};
-const kindOf=row=>{
-  const p=row.probe||{};
-  if(/ดั้งเดิม|traditional/i.test(p.kindLabel||''))return'traditional';
-  if(/ตั้งไข่|ไข่|egg/i.test(p.kindLabel||''))return'eggspace';
-  return'';
-};
 const kindName=k=>k==='traditional'?t('learncraft.kindTraditional'):k==='eggspace'?t('learncraft.kindEggspace'):t('learncraft.kindUnknown');
 
 export function mount(root){
+  root.dataset.extensionUpToDate='false';
+  root.dataset.extensionState='unknown';
   root.innerHTML=`<div class="tool-layout"><div class="tool wideview lc">
-    <div class="lc-heading"><div><h1>${t('tool.learncraft')}</h1><div class="sub">${t('learncraft.sub')}</div></div><div class="lc-mascot-wrap" aria-hidden="true"><img class="lc-mascot" src="assets/learncraft-mascot.png" alt="" loading="lazy" decoding="async"><span class="lc-scope-glint"></span><span class="lc-laser-beam"></span></div></div>
+    <div class="lc-heading"><div><h1>${t('tool.learncraft')}</h1><div class="sub">${t('learncraft.sub')}</div></div><div class="lc-mascot-wrap" aria-hidden="true"><div class="lc-mascot-body"><img class="lc-mascot" src="${ASSETS.learncraftMascot}" alt="" loading="lazy" decoding="async"><span class="lc-scope-glint"></span><span class="lc-laser-beam"></span></div></div></div>
     <div class="lc-card" id="lc-status"></div>
     <div class="lc-card" id="lc-tabs" hidden></div>
     <div class="lc-card" id="lc-result" hidden></div>
@@ -116,6 +113,7 @@ export function mount(root){
   initMascot(root,{kind:'learncraft',result:'#lc-result'});
   mountGuide(root.querySelector('.tool-layout'),'learncraft');
   let ext=null,dup=null,latestVersion=null,busy=false,repeat=true,depth='assets',current=null,checking=false,checkingUpdate=false,refreshingTabs=false,needsExtensionUpdate=false,tabRows=null,ghostTargets=[],ghostUpdate=null,ghostResize=null,ghostFrame=0;
+  const setExtensionState=state=>{root.dataset.extensionState=state;root.dataset.extensionUpToDate=String(state==='up-to-date');root.dispatchEvent(new Event('extensionstatechange'))};
   const visible=()=>!!root.classList.contains('on');
   function stopGhostTracking(){
     if(ghostUpdate)ghostTargets.forEach(target=>target.removeEventListener('scroll',ghostUpdate));
@@ -125,13 +123,12 @@ export function mount(root){
   }
 
   // ---- extension status / install help ----
-  function showChecking(){$s.className='lc-card';$s.innerHTML=`<div class="lc-line"><span class="lc-spin" aria-hidden="true"></span>${t('learncraft.checking')}</div>`;$t.hidden=true}
+  function showChecking(){$s.hidden=false;$s.className='lc-card';$s.innerHTML=`<div class="lc-line"><span class="lc-spin" aria-hidden="true"></span>${t('learncraft.checking')}</div>`;$t.hidden=true}
   function showMissing(){
-    $s.className='lc-card';$t.hidden=true;
+    $s.hidden=false;$s.className='lc-card';$t.hidden=true;
     $s.innerHTML=`<h2 class="lc-h">${t('learncraft.missingTitle')}</h2><p class="lc-p">${t('learncraft.missingText')}</p>
-    ${installStepsHtml()}
-    <div class="btnrow"><button class="btn primary" data-q="dl">${t('learncraft.download')}</button><button class="btn" data-q="forcereset">${t('learncraft.forceReset')}</button></div>`;
-    $s.querySelector('[data-q=dl]').onclick=downloadExtension;
+    ${installStepsHtml()}`;
+    $s.querySelector('[data-q=dl]').onclick=e=>downloadExtension(e.currentTarget);
     $s.querySelector('[data-q=forcereset]').onclick=forceReset;
     $s.querySelectorAll('[data-q=copyChromeExtensions]').forEach(button=>button.onclick=()=>copyInternalPage('chrome://extensions'));
   }
@@ -144,17 +141,10 @@ export function mount(root){
     const old=older(ext.version,EXT_MIN);
     const updateAvailable=latestVersion&&older(ext.version,latestVersion);
     needsExtensionUpdate=!!(old||updateAvailable||dup);
-    const updateSteps=[
-      [t('learncraft.updateStep1'),'<path d="M13 5h15l9 9v29H13z"/><path d="M28 5v9h9"/><path d="M25 21v13m-6-6 6 6 6-6"/>'],
-      [t('learncraft.updateStep2'),'<rect x="5" y="9" width="38" height="30" rx="4"/><path d="M5 18h38"/><circle cx="10.5" cy="13.5" r=".6" fill="currentColor"/><circle cx="15.5" cy="13.5" r=".6" fill="currentColor"/><rect x="12" y="24" width="24" height="9" rx="2" fill="currentColor" fill-opacity=".2"/>'],
-      [t('learncraft.updateStep3'),'<rect x="15" y="4" width="18" height="18" rx="2.5"/><path d="M24 4v4m0 4v4m0 4v2" stroke-width="2"/><path d="M24 27v9m-5-5 5 5 5-5"/><path d="M8 37v3a3 3 0 0 0 3 3h26a3 3 0 0 0 3-3v-3"/>'],
-      [t('learncraft.updateStep4'),'<path d="M38 24a14 14 0 1 1-3.3-9"/><path d="M35 7v8h-8"/>'],
-    ];
-    $s.className='lc-card lc-slim';
-    const headerActions=old||updateAvailable?'':`<button class="btn" data-q="installation-guide">${t('learncraft.installationGuide')}</button>`;
-    $s.innerHTML=`<div class="lc-line"><span class="lc-dot ok" aria-hidden="true"></span><span>${t('learncraft.connected',esc(ext.version))}</span><span class="lc-grow"></span>${headerActions}</div>${dup?`<section class="lc-update-panel lc-dup-panel" aria-labelledby="lc-dup-title"><h2 class="lc-h" id="lc-dup-title">${t('learncraft.duplicateTitle')}</h2><p class="lc-p">${t('learncraft.duplicateText',dup.count,esc(dup.versions.map(v=>'v'+v).join(', ')))}</p><ol class="lc-steps"><li>${t('learncraft.duplicate1')} <button type="button" class="lc-install-copy" data-q="copyChromeExtensions">${t('learncraft.updateChrome')}</button></li><li>${t('learncraft.duplicate2')}</li><li>${t('learncraft.duplicate3')}</li></ol><div class="btnrow"><button class="btn primary" data-q="dup-recheck">${t('learncraft.updateForceRefresh')}</button></div></section>`:''}${old||updateAvailable?`<section class="lc-update-panel" aria-labelledby="lc-update-title"><h2 class="lc-h" id="lc-update-title">${t('learncraft.updateAvailableTitle')}</h2><p class="lc-p">${updateAvailable?t('learncraft.updateAvailable',esc(latestVersion)):t('learncraft.outdated',esc(ext.version))}</p><ol class="lc-install-visual" aria-label="${t('learncraft.updateStepsLabel')}">${updateSteps.map(([text,icon],index)=>`<li class="lc-install-step"><span class="lc-install-number">${index+1}</span><svg aria-hidden="true" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${icon}</svg><span class="lc-install-text">${text}</span>${index===1?`<span class="lc-update-step-actions"><button type="button" class="lc-install-copy" data-q="copyChromeExtensions">${t('learncraft.updateChrome')}</button></span>`:''}</li>`).join('')}</ol><details class="lc-install-details"><summary>${t('learncraft.updateDetails')}</summary><ol class="lc-steps"><li>${t('learncraft.updateDetail1')}</li><li>${t('learncraft.updateDetail2')}</li><li>${t('learncraft.updateDetail3')}</li><li>${t('learncraft.updateDetail4')}</li></ol></details><div class="btnrow"><button class="btn primary" data-q="update">${t('learncraft.downloadUpdate')}</button><button class="btn" data-q="forcereset">${t('learncraft.updateForceRefresh')}</button></div></section>`:''}${updateCheckError?`<div class="warn">${t('learncraft.updateCheckFailed',esc(updateCheckError.message||updateCheckError))}</div>`:''}`;
-    const installationGuide=$s.querySelector('[data-q=installation-guide]');
-    if(installationGuide)installationGuide.onclick=showMissing;
+    $s.className='lc-card';
+    const panel=`${dup?`<section class="lc-update-panel lc-dup-panel" aria-labelledby="lc-dup-title"><h2 class="lc-h" id="lc-dup-title">${t('learncraft.duplicateTitle')}</h2><p class="lc-p">${t('learncraft.duplicateText',dup.count,esc(dup.versions.map(v=>'v'+v).join(', ')))}</p><ol class="lc-steps"><li>${t('learncraft.duplicate1')} <button type="button" class="lc-install-copy" data-q="copyChromeExtensions">${t('learncraft.updateChrome')}</button></li><li>${t('learncraft.duplicate2')}</li><li>${t('learncraft.duplicate3')}</li></ol><div class="btnrow"><button class="btn primary" data-q="dup-recheck">${t('learncraft.updateForceRefresh')}</button></div></section>`:''}${old||updateAvailable?`<section class="lc-update-panel" aria-labelledby="lc-update-title"><h2 class="lc-h" id="lc-update-title">${t('learncraft.updateAvailableTitle')}</h2><p class="lc-p">${updateAvailable?t('learncraft.updateAvailable',esc(latestVersion)):t('learncraft.outdated',esc(ext.version))}</p>${updateStepsHtml()}</section>`:''}${updateCheckError?`<div class="warn">${t('learncraft.updateCheckFailed',esc(updateCheckError.message||updateCheckError))}</div>`:''}`;
+    $s.innerHTML=panel;
+    $s.hidden=!panel;
     const updateButton=$s.querySelector('[data-q=update]');
     if(updateButton)updateButton.onclick=()=>downloadExtension(updateButton);
     const forceRefreshButton=$s.querySelector('[data-q=forcereset]');
@@ -177,7 +167,7 @@ export function mount(root){
       if(stale)throw new Error(stale);
       for(const n of extensionFiles(manifest)){
         if(n==='manifest.json')continue;
-        const r=await fetch(freshUrl('extension/'+n,document.baseURI),FRESH);
+        const r=await fetch(freshUrl(extensionAssetUrl(n)||'extension/'+n,document.baseURI),FRESH);
         if(!r.ok)throw new Error(n+' ('+r.status+')');
         files[n]=new Uint8Array(await r.arrayBuffer());
       }
@@ -195,21 +185,19 @@ export function mount(root){
   async function checkUpdates(){
     if(!ext||checkingUpdate)return;
     checkingUpdate=true;
-    try{latestVersion=await latestExtensionVersion();showConnected(latestVersion)}
-    catch(error){latestVersion=null;showConnected(null,error)}
+    setExtensionState(older(ext.version,EXT_MIN)?'outdated':'checking');
+    try{latestVersion=await latestExtensionVersion();showConnected(latestVersion);setExtensionState(dup?'duplicate':older(ext.version,EXT_MIN)||older(ext.version,latestVersion)?'outdated':'up-to-date')}
+    catch(error){latestVersion=null;showConnected(null,error);setExtensionState(dup?'duplicate':older(ext.version,EXT_MIN)?'outdated':'unknown')}
     finally{checkingUpdate=false;if(tabRows&&!busy&&!refreshingTabs)renderTabs(tabRows)}
   }
   async function connect(){
     if(checking)return;checking=true;showChecking();
-    let answers=[];
-    for(let i=0;i<3&&!answers.length;i++){
-      answers=await pingAll();
-      if(!answers.length)await new Promise(r=>setTimeout(r,i?500:250));
-    }
+    setExtensionState('checking');
+    const answers=await pingAll();
     checking=false;
     const info=summarizeBridges(answers);   // newest version heard; flags a second installed copy
-    if(!info){ext=null;dup=null;showMissing();return}
-    ext=info;dup=info.duplicate?info:null;latestVersion=null;showConnected();refresh();checkUpdates();
+    if(!info){ext=null;dup=null;setExtensionState('missing');showMissing();return}
+    ext=info;dup=info.duplicate?info:null;latestVersion=null;setExtensionState(dup?'duplicate':older(ext.version,EXT_MIN)?'outdated':'checking');showConnected();refresh();checkUpdates();
   }
 
   // ---- list of LearnCraft tabs ----
@@ -236,21 +224,22 @@ export function mount(root){
   }
   function renderTabs(rows){
     tabRows=rows;
-    const windows=[...new Set(rows.map(r=>r.windowId))];
+    const masters=rows.filter(r=>r.code&&r.url&&new URL(r.url).pathname.startsWith('/master-canvas/'));
+    const windows=[...new Set(masters.map(r=>r.windowId))];
     const courses=rows.filter(r=>r.code);
-    const order=[...rows].sort((a,b)=>(b.code?1:0)-(a.code?1:0)||windows.indexOf(a.windowId)-windows.indexOf(b.windowId)||a.tabId-b.tabId);
+    const order=[...masters].sort((a,b)=>windows.indexOf(a.windowId)-windows.indexOf(b.windowId)||a.tabId-b.tabId);
     const updateRequired=older(ext.version,EXT_MIN)||!!(latestVersion&&older(ext.version,latestVersion));
     const refreshButton=updateRequired?'':`<button class="btn" data-q="refresh"${busy?' disabled':''}>${t('learncraft.refresh')}</button>`;
     const tabsCount=`<div class="lc-line${needsExtensionUpdate?' lc-tabs-count-locked':''}"><strong>${t('learncraft.tabsFound',rows.length,courses.length)}</strong><span class="lc-grow"></span>${refreshButton}</div>`;
-    if(!rows.length){$t.innerHTML=`${tabsCount}<div class="lc-p">${t('learncraft.noTabs')}</div>`;const refreshButtonEl=$t.querySelector('[data-q=refresh]');if(refreshButtonEl)refreshButtonEl.onclick=()=>{refresh();checkUpdates()};return}
+    if(!order.length){$t.innerHTML=`${tabsCount}<div class="lc-p">${rows.length?t('golive.noMaster'):t('learncraft.noTabs')}</div>`;const refreshButtonEl=$t.querySelector('[data-q=refresh]');if(refreshButtonEl)refreshButtonEl.onclick=()=>{refresh();checkUpdates()};return}
     $t.innerHTML=`${tabsCount}<div class="lc-tablist">${order.map(r=>{
-      const st=stateOf(r),p=r.probe||{},k=kindOf(r),who=p.loggedIn===true?(p.email?t('learncraft.loggedInAs',esc(p.email)):t('learncraft.loggedIn')):p.loggedIn===false?t('learncraft.notLoggedIn'):t('learncraft.loginUnknown');
+      const st=stateOf(r),p=r.probe||{},who=p.loggedIn===true?(p.email?t('learncraft.loggedInAs',esc(p.email)):t('learncraft.loggedIn')):p.loggedIn===false?t('learncraft.notLoggedIn'):t('learncraft.loginUnknown');
       const dot=p.loggedIn===true?'ok':p.loggedIn===false?'bad':'';
-      return`<div class="lc-tab${st.ok?'':' off'}${st.key==='other'?' not-master-page':''}${needsExtensionUpdate?' update-locked':''}" data-tab="${r.tabId}"${st.key==='other'||needsExtensionUpdate?' aria-disabled="true"':''}>
+      return`<div class="lc-tab${st.ok?'':' off'}${needsExtensionUpdate?' update-locked':''}" data-tab="${r.tabId}"${needsExtensionUpdate?' aria-disabled="true"':''}>
         <div class="lc-tab-main"><div class="lc-code">${esc(r.code||'—')}</div>
           <div class="lc-tab-info"><div class="lc-tab-title">${esc((p.courseTitle||r.title||r.url).replace(/^\[[^\]]+\]\s*/,''))}</div>
-            <div class="lc-tab-meta">${k?`<span class="lc-chip">${kindName(k)}</span>`:''}${windows.length>1?`<span class="lc-chip dim">${t('learncraft.window',windows.indexOf(r.windowId)+1)}</span>`:''}${r.active?`<span class="lc-chip dim">${t('learncraft.active')}</span>`:''}<span class="lc-who"><span class="lc-dot ${dot}" aria-hidden="true"></span>${who}</span></div></div></div>
-        <div class="lc-tab-act"><span class="lc-state ${st.ok?'ok':''}">${t(STATE_KEY[st.key])}</span><span class="lc-extract-btn"><button class="btn primary" data-extract="${r.tabId}"${st.ok&&!needsExtensionUpdate?'':' disabled'}>${t('learncraft.extract')}</button></span></div></div>`}).join('')}</div>`;
+            <div class="lc-tab-meta">${p.kindLabel?`<span class="lc-chip">${esc(p.kindLabel)}</span>`:''}${windows.length>1?`<span class="lc-chip dim">${t('learncraft.window',windows.indexOf(r.windowId)+1)}</span>`:''}${r.active?`<span class="lc-chip dim">${t('learncraft.active')}</span>`:''}<span class="lc-who"><span class="lc-dot ${dot}" aria-hidden="true"></span>${who}</span></div></div></div>
+        <div class="lc-tab-act">${st.ok?`<span class="lc-extract-ready">${t('learncraft.extractReady')}</span>`:`<span class="lc-state">${t(STATE_KEY[st.key])}</span>`}<span class="lc-extract-btn"><button class="btn primary" data-extract="${r.tabId}"${st.ok&&!needsExtensionUpdate?'':' disabled'}>${t('learncraft.extract')}</button></span></div></div>`}).join('')}</div>`;
     const refreshButtonEl=$t.querySelector('[data-q=refresh]');if(refreshButtonEl)refreshButtonEl.onclick=()=>{refresh();checkUpdates()};
     $t.querySelectorAll('[data-extract]').forEach(b=>b.onclick=()=>extract(Number(b.dataset.extract),b));
   }
@@ -314,7 +303,7 @@ export function mount(root){
     const plural=(n,l)=>t('learncraft.count',n,lvName(l).toLowerCase());
     const hasAssets=n=>!!n.assets.length||(n.children||[]).some(hasAssets);
     const node=n=>{
-      const sourceIndex=Number.isInteger(n.sourceIndex)?` data-source-index="${n.sourceIndex}"`:'';
+      const sourceIndex=` data-view-index="${nodeSelectionIndices.get(n)}"${Number.isInteger(n.sourceIndex)?` data-source-index="${n.sourceIndex}"`:''}`;
       if(n.children&&n.children.length){
         const cl=n.children[0].level;
         const empty=!hasAssets(n);
@@ -361,10 +350,10 @@ export function mount(root){
     const hasNoticeWarning=!r.completeness?.complete||(r.warnings||[]).length>0||gaps.length>0||issues.length>0;
     $r.hidden=false;$r.className='lc-card lc-result';
     $r.innerHTML=`<div class="lc-rhead"><div class="lc-code big">${esc(m.code)}</div><div class="lc-rinfo"><div class="lc-rtitle">${esc(m.name)}</div>
-        <div class="lc-tab-meta"><span class="lc-chip">${kindName(m.kind)}</span>${m.status?`<span class="lc-chip dim${m.status.toLowerCase()==='ready'?' lc-status-ready':''}">${esc(m.status)}</span>`:''}${m.lastUpdate?`<span class="lc-who">${t('learncraft.lastUpdate')}: ${esc(m.lastUpdate)}</span>`:''}</div></div><button type="button" class="btn lc-download-csv" data-q="download-csv">${t('learncraft.downloadCsv')}</button></div>
+        <div class="lc-tab-meta"><span class="lc-chip">${esc(m.kindLabel||kindName(m.kind))}</span>${m.status?`<span class="lc-chip dim${m.status.toLowerCase()==='ready'?' lc-status-ready-green':''}">${esc(m.status.toLowerCase()==='ready'?'Ready':m.status)}</span>`:''}${m.lastUpdate?`<span class="lc-who">${t('learncraft.lastUpdate')}: ${esc(m.lastUpdate)}</span>`:''}</div></div><button type="button" class="btn lc-download-csv" data-q="download-csv">${t('learncraft.downloadCsv')}</button></div>
       <div class="lc-stats">${stat('part',c.part)}${stat('section',c.section)}${egg?stat('mission',c.mission):''}${stat('subsection',c.subsection)}${stat('asset',c.assets)}${stat('time',fmtTime(c.seconds))}</div>
       ${noticeText?`<div class="lc-notices ${hasNoticeWarning?'warn':'lc-complete'}" role="status" title="${esc(noticeText)}">${noticeHtml}</div>`:''}
-      <div class="btnrow lc-actions"><button class="btn lc-copy-table" data-q="copy"><svg aria-hidden="true" viewBox="0 0 20 20" fill="none"><rect x="4" y="3" width="12" height="14" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M7 7h6M7 10h6M7 13h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>${t('learncraft.copyTable')}</button><button class="btn" data-q="copysum">${t('learncraft.copySummary')}</button><button type="button" class="btn lc-toggle" data-q="repeat" aria-label="${t('learncraft.repeatNames')}" aria-pressed="${repeat}"><span class="lc-toggle-label">${t('learncraft.repeatNames')}</span><span class="lc-toggle-track" aria-hidden="true"></span></button><span class="sub" data-q="copied" role="status">${t(repeat?'learncraft.repeatNamesOnHelp':'learncraft.repeatNamesOffHelp')}</span></div>
+      <div class="btnrow lc-actions"><button class="btn lc-copy-table" data-q="copy"><svg aria-hidden="true" viewBox="0 0 20 20" fill="none"><rect x="4" y="3" width="12" height="14" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M7 7h6M7 10h6M7 13h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>${t('learncraft.copyTable')}</button><button type="button" class="btn" data-q="copy-current-view">${t('learncraft.copyCurrentView')}</button><button class="btn" data-q="copysum">${t('learncraft.copySummary')}</button><button type="button" class="btn lc-toggle" data-q="repeat" aria-label="${t('learncraft.repeatNames')}" aria-pressed="${repeat}"><span class="lc-toggle-label">${t('learncraft.repeatNames')}</span><span class="lc-toggle-track" aria-hidden="true"></span></button><span class="sub" data-q="copied" role="status">${t(repeat?'learncraft.repeatNamesOnHelp':'learncraft.repeatNamesOffHelp')}</span></div>
       <div class="btnrow lc-depth-controls" role="group" aria-label="${t('learncraft.showThrough')}">${['part','section',...(egg?['mission']:[]),'subsection','assets'].map(level=>`<button type="button" class="btn lc-depth-btn" data-depth="${level}" aria-pressed="${depth===level}">${esc(level==='assets'?t(STAT_KEY.asset):lvName(level))}</button>`).join('')}<button type="button" class="btn lc-quick-math" data-q="quick-math" aria-pressed="false">${t('learncraft.quickMath')}</button><button class="btn lc-clear" data-q="clear">${t('learncraft.clear')}</button></div>
       <div class="lc-selection-summary" data-q="selection-summary" hidden><div class="lc-selection-copy" role="status" aria-live="polite"><strong data-q="selection-count"></strong><span class="lc-selection-total" data-q="selection-total"></span><span class="lc-selection-missing" data-q="selection-missing"></span></div><button type="button" class="btn lc-selection-clear" data-q="clear-selection">${t('learncraft.clearSelection')}</button></div>
       <div class="lc-scroll-ghost"><span class="lc-ghost-label">${t('learncraft.currentPosition')}</span><span class="lc-ghost-path" data-q="ghost-path"></span><button type="button" class="lc-back-top" data-q="back-top" aria-label="${t('learncraft.backToTop')}"><svg aria-hidden="true" viewBox="0 0 16 16" fill="none"><path d="M8 13V3m0 0L4 7m4-4 4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>${t('learncraft.backToTop')}</button></div>
@@ -403,6 +392,12 @@ export function mount(root){
     $r.querySelector('[data-q=copy]').onclick=async e=>{
       const button=e.currentTarget,ok=await copy(tableTsv(r,{repeat}));
       say(ok?t('learncraft.copied',tableRows(r,{repeat}).length):t('learncraft.copyFail'));showCopyActionFeedback(button,ok);
+    };
+    $r.querySelector('[data-q=copy-current-view]').onclick=async e=>{
+      const button=e.currentTarget;
+      const collapsedNodes=new Set([...tree.querySelectorAll('details.lc-node:not([open])')].map(element=>selectableNodes[Number(element.dataset.viewIndex)]));
+      const options={repeat,collapsedNodes},rows=tableRows(r,options),ok=await copy(tableTsv(r,options));
+      say(ok?t('learncraft.copied',rows.length):t('learncraft.copyFail'));showCopyActionFeedback(button,ok);
     };
     $r.querySelector('[data-q=download-csv]').onclick=()=>{
       const filePart=value=>String(value||'').trim().replace(/[^\w.-]+/g,'_').replace(/^\.+/,'')||'unknown';

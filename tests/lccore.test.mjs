@@ -96,6 +96,14 @@ await check('table: with repeat off a name that repeats the row above is left bl
   assert.deepEqual(rows[2].slice(0, 6), ['', '', '', '', '', '']);       // same subsection B again
   assert.deepEqual(rows[3].slice(0, 6), ['', '', 'S2', '00:00:00', 'C', '00:00:00']);
 });
+await check('table: collapsed nodes copy as summary rows without their hidden descendants or assets', () => {
+  const section = trad.tree[0].children[0];
+  const subsection = trad.tree[0].children[1].children[0];
+  const rows = tableRows(trad, {collapsedNodes: new Set([section, subsection])});
+  assert.equal(rows.length, 2);
+  assert.deepEqual(rows[0], ['P1', '00:10:00', 'S1', '00:10:00', '', '', '', '', '', '', '']);
+  assert.deepEqual(rows[1], ['P1', '00:10:00', 'S2', '00:00:00', 'C', '00:00:00', '', '', '', '', '']);
+});
 await check('table: a subsection without assets still gets a row; Eggspace adds mission columns', () => {
   const egg = {meta: {kind: 'eggspace'}, levels: ['part', 'section', 'mission', 'subsection'], tree: [
     {level: 'part', title: 'P', duration: '00:01:00', assets: [], children: [
