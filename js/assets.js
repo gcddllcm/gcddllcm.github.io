@@ -2,6 +2,7 @@ const imageUrl=name=>new URL(`../assets/images/${name}`,import.meta.url).href;
 
 export const ASSETS=Object.freeze({
   brandLogo:imageUrl('loy-krathong-2026.png'),
+  aboutMascot:imageUrl('penguin-mascot.png'),
   deviceNoticeMascot:imageUrl('apologetic-tactical-penguin-bowing.png'),
   learncraftMascot:imageUrl('learncraft-mascot.png'),
   goLiveStatus:Object.freeze({
