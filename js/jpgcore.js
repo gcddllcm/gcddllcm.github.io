@@ -2,15 +2,11 @@ import {unzipSync} from './vendor/fflate.js?v=3.4.0';
 import {fixNames} from './zipnames.js?v=3.4.0';
 import {prepareSvg} from './svgfix.js?v=3.4.0';
 import {readImageInfo} from './imgcore.js?v=3.4.0';
+import {orderNotebookPages} from './notebook-pages.js?v=3.4.0-page-order-v2';
 
 const SKIP_ENTRY=/(^|\/)thumbnails\/|^preview\.png$|\.(mp4|m4v|mov|avi|wmv|mpe?g|webm|mp3|wav|ogg|m4a|wma|swf|flv)$/i;
 const MIME_TYPES={'.bmp':'image/bmp','.gif':'image/gif','.jpeg':'image/jpeg','.jpg':'image/jpeg','.png':'image/png','.svg':'image/svg+xml','.webp':'image/webp'};
 
-function normalizedPath(path){
-  const parts=path.replace(/\\/g,'/').split('/'),stack=[];
-  for(const part of parts){if(!part||part==='.')continue;if(part==='..')stack.pop();else stack.push(part)}
-  return stack.join('/');
-}
 function referencedPath(ref,pageName){
   const raw=ref.split(/[?#]/,1)[0].replace(/\\/g,'/'),absolute=raw.startsWith('/');
   const base=absolute?'':(pageName.includes('/')?pageName.slice(0,pageName.lastIndexOf('/')+1):'');
@@ -54,22 +50,6 @@ function svgDimensions(svg){
   if(width)return {width,height:width/2};
   if(height)return {width:height*2,height};
   return {width:300,height:150};
-}
-function manifestPageOrder(zip,entries,decoder){
-  const manifestName=Object.keys(zip).find(name=>name.toLowerCase()==='imsmanifest.xml');
-  if(!manifestName)return null;
-  const xml=decoder.decode(zip[manifestName]);
-  const resources=[...xml.matchAll(/<resource\b([^>]*)>([\s\S]*?)<\/resource\s*>/gi)];
-  const preferred=resources.find(([,attrs])=>/\bidentifier\s*=\s*["']group0_pages["']/i.test(attrs))||resources.find(([,attrs])=>/\bidentifier\s*=\s*["']pages["']/i.test(attrs));
-  if(!preferred)return null;
-  const byPath=new Map(entries.map(entry=>[normalizedPath(entry.name).toLowerCase(),entry]));
-  const ordered=[],seen=new Set();
-  for(const match of preferred[2].matchAll(/<file\b[^>]*\bhref\s*=\s*(["'])(.*?)\1[^>]*>/gi)){
-    const href=match[2].replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&apos;|&#39;/g,"'");
-    const entry=byPath.get(normalizedPath(href).toLowerCase());
-    if(entry&&!seen.has(entry.name)){ordered.push(entry);seen.add(entry.name)}
-  }
-  return ordered.length?ordered.concat(entries.filter(entry=>!seen.has(entry.name)).sort((a,b)=>a.number-b.number)):null;
 }
 function embeddedRasterScale(svg,pageName,zip,namesLower){
   let renderScale=1;
@@ -159,8 +139,7 @@ export function extractNotebookPages(bytes){
   if(!entries.length)throw new Error('No pageX.svg files were found inside this .notebook file.');
 
   const decoder=new TextDecoder('utf-8'),assetData=new Map();
-  const manifestOrder=manifestPageOrder(zip,entries,decoder);
-  if(manifestOrder)entries=manifestOrder.map((entry,index)=>({...entry,number:index+1}));
+  entries=orderNotebookPages(zip,entries,decoder).map((entry,index)=>({...entry,number:index+1}));
   function inlineAsset(name,stack=new Set()){
     if(assetData.has(name))return assetData.get(name);
     if(stack.has(name))return '';

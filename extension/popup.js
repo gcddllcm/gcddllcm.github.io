@@ -82,9 +82,9 @@ function renderCourses(rows) {
         <div class="variant-options">${variantCodes.map(code => `<label class="variant-option"><input type="checkbox" data-action="variant-choice" data-tab="${row.tabId}" value="${escapeHtml(code)}"${excluded.has(code) ? '' : ' checked'}${running || disabled ? ' disabled' : ''}><span>${escapeHtml(code)}</span></label>`).join('')}</div>
         <small class="variant-count" data-variant-count="${row.tabId}">${selectedVariants.length} of ${variantCodes.length} variants selected</small>
       </div>` : '';
-    return `<article class="course">
-      <div class="course-heading"><span class="course-title">${escapeHtml(title)}</span><span class="course-status">${stage ? `<span class="course-meta course-stage${stageClass}">${escapeHtml(stageLabel)}</span>` : ''}${readyNote}${canGoLive ? '<span class="course-meta course-ready-to-go-live">Ready to Go Live</span>' : ''}</span>${disabled ? `<span class="course-meta course-error">${escapeHtml(disabled)}</span>` : ''}</div>
-      <div class="course-actions">${variantPicker}<button class="course-button primary" type="button" data-action="confirm" data-tab="${row.tabId}" data-code="${escapeHtml(row.code)}" title="${alreadyReady ? 'Ready' : 'Go Live'}"${disabled || running || alreadyReady ? ' disabled' : ''}>Go Live</button></div>
+    return `<article class="course" aria-labelledby="course-title-${row.tabId}">
+      <div class="course-heading"><span class="course-title" id="course-title-${row.tabId}" role="heading" aria-level="2">${escapeHtml(title)}</span><span class="course-status">${stage ? `<span class="course-meta course-stage${stageClass}">${escapeHtml(stageLabel)}</span>` : ''}${readyNote}${canGoLive ? '<span class="course-meta course-ready-to-go-live">Ready to Go Live</span>' : ''}</span>${disabled ? `<span class="course-meta course-error">${escapeHtml(disabled)}</span>` : ''}</div>
+      <div class="course-actions">${variantPicker}<button class="course-button primary" type="button" data-action="confirm" data-tab="${row.tabId}" data-code="${escapeHtml(row.code)}" aria-label="Go Live: ${escapeHtml(title)}" title="${alreadyReady ? 'Ready' : 'Go Live'}"${disabled || running || alreadyReady ? ' disabled' : ''}>Go Live</button></div>
       ${variantPanel}
     </article>`;
   }).join('') : '<p class="run-message">No Master Canvas tabs found. Open a course Master Canvas Overview page and refresh.</p>';

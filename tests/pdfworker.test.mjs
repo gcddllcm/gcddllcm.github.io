@@ -110,6 +110,21 @@ await check('pages come out in page order and the title is stored (Thai works)',
   assert.ok(text.includes('/Title <FEFF' + [...'สมุด'].map(c => c.charCodeAt(0).toString(16).padStart(4, '0')).join('') + '>'));
 });
 
+await check('PDF pages follow notebook group order from the organization, not the global page resource',async()=>{
+  const {images}=await run({
+    'page1.svg':pageSvg(100,100,'one.jpg'),
+    'page2.svg':pageSvg(100,100,'two.jpg'),
+    'page3.svg':pageSvg(100,100,'three.jpg'),
+    'page4.svg':pageSvg(100,100,'four.jpg'),
+    'one.jpg':jpeg(111,100),
+    'two.jpg':jpeg(222,100),
+    'three.jpg':jpeg(333,100),
+    'four.jpg':jpeg(444,100),
+    'imsmanifest.xml':'<manifest><organizations><organization><item identifierref="group0_pages"><title>Mainmap</title></item><item identifierref="group1_pages"><title>Chapter 1</title></item></organization></organizations><resources><resource identifier="group0_pages"><file href="page4.svg"/><file href="page2.svg"/></resource><resource identifier="group1_pages"><file href="page3.svg"/><file href="page1.svg"/></resource><resource identifier="pages"><file href="page1.svg"/><file href="page2.svg"/><file href="page3.svg"/><file href="page4.svg"/></resource></resources></manifest>'
+  });
+  assert.deepEqual(images.map(image=>image.w),[444,222,333,111]);
+});
+
 // SMART Notebook stores Thai file names as UTF-8 bytes without the zip UTF-8 flag: clear that flag like the real files do.
 function withoutUtf8Flag(u8) {
   const out = new Uint8Array(u8), dv = new DataView(out.buffer);

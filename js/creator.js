@@ -61,14 +61,14 @@ async function build(items,report){
 export function mount(root){
   root.innerHTML=`<div class="tool-layout"><div class="tool wideview"><div class="head"><h1>${t('tool.creator')}</h1></div>
   <div class="sub">${t('creator.sub')}</div>
-  <div class="cr"><div class="pane cr-left-pane" id="cr-drop" tabindex="0" aria-keyshortcuts="Enter Space"><div class="listbox" id="cr-list" tabindex="0" role="listbox" aria-multiselectable="true"></div>
+  <div class="cr"><div class="pane cr-left-pane" id="cr-drop" tabindex="0" aria-keyshortcuts="Enter Space"><div class="listbox" id="cr-list" tabindex="0" role="listbox" aria-label="${t('creator.imageList')}" aria-multiselectable="true"></div>
    <div class="btnrow cr-actions"><button class="btn" id="cr-top">${t('creator.top')}</button><button class="btn" id="cr-bot">${t('creator.bottom')}</button><button class="btn" id="cr-browse">${t('creator.browse')}</button><button class="btn" id="cr-rm">${t('creator.remove')}</button><button class="btn" id="cr-clr">${t('creator.clear')}</button></div></div>
    <div class="pane"><div class="previewbox" id="cr-prev">${t('creator.selectPreview')}</div><div class="sub" id="cr-cap"></div><div class="preview-controls"><button class="btn" id="cr-zoom-out" aria-label="${t('creator.zoomOut')}">−</button><span id="cr-zoom-label">${t('creator.fit')}</span><button class="btn" id="cr-zoom-in" aria-label="${t('creator.zoomIn')}">+</button><button class="btn" id="cr-zoom-fit">${t('creator.fit')}</button></div></div></div>
-  <div><progress id="cr-prog" max="1" value="0"></progress><div class="sub" id="cr-status">${t('creator.ready')}</div></div>
+  <div><progress id="cr-prog" max="1" value="0" aria-label="${t('a11y.progressCreator')}"></progress><div class="sub" id="cr-status" role="status" aria-live="polite" aria-atomic="true">${t('creator.ready')}</div></div>
   <button class="btn primary wide" id="cr-save">${t('creator.save')}</button><input type="file" id="cr-file" multiple accept=".png,.jpg,.jpeg,.gif,.bmp" hidden></div>
   <dialog class="imgview" id="cr-view" aria-label="${t('creator.viewAria')}"><img alt="" draggable="false"><button type="button" class="imgview-close" id="cr-view-x" aria-label="${t('creator.viewClose')}" title="${t('creator.viewClose')}">×</button><div class="imgview-zoom" role="group" aria-label="${t('creator.viewZoom')}"><button type="button" id="cr-view-zi" aria-label="${t('creator.zoomIn')}">+</button><button type="button" id="cr-view-zo" aria-label="${t('creator.zoomOut')}">−</button><button type="button" id="cr-view-zf">${t('creator.fit')}</button><span id="cr-view-zl">100%</span></div><div class="imgview-name" id="cr-view-name"></div><div class="imgview-hint">${t('creator.viewHint')}</div></dialog>
   </div>`;
-  let items=[],sel=new Set(),anchor=-1,busy=false,folder='',purl=null,zoom=1,panX=0,panY=0,previewItem=null;
+  let items=[],sel=new Set(),anchor=-1,activeIndex=-1,busy=false,folder='',purl=null,zoom=1,panX=0,panY=0,previewItem=null;
   const list=$('cr-list'),drop=$('cr-drop'),status=s=>$('cr-status').textContent=s;
   mountGuide(root.querySelector('.tool-layout'),'creator');
   function preview(){
@@ -168,33 +168,37 @@ export function mount(root){
   function render(){
     if(!items.length)folder='';
     list.innerHTML='';list.classList.toggle('empty',!items.length);
+    if(activeIndex>=items.length)activeIndex=items.length-1;
+    if(activeIndex<0&&sel.size)activeIndex=[...sel][0];
     if(!items.length){const empty=document.createElement('div');empty.className='cr-empty';empty.setAttribute('aria-hidden','true');empty.innerHTML=t('creator.drop');list.append(empty)}
-    else items.forEach((it,i)=>{const r=document.createElement('div');r.className='lrow'+(sel.has(i)?' sel':'');r.setAttribute('role','option');r.setAttribute('aria-selected',sel.has(i));r.draggable=true;r.dataset.i=i;r.textContent=`${String(i+1).padStart(2,'0')}.  ${it.file.name}`;list.append(r)});
+    else items.forEach((it,i)=>{const r=document.createElement('div');r.id=`cr-option-${i}`;r.className='lrow'+(sel.has(i)?' sel':'');r.setAttribute('role','option');r.setAttribute('aria-selected',sel.has(i));r.draggable=true;r.dataset.i=i;r.textContent=`${String(i+1).padStart(2,'0')}.  ${it.file.name}`;list.append(r)});
+    if(activeIndex>=0)list.setAttribute('aria-activedescendant',`cr-option-${activeIndex}`);else list.removeAttribute('aria-activedescendant');
     drop.classList.toggle('has-images',items.length>0);
     status(items.length?t('creator.imageReady',items.length):t('creator.ready'));preview();
   }
   render();
   list.onclick=e=>{
     const r=e.target.closest('.lrow');if(!r||busy)return;const i=+r.dataset.i;
+    activeIndex=i;list.focus();
     if(e.shiftKey&&anchor>=0){sel=new Set();for(let k=Math.min(anchor,i);k<=Math.max(anchor,i);k++)sel.add(k)}
     else if(e.ctrlKey||e.metaKey){sel.has(i)?sel.delete(i):sel.add(i);anchor=i}else{sel=new Set([i]);anchor=i}
     refreshSel();
   };
   // Selection changed but the list did not: update the classes instead of rebuilding every row.
-  function refreshSel(){list.querySelectorAll('.lrow').forEach(x=>{const on=sel.has(+x.dataset.i);x.classList.toggle('sel',on);x.setAttribute('aria-selected',on)});preview()}
+  function refreshSel(){list.querySelectorAll('.lrow').forEach(x=>{const on=sel.has(+x.dataset.i);x.classList.toggle('sel',on);x.setAttribute('aria-selected',on)});if(activeIndex>=0)list.setAttribute('aria-activedescendant',`cr-option-${activeIndex}`);else list.removeAttribute('aria-activedescendant');preview()}
   list.onkeydown=e=>{
     if(e.key==='Delete'){remove();return}
     const k=e.key==='ArrowDown'?1:e.key==='ArrowUp'?-1:0;
     if(!k||busy||!items.length)return;
     e.preventDefault();
-    const cur=sel.size?(k>0?Math.max(...sel):Math.min(...sel)):(k>0?-1:items.length),i=Math.min(items.length-1,Math.max(0,cur+k));
-    sel=new Set([i]);anchor=i;refreshSel();
+    const cur=activeIndex>=0?activeIndex:(k>0?-1:items.length),i=Math.min(items.length-1,Math.max(0,cur+k));
+    activeIndex=i;sel=new Set([i]);anchor=i;refreshSel();
     list.querySelector(`.lrow[data-i="${i}"]`)?.scrollIntoView({block:'nearest'});
   };
-  function remove(){if(busy||!sel.size)return;const next=Math.min(Math.min(...sel),items.length-sel.size-1);items=items.filter((_,i)=>!sel.has(i));sel=new Set();anchor=-1;if(items.length){const i=Math.max(0,next);sel.add(i);anchor=i}render()}
+  function remove(){if(busy||!sel.size)return;const next=Math.min(Math.min(...sel),items.length-sel.size-1);items=items.filter((_,i)=>!sel.has(i));sel=new Set();anchor=-1;activeIndex=-1;if(items.length){const i=Math.max(0,next);sel.add(i);anchor=i;activeIndex=i}render()}
   function moveSel(toTop){
     if(busy||!sel.size)return;const idx=[...sel].sort((a,b)=>a-b),mv=idx.map(i=>items[i]),rest=items.filter((_,i)=>!sel.has(i));
-    items=toTop?[...mv,...rest]:[...rest,...mv];const s=toTop?0:rest.length;sel=new Set(mv.map((_,k)=>s+k));render();
+    items=toTop?[...mv,...rest]:[...rest,...mv];const s=toTop?0:rest.length;sel=new Set(mv.map((_,k)=>s+k));activeIndex=s;render();
   }
   $('cr-top').onclick=()=>moveSel(true);$('cr-bot').onclick=()=>moveSel(false);$('cr-rm').onclick=remove;
   $('cr-clr').onclick=()=>{if(busy)return;items=[];sel=new Set();folder='';render()};
@@ -203,7 +207,7 @@ export function mount(root){
     const ok=[],names=[...skipped];for(const f of files)SUP.test(f.name)?ok.push(f):names.push(f.name);
     if(files.length>1)ok.sort((a,b)=>coll.compare(a.name,b.name));
     for(const f of ok)items.push({file:f});
-    if(ok.length){sel=new Set([items.length-1]);anchor=items.length-1}
+    if(ok.length){sel=new Set([items.length-1]);anchor=items.length-1;activeIndex=items.length-1}
     render();if(ok.length)list.scrollTop=list.scrollHeight;
     if(names.length)msg(t('creator.unsupportedTitle'),t('creator.unsupported',names.slice(0,12).join('\n')+(names.length>12?'\n...':'')),'warning');
   }
@@ -235,7 +239,7 @@ export function mount(root){
     e.preventDefault();drop.classList.remove('hot');if(busy)return;
     if(dragging&&!list.contains(e.target)){clearMarks();dragging=false;return}   // dropped outside the list: leave the order alone
     if(dragging){const {t:dropAt}=target(e);clearMarks();dragging=false;const idx=[...sel].sort((a,b)=>a-b),mv=idx.map(i=>items[i]),rest=items.filter((_,i)=>!sel.has(i)),at=dropAt-idx.filter(i=>i<dropAt).length;
-      items=[...rest.slice(0,at),...mv,...rest.slice(at)];sel=new Set(mv.map((_,k)=>at+k));render()}
+      items=[...rest.slice(0,at),...mv,...rest.slice(at)];sel=new Set(mv.map((_,k)=>at+k));activeIndex=at;render()}
     else if(drop.contains(e.target))fromDrop(e.dataTransfer);
   };
   // ---- save ----

@@ -25,6 +25,32 @@ await check('notebook pages are read in numeric order and embedded assets are re
   assert.match(result.pages[1].svg,/fill="#fff"\/><image/);
 });
 
+await check('notebook group order follows the organization rather than the interleaved global page list',()=>{
+  const result=extractNotebookPages(notebook({
+    'page1.svg':'<svg width="640" height="480"></svg>',
+    'page2.svg':'<svg width="800" height="600"></svg>',
+    'page3.svg':'<svg width="900" height="700"></svg>',
+    'page4.svg':'<svg width="1000" height="800"></svg>',
+    'imsmanifest.xml':'<manifest><organizations><organization><item identifierref="group0_pages"><title>Mainmap</title></item><item identifierref="group1_pages"><title>Chapter 1</title></item></organization></organizations><resources><resource identifier="group0_pages"><file href="page4.svg"/><file href="page2.svg"/></resource><resource identifier="group1_pages"><file href="page3.svg"/><file href="page1.svg"/></resource><resource identifier="pages"><file href="page1.svg"/><file href="page2.svg"/><file href="page3.svg"/><file href="page4.svg"/></resource></resources></manifest>'
+  }));
+  assert.deepEqual(result.pages.map(page=>[page.name,page.number]),[['page4.svg',1],['page2.svg',2],['page3.svg',3],['page1.svg',4]]);
+});
+
+await check('multiple SMART Notebook page groups stay together in their organization order',()=>{
+  const groups=[
+    ['group0_pages',['page0.svg','page6.svg','page3.svg','page7.svg']],
+    ['group1_pages',['page9.svg','page10.svg','page11.svg','page12.svg','page13.svg','page2.svg','page8.svg']],
+    ['group2_pages',['page16.svg','page4.svg','page17.svg','page18.svg','page19.svg','page5.svg','page20.svg','page21.svg','page22.svg','page23.svg','page24.svg','page25.svg','page26.svg','page27.svg','page28.svg','page29.svg','page30.svg','page31.svg','page32.svg']]
+  ];
+  const files=Object.fromEntries(groups.flatMap(([,pages])=>pages).map(name=>[name,'<svg width="640" height="480"></svg>']));
+  const organization=groups.map(([id],index)=>`<item identifierref="${id}"><title>Group ${index+1}</title></item>`).join('');
+  const resources=groups.map(([id,pages])=>`<resource identifier="${id}">${pages.map(href=>`<file href="${href}"/>`).join('')}</resource>`).join('');
+  files['imsmanifest.xml']=`<manifest><organizations><organization>${organization}</organization></organizations><resources>${resources}<resource identifier="pages">${Object.keys(files).filter(name=>name.endsWith('.svg')).map(href=>`<file href="${href}"/>`).join('')}</resource></resources></manifest>`;
+  const result=extractNotebookPages(notebook(files));
+  assert.deepEqual(result.pages.map(page=>page.name),groups.flatMap(([,pages])=>pages));
+  assert.deepEqual(result.pages.map(page=>page.number),Array.from({length:30},(_,index)=>index+1));
+});
+
 await check('nested relative and percent-encoded image paths are embedded for SVG image rendering',()=>{
   const bytes=notebook({
     'pages/page1.svg':'<svg viewBox="0 0 100 50"><image href="../images/photo%20one.png"/></svg>',

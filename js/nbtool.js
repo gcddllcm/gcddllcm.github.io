@@ -5,13 +5,13 @@ export const isNb=n=>/\.notebook$/i.test(n);
 const NBTYPES=[{description:'SMART Notebook',accept:{'application/octet-stream':['.notebook']}}];
 export function download(name,bytes){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([bytes]));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),30000)}
 
-// Shared shell for the two .notebook tools: drop box, "open folder", progress, status.
+// Shared shell for file-conversion tools: drop box, folder picker, progress, and status.
 // run(entries, ignoredCount, ui) does the work. entry = {file, handle|null, dir|null}
-export function shell(root,{title,sub,guideKey,top='',hideFolder=false,run}){
+export function shell(root,{title,sub,guideKey,top='',hideFolder=false,accept='.notebook',isAccepted=isNb,pickerTypes=NBTYPES,dropLabel=t('nb.drop'),emptyTitle=t('nb.noFilesTitle'),emptyMessage=t('nb.noFiles'),run}){
   root.innerHTML=`<div class="tool-layout"><div class="tool"><div class="head"><h1>${title}</h1></div><div class="sub">${sub}</div>${top}
-  <div class="drop" data-q="drop" tabindex="0" role="button" aria-keyshortcuts="Enter Space"><span class="drop-label">${t('nb.drop')}</span></div>
+  <div class="drop" data-q="drop" tabindex="0" role="button" aria-keyshortcuts="Enter Space"><span class="drop-label">${dropLabel}</span></div>
   ${hideFolder?'':'<div class="btnrow"><button class="btn" data-q="folder">'+t('nb.folder')+'</button></div>'}
-  <div class="tool-progress"><progress data-q="prog" max="1" value="0"></progress><div class="sub" data-q="status">${t('nb.ready')}</div></div><input type="file" data-q="file" multiple accept=".notebook" hidden></div></div>`;
+  <div class="tool-progress"><progress data-q="prog" max="1" value="0" aria-label="${t('a11y.progressFiles')}"></progress><div class="sub" data-q="status" role="status" aria-live="polite" aria-atomic="true">${t('nb.ready')}</div></div><input type="file" data-q="file" multiple accept="${accept}" hidden></div></div>`;
   const q=k=>root.querySelector(`[data-q=${k}]`);let busy=false;
   addEventListener('beforeunload',e=>{if(busy){e.preventDefault();e.returnValue=''}});   // closing the tab mid-run would leave files half done
   const ui={status:t=>q('status').textContent=t,progress:(v,m)=>{if(m)q('prog').max=m;q('prog').value=v},root};
@@ -19,26 +19,26 @@ export function shell(root,{title,sub,guideKey,top='',hideFolder=false,run}){
   if(!hideFolder&&!('showDirectoryPicker' in window))q('folder').hidden=true;
   async function go(entries,ignored){
     if(busy)return;
-    if(!entries.length){msg(t('nb.noFilesTitle'),t('nb.noFiles'),'error');return}
+    if(!entries.length){msg(emptyTitle,emptyMessage,'error');return}
     busy=true;q('drop').classList.add('off');
     try{await run(entries,ignored,ui)}catch(e){msg(t('nb.error'),String(e.message||e),'error')}
     busy=false;q('drop').classList.remove('off');ui.progress(0);
   }
   const pick=async()=>{if(busy)return;
-    if('showOpenFilePicker' in window){try{const hs=await showOpenFilePicker({multiple:true,types:NBTYPES});go(await Promise.all(hs.map(async h=>({file:await h.getFile(),handle:h,dir:null}))),0)}catch{}}
+    if('showOpenFilePicker' in window){try{const hs=await showOpenFilePicker({multiple:true,types:pickerTypes});go(await Promise.all(hs.map(async h=>({file:await h.getFile(),handle:h,dir:null}))),0)}catch{}}
     else q('file').click()};
   const q$=q('drop');q$.onclick=pick;q$.onkeydown=e=>{if((e.key==='Enter'||e.key===' ')&&!e.repeat){e.preventDefault();pick()}};
   q('file').onchange=e=>{go([...e.target.files].map(file=>({file,handle:null,dir:null})),0);e.target.value=''};
   const folderBtn=q('folder');if(folderBtn)folderBtn.onclick=async()=>{if(busy)return;let d;try{d=await showDirectoryPicker({mode:'readwrite'})}catch{return}
-    const out=[];let ign=0;for await(const [n,h] of d.entries())if(h.kind==='file')isNb(n)?out.push({file:await h.getFile(),handle:h,dir:d}):ign++;go(out,ign)};
+    const out=[];let ign=0;for await(const [n,h] of d.entries())if(h.kind==='file')isAccepted(n)?out.push({file:await h.getFile(),handle:h,dir:d}):ign++;go(out,ign)};
   q$.ondragover=e=>{e.preventDefault();q$.classList.add('hot')};q$.ondragleave=()=>q$.classList.remove('hot');
   q$.ondrop=async e=>{
     e.preventDefault();q$.classList.remove('hot');if(busy)return;
     const its=[...e.dataTransfer.items].filter(i=>i.kind==='file').map(it=>({hp:it.getAsFileSystemHandle?it.getAsFileSystemHandle():null,f:it.getAsFile()}));
     const out=[];let ign=0;
     for(const {hp,f} of its){let h=null;try{h=await hp}catch{}
-      if(h&&h.kind==='directory'){for await(const [n,fh] of h.entries())if(fh.kind==='file')isNb(n)?out.push({file:await fh.getFile(),handle:fh,dir:h}):ign++}
-      else if(isNb((h&&h.name)||(f&&f.name)||''))out.push({file:f||await h.getFile(),handle:h&&h.kind==='file'?h:null,dir:null});else ign++}
+      if(h&&h.kind==='directory'){for await(const [n,fh] of h.entries())if(fh.kind==='file')isAccepted(n)?out.push({file:await fh.getFile(),handle:fh,dir:h}):ign++}
+      else if(isAccepted((h&&h.name)||(f&&f.name)||''))out.push({file:f||await h.getFile(),handle:h&&h.kind==='file'?h:null,dir:null});else ign++}
     go(out,ign);
   };
   return ui;

@@ -1,22 +1,24 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8">
+<html lang="en" data-theme="dark"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="penguin-logistics" content="1">
 <title>Penguin Logistics</title>
+<script>try{if(localStorage.getItem('penguin-logistics-theme')==='light')document.documentElement.dataset.theme='light'}catch(error){console.warn('Could not read the saved color theme:',error)}</script>
 <link rel="icon" type="image/png" href="assets/images/loy-krathong-2026.png"><link rel="stylesheet" href="style.css?v=3.4.0"></head>
 <body>
-<header id="nav"><a class="brand" href="#" aria-label="Penguin Logistics home"><img class="brand-icon" src="assets/images/loy-krathong-2026.png" alt=""><strong>Penguin Logistics</strong></a><nav class="tabs" aria-label="Main navigation"><kbd class="page-shortcut-key" aria-hidden="true">Q</kbd><span class="tab-indicator" aria-hidden="true"></span><button class="tab" data-page="tools">Tools</button><button class="tab" data-page="updates">Release Notes</button><button class="tab" data-page="about">About Us</button><kbd class="page-shortcut-key" aria-hidden="true">E</kbd></nav></header>
+<header id="nav"><a class="brand" href="#" aria-label="Penguin Logistics home"><img class="brand-icon" src="assets/images/loy-krathong-2026.png" alt=""><strong>Penguin Logistics</strong></a><nav class="tabs" aria-label="Main navigation"><kbd class="page-shortcut-key" aria-hidden="true">Q</kbd><span class="tab-indicator" aria-hidden="true"></span><button class="tab" data-page="tools" aria-current="page">Tools</button><button class="tab" data-page="updates">Release Notes</button><button class="tab" data-page="about">About Us</button><kbd class="page-shortcut-key" aria-hidden="true">E</kbd></nav><button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to light mode" title="Switch to light mode"><svg class="theme-toggle-sun" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg><svg class="theme-toggle-moon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" hidden><path d="M20.2 15.1A8.5 8.5 0 0 1 8.9 3.8 8.5 8.5 0 1 0 20.2 15.1Z"/></svg></button></header>
 <main id="main"><section id="landing-page" class="page on" aria-labelledby="landing-title"></section><section id="tools-page" class="page">
   <nav class="tool-nav" id="tool-nav" aria-label="Tool navigation">
     <div class="tool-picker-row"><div class="tool-nav-list" id="tool-nav-list"></div><div class="tool-nav-actions" id="tool-nav-actions"></div></div>
   </nav>
   <div id="tools"></div>
 </section><section id="updates-page" class="page"></section><section id="about-page" class="page"></section></main>
+<div class="scroll-hint" id="scroll-hint" aria-hidden="true"><svg viewBox="0 0 16 16" focusable="false"><path d="m3.5 6 4.5 4.5L12.5 6"/></svg><span>Scroll for more</span></div>
 <dialog id="dlg"></dialog>
 <dialog class="tool-search-dialog" id="tool-search-dialog" aria-labelledby="tool-search-title">
   <div class="tool-search-heading"><h2 id="tool-search-title">Search tools</h2><button type="button" class="tool-search-close" aria-label="Close search">×</button></div>
   <label class="tool-search-field"><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 4.5 4.5"/></svg></span><input id="tool-search-input" type="search" autocomplete="off" placeholder="Search by name, category, or task…"><kbd>ESC</kbd></label>
   <div class="tool-search-results" id="tool-search-results" role="listbox" aria-label="Tools"></div>
 </dialog>
-<script type="module" src="js/app.js?v=3.4.0"></script>
+<script type="module" src="js/app.js?v=3.4.0-page-order-v2"></script>
 </body></html>

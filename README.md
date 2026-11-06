@@ -49,3 +49,7 @@ Canvas Extractor's **Copy current view** action copies the expanded/collapsed hi
 ## Convert to JPG
 
 The SMART Notebook tool lists pages on the left and previews the active page on the right for one or more `.notebook` files. Pages start unselected; export selected pages or all pages as individual JPG downloads, with JPEG quality from 70% to 100% (default 100%).
+
+## Convert to JPG
+
+The **I PHILO PDF** tool has two modes: preview and export selected PDF pages (or all pages) as JPG in a ZIP, or extract embedded images from one PDF as PNG files in a ZIP. Page export defaults to 300 DPI in the JPEG metadata with quality fixed at 100%. PDF.js 5.4.394 and its worker, CMaps, and standard fonts are vendored locally under `js/vendor/pdfjs/`; files stay in the browser and are not uploaded. The Apache 2.0 and asset license files are included alongside the vendored files.

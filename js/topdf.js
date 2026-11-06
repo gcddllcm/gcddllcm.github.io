@@ -72,7 +72,7 @@ function drawSvgPage(svgText,width,height,quality){
 }
 function getWorker(){
   if(worker)return worker;
-  worker=new Worker(new URL('./pdfworker.js?v=3.4.0',import.meta.url),{type:'module'});
+  worker=new Worker(new URL('./pdfworker.js?v=3.4.0-page-order-v2',import.meta.url),{type:'module'});
   worker.onmessage=async e=>{
     const m=e.data;
     if(m.type==='renderSvg'){

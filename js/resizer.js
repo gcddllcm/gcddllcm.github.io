@@ -242,7 +242,7 @@ export function mount(root){
   <button class="btn reset-btn" id="rz-reset">${t('resizer.reset')}</button></div>
   <div class="resizer-output-row"><button class="btn primary" id="rz-out">${t('resizer.output')}</button><div class="path" id="rz-path">${HAS_FS?t('resizer.noFolder'):t('resizer.downloadMode')}</div></div>
   <div class="drop" id="rz-drop" tabindex="0" role="button" aria-keyshortcuts="Enter Space"><span class="drop-label">${t('resizer.drop')}</span></div>
-  <div class="tool-progress"><progress id="rz-prog" max="1" value="0"></progress><div class="sub" id="rz-status">${t('resizer.ready')}</div></div>
+  <div class="tool-progress"><progress id="rz-prog" max="1" value="0" aria-label="${t('a11y.progressFiles')}"></progress><div class="sub" id="rz-status" role="status" aria-live="polite" aria-atomic="true">${t('resizer.ready')}</div></div>
   <input type="file" id="rz-file" multiple accept=".jpg,.jpeg,.png,.bmp,.webp" hidden></div>
   </div>`;
 

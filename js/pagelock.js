@@ -17,8 +17,8 @@ async function process(file,lock){
 export function mount(root){
   let mode='lock';
   const ui=shell(root,{title:t('tool.pagelock'),sub:t('pagelock.sub'),guideKey:'pagelock',hideFolder:true,
-    top:`<div class="seg"><button class="btn on" data-m="lock">${t('pagelock.lock')}</button><button class="btn danger" data-m="unlock">${t('pagelock.unlock')}</button></div>
-    <div class="warn">${t('pagelock.warn')}</div>`,
+    top:`<div class="seg" role="group" aria-label="${t('pagelock.mode')}"><button type="button" class="btn on" data-m="lock" aria-pressed="true">${t('pagelock.lock')}</button><button type="button" class="btn danger" data-m="unlock" aria-pressed="false">${t('pagelock.unlock')}</button></div>
+    <div class="tf-note">${t('pagelock.warn')}</div>`,
     async run(entries,ign,ui){
       const lock=mode==='lock',ing=t(lock?'pagelock.locking':'pagelock.unlocking'),ed=t(lock?'pagelock.locked':'pagelock.unlocked'),failures=[],fallbacks=[];
       await ensureWriteAccess(entries);
@@ -39,5 +39,5 @@ export function mount(root){
       if(failures.length)await msg(t('pagelock.finished'),t('pagelock.failure',ed,entries.length-failures.length,entries.length,suffix,failures.slice(0,10).join('\n')+(failures.length>10?'\n...':'')),'warning');
       else await msg(t('pagelock.done'),t('pagelock.success',ed,entries.length,suffix));
     }});
-  root.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{mode=b.dataset.m;root.querySelectorAll('[data-m]').forEach(x=>x.classList.toggle('on',x===b))});
+  root.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{mode=b.dataset.m;root.querySelectorAll('[data-m]').forEach(x=>{const selected=x===b;x.classList.toggle('on',selected);x.setAttribute('aria-pressed',String(selected))})});
 }

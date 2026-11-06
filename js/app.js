@@ -3,8 +3,9 @@ import {$,msg,track,loadAnalytics} from './util.js?v=3.4.0';
 import * as resizer from './resizer.js?v=3.4.0';
 import * as creator from './creator.js?v=3.4.0';
 import * as pagelock from './pagelock.js?v=3.4.0';
-import * as topdf from './topdf.js?v=3.4.0';
-import * as jpgMaker from './jpg-maker.js?v=3.4.0';
+import * as topdf from './topdf.js?v=3.4.0-page-order-v2';
+import * as pdfToJpg from './pdf-to-jpg.js?v=3.4.0';
+import * as jpgMaker from './jpg-maker.js?v=3.4.0-page-order-v2';
 import * as learncraft from './learncraft.js?v=3.4.0';
 import * as golive from './golive.js?v=3.4.0';
 import * as timestampMaker from './timestamp-maker.js?v=3.4.0';
@@ -16,10 +17,27 @@ document.querySelector('[data-page="tools"]').textContent=t('nav.tools');
 document.querySelector('[data-page="updates"]').textContent=t('nav.updates');
 document.querySelector('[data-page="about"]').textContent=t('nav.about');
 document.querySelector('.tabs').setAttribute('aria-label',t('nav.main'));
+const themeToggle=document.getElementById('theme-toggle');
+function setTheme(theme,save=false){
+  const isLight=theme==='light';
+  document.documentElement.dataset.theme=isLight?'light':'dark';
+  const nextTheme=isLight?'dark':'light';
+  themeToggle.setAttribute('aria-label',`Switch to ${nextTheme} mode`);
+  themeToggle.title=`Switch to ${nextTheme} mode`;
+  themeToggle.querySelector('.theme-toggle-sun').toggleAttribute('hidden',!isLight);
+  themeToggle.querySelector('.theme-toggle-moon').toggleAttribute('hidden',isLight);
+  if(save){
+    try{localStorage.setItem('penguin-logistics-theme',isLight?'light':'dark')}
+    catch(error){console.warn('Could not save the color theme preference:',error)}
+  }
+}
+setTheme(document.documentElement.dataset.theme||'dark');
+themeToggle.addEventListener('click',()=>setTheme(document.documentElement.dataset.theme==='dark'?'light':'dark',true));
 
 const TOOLS=[
   ['creator',t('tool.creator.short'),t('tool.creator'),t('library.categoryNotebook'),`<svg aria-hidden="true" focusable="false" viewBox="0 0 80 90" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13 7h35l17 17v54H13V7Z" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M48 8v17h16" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><rect x="22" y="31" width="34" height="24" rx="3" stroke="currentColor" stroke-width="3.5"/><circle cx="46" cy="38" r="3.5" fill="#85E8D8"/><path d="m25 51 9-9 7 7 5-5 7 7" stroke="#85E8D8" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M39 62v16m-7-7 7 7 7-7" stroke="#85E8D8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>`,t('tool.creator.desc'),creator],
   ['topdf',t('tool.topdf.short'),t('tool.topdf'),t('library.categoryNotebook'),`<svg aria-hidden="true" focusable="false" viewBox="0 0 80 90" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 7h35l17 17v54H12V7Z" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M47 8v17h16M22 36h22M22 45h18M22 54h13" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="52" cy="62" r="16" fill="#292A35" stroke="#FF927D" stroke-width="4"/><path d="M48 70V54h6a5 5 0 0 1 0 10h-6" stroke="#FF927D" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,t('tool.topdf.desc'),topdf],
+  ['pdf-to-jpg',t('tool.pdfToJpg.short'),t('tool.pdfToJpg'),t('library.categoryPdf'),`<svg aria-hidden="true" focusable="false" viewBox="0 0 80 90" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 7h35l17 17v54H12V7Z" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M47 8v17h16M22 37h30M22 47h20" stroke="currentColor" stroke-width="3.5" stroke-linecap="round"/><rect x="29" y="53" width="34" height="23" rx="3" fill="#292A35" stroke="#85E8D8" stroke-width="3.5"/><circle cx="52" cy="60" r="3" fill="#85E8D8"/><path d="m32 71 8-8 7 6 5-4 8 6" stroke="#85E8D8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`,t('tool.pdfToJpg.desc'),pdfToJpg],
   ['jpg-maker',t('tool.jpgMaker.short'),t('tool.jpgMaker'),t('library.categoryNotebook'),`<svg aria-hidden="true" focusable="false" viewBox="0 0 80 90" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 7h35l17 17v54H12V7Z" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M47 8v17h16" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><rect x="21" y="34" width="38" height="28" rx="4" stroke="currentColor" stroke-width="3.5"/><circle cx="49" cy="42" r="4" fill="#85E8D8"/><path d="m24 57 10-10 8 8 6-6 8 8" stroke="#85E8D8" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M50 68h14" stroke="#FF927D" stroke-width="4" stroke-linecap="round"/></svg>`,t('tool.jpgMaker.desc'),jpgMaker],
   ['pagelock',t('tool.pagelock.short'),t('tool.pagelock'),t('library.categoryArchive'),`<svg aria-hidden="true" focusable="false" viewBox="0 0 80 90" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 7h35l17 17v54H12V7Z" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/><path d="M47 8v17h16M22 37h22M22 47h18" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="39" y="52" width="25" height="20" rx="4" fill="#292A35" stroke="#85E8D8" stroke-width="3.5"/><path d="M45 52v-5a6.5 6.5 0 0 1 13 0v5" stroke="#85E8D8" stroke-width="3.5" stroke-linecap="round"/><circle cx="51.5" cy="61" r="2.5" fill="#85E8D8"/><path d="M51.5 63v3" stroke="#85E8D8" stroke-width="2.5" stroke-linecap="round"/></svg>`,t('tool.pagelock.desc'),pagelock],
   ['resizer',t('tool.resizer.short'),t('tool.resizer'),t('library.categoryImages'),`<svg aria-hidden="true" focusable="false" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M28 10H12v16m40-16h16v16M12 54v16h16m40-16v16H52" stroke="#85E8D8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><rect x="23" y="24" width="34" height="32" rx="3" stroke="currentColor" stroke-width="3.5"/><circle cx="47" cy="33" r="3.5" fill="#85E8D8"/><path d="m27 51 9-10 7 7 5-5 6 8" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,t('tool.resizer.desc'),resizer],
@@ -27,15 +45,15 @@ const TOOLS=[
   ['golive',t('tool.golive.short'),t('tool.golive'),t('library.categoryLearnCraft'),`<svg aria-hidden="true" focusable="false" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="40" cy="40" r="28" stroke="currentColor" stroke-width="4"/><path d="M33 27v26l22-13-22-13Z" fill="#85E8D8" stroke="#85E8D8" stroke-width="3" stroke-linejoin="round"/></svg>`,t('tool.golive.desc'),golive],
   ['timestamp-maker',t('tool.timestampMaker.short'),t('tool.timestampMaker'),t('library.categoryLearnCraft'),`<svg aria-hidden="true" focusable="false" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="11" y="13" width="58" height="54" rx="6" stroke="currentColor" stroke-width="4"/><path d="M11 29h58M27 29v38m27-38v38" stroke="currentColor" stroke-width="3.5"/><path d="m35 45 4 4 8-9" stroke="#85E8D8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>`,t('tool.timestampMaker.desc'),timestampMaker],
 ];
-const NEW_TOOL_KEYS=new Set(['timestamp-maker','jpg-maker']);
+const NEW_TOOL_KEYS=new Set(['jpg-maker','pdf-to-jpg']);
 let hasChosenTool=false;
 const landing=$('landing-page');
 landing.innerHTML=`<section class="landing-content"><div class="landing-intro"><h1 id="landing-title">${t('landing.title')}</h1><p>${t('landing.sub')}</p></div><div class="landing-tools"></div></section>`;
 const landingTools=landing.querySelector('.landing-tools');
 const landingCategories=[
-  {label:t('library.categoryNotebook'),className:'notebook'},
-  {label:t('library.categoryLearnCraft'),className:'learncraft'},
-  {label:t('library.categoryImages'),className:'images'},
+  {label:t('library.categoryNotebook'),className:'notebook',keys:['creator','topdf','jpg-maker']},
+  {label:t('library.categoryLearnCraft'),className:'learncraft',keys:['learncraft','golive','timestamp-maker']},
+  {label:t('landing.categoryMoreTools'),className:'more',keys:['resizer','pdf-to-jpg','pagelock']},
 ];
 let landingCardIndex=0;
 for(const category of landingCategories){
@@ -43,16 +61,24 @@ for(const category of landingCategories){
   const heading=document.createElement('h2');heading.className='landing-tool-group-title';heading.textContent=category.label;
   const cards=document.createElement('div');cards.className='landing-tool-list';
   group.append(heading,cards);
-  for(const [key,shortLabel,label,,icon,description] of TOOLS.filter(item=>item[3]===category.label)){
+  for(const [key,shortLabel,label,toolCategory,icon,description] of category.keys.map(key=>TOOLS.find(item=>item[0]===key)).filter(Boolean)){
     const isNewTool=NEW_TOOL_KEYS.has(key);
-    const card=document.createElement('button');card.type='button';card.className='landing-tool';card.dataset.tool=key;card.setAttribute('aria-label',`${shortLabel}. ${description}${isNewTool?`. ${t('landing.newAccessible')}`:''}${key==='creator'?`. ${t('landing.creatorShortcut')}`:''}`);
-    card.style.setProperty('--landing-delay',`${40+landingCardIndex++*40}ms`);
-    card.innerHTML=`<span class="landing-tool-icon" aria-hidden="true">${icon}</span><span class="landing-tool-copy"><strong>${shortLabel}</strong><span>${description}</span></span>${isNewTool?`<span class="landing-tool-new" aria-hidden="true">${t('landing.new')}</span>`:''}${key==='creator'?`<kbd class="page-shortcut-key landing-tool-shortcut" aria-hidden="true">SPACE</kbd>`:''}<span class="landing-tool-action"><span class="landing-tool-arrow" aria-hidden="true">→</span></span>`;
+    const showCategory=category.className==='more';
+    const card=document.createElement('button');card.type='button';card.className=`landing-tool${isNewTool?' landing-tool-new-card':''}`;card.dataset.tool=key;card.setAttribute('aria-label',`${showCategory?`${toolCategory}. `:''}${shortLabel}. ${description}${isNewTool?`. ${t('landing.newAccessible')}`:''}${key==='creator'?`. ${t('landing.creatorShortcut')}`:''}`);
+    const cardIndex=landingCardIndex++;
+    card.style.setProperty('--landing-delay',`${40+cardIndex*40}ms`);
+    card.innerHTML=`<span class="landing-tool-icon" aria-hidden="true">${icon}</span><span class="landing-tool-copy">${showCategory?`<span class="landing-tool-category">${toolCategory}</span>`:''}<strong>${shortLabel}</strong><span>${description}</span></span>${isNewTool?`<span class="landing-tool-new" aria-hidden="true">${t('landing.new')}</span>`:''}${key==='creator'?`<kbd class="page-shortcut-key landing-tool-shortcut" aria-hidden="true">SPACE</kbd>`:''}<span class="landing-tool-action"><span class="landing-tool-arrow" aria-hidden="true">→</span></span>`;
     card.onclick=()=>{hasChosenTool=true;selectTool(key);showPage('tools')};
     cards.append(card);
   }
   landingTools.append(group);
 }
+let edgeLightRestartTimer;
+document.addEventListener('click',()=>{
+  document.body.classList.add('new-edge-light-stopped');
+  clearTimeout(edgeLightRestartTimer);
+  edgeLightRestartTimer=setTimeout(()=>document.body.classList.remove('new-edge-light-stopped'),3000);
+},{capture:true});
 if(matchMedia('(hover: hover) and (pointer: fine)').matches&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
   for(const card of landing.querySelectorAll('.landing-tool')){
     card.addEventListener('pointermove',e=>{
@@ -136,6 +162,17 @@ document.addEventListener('touchstart',noteHowToPointerActivity,{passive:true,ca
 for(const type of ['keydown','wheel','scroll']){
   document.addEventListener(type,()=>{for(const item of attentionItems)if(!item.dismissed.has(TOOLS[activeIndex]?.[0])&&!item.button.hidden)resetAttention(item)},{passive:true,capture:true});
 }
+const scrollbarTimers=new WeakMap();
+document.addEventListener('scroll',event=>{
+  const scroller=event.target===document?document.scrollingElement:event.target;
+  if(!(scroller instanceof HTMLElement))return;
+  scroller.classList.add('scrollbar-active');
+  clearTimeout(scrollbarTimers.get(scroller));
+  scrollbarTimers.set(scroller,setTimeout(()=>{
+    scroller.classList.remove('scrollbar-active');
+    scrollbarTimers.delete(scroller);
+  },750));
+},{passive:true,capture:true});
 const views={};
 const isMobileOrTablet=isMobileOrTabletDevice(navigator);
 const desktopOnlyTools=new Set(['learncraft','golive','timestamp-maker']);
@@ -153,7 +190,8 @@ const categories=[
   {label:t('library.categoryNotebook'),tools:TOOLS.filter(item=>item[3]===t('library.categoryNotebook'))},
   {label:t('library.categoryLearnCraft'),tools:TOOLS.filter(item=>item[3]===t('library.categoryLearnCraft'))},
   {label:t('library.categoryImages'),tools:TOOLS.filter(item=>item[3]===t('library.categoryImages'))},
-  {label:t('library.categoryArchive'),tools:TOOLS.filter(item=>item[3]===t('library.categoryArchive'))},
+  {label:t('library.categoryPdf'),tools:TOOLS.filter(item=>item[3]===t('library.categoryPdf'))},
+  {label:t('library.categoryArchive'),tools:TOOLS.filter(item=>item[3]===t('library.categoryArchive')),collapsed:true},
 ];
 function updateNavSelection(){
   const active=TOOLS[activeIndex]?.[0];
@@ -180,11 +218,22 @@ function toolButton(item,{searchResult=false}={}){
 }
 for(const [index,category] of categories.entries()){
   const group=document.createElement('section');group.className='tool-nav-group';
-  const heading=document.createElement('h2');heading.className='tool-nav-category';heading.id=`tool-nav-group-${index}`;heading.textContent=category.label;
+  if(category.collapsed)group.classList.add('collapsed');
+  const headingRow=document.createElement('div');headingRow.className='tool-nav-category-row';
+  const heading=document.createElement('button');heading.type='button';heading.className='tool-nav-category';heading.id=`tool-nav-group-${index}`;heading.textContent=category.label;heading.setAttribute('aria-expanded',String(!category.collapsed));heading.addEventListener('click',()=>{
+    const collapsed=group.classList.toggle('collapsed');
+    heading.setAttribute('aria-expanded',String(!collapsed));
+    body.inert=collapsed;
+  });
+  headingRow.append(heading);
+  if(index===0)headingRow.append(nextToolButton);
   group.setAttribute('aria-labelledby',heading.id);
-  if(index===0){const headingRow=document.createElement('div');headingRow.className='tool-nav-category-row';headingRow.append(heading,nextToolButton);group.append(headingRow)}
-  else group.append(heading);
-  for(const item of category.tools)group.append(toolButton(item));
+  group.append(headingRow);
+  const body=document.createElement('div');body.className='tool-nav-group-body';body.inert=Boolean(category.collapsed);
+  const items=document.createElement('div');items.className='tool-nav-group-items';
+  for(const item of category.tools)items.append(toolButton(item));
+  body.append(items);
+  group.append(body);
   navList.append(group);
 }
 function selectNextTool(){
@@ -279,16 +328,14 @@ document.addEventListener('keydown',event=>{
   event.preventDefault();activeButton.click();
 },true);
 document.addEventListener('keydown',e=>{
-  if($('dlg')?.open)return;
+  if(document.querySelector('dialog[open]'))return;
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){
     e.preventDefault();openToolSearch();return;
   }
-  if(e.code==='Space'&&document.querySelector('.tf-video-dialog[open]'))return;
-  const target=e.target,typing=target instanceof Element&&target.matches('input,textarea,select,[contenteditable="true"]'),interactive=target instanceof Element&&target.closest('button,a,[role="button"],[tabindex]:not([tabindex="-1"])');
+  const target=e.target,typing=target instanceof Element&&target.matches('input,textarea,select,[contenteditable="true"]');
   const shortcut={KeyQ:'q',KeyE:'e',KeyI:'i'}[e.code]||(e.key&&['q','e','i'].includes(e.key.toLowerCase())?e.key.toLowerCase():null);
-  if(typing||interactive||e.altKey||e.ctrlKey||e.metaKey)return;
-  if(e.code==='Space'&&!e.repeat&&$('tools-page').classList.contains('on')&&!searchDialog.open&&!main.querySelector('.view.on .tool-layout.guide-open')){e.preventDefault();selectNextTool();return}
-  if(e.code==='Space'&&landing.classList.contains('on')&&!(target instanceof Element&&target.closest('button,a,[role="button"]'))){e.preventDefault();landingTools.querySelector('[data-tool="creator"]')?.click();return}
+  if(typing||e.altKey||e.ctrlKey||e.metaKey)return;
+  if(e.code==='Space'&&!e.repeat){e.preventDefault();hasChosenTool=true;selectNextTool();showPage('tools');return}
   if(shortcut==='q'||shortcut==='e'){
     e.preventDefault();
     const selectedIndex=pageTabs.findIndex(button=>button.classList.contains('active'));
@@ -303,7 +350,16 @@ document.addEventListener('keydown',e=>{
 });
 
 const pageTabs=[...document.querySelectorAll('.tab')],tabIndicator=document.querySelector('.tab-indicator');
-let pageTransition=0;
+let pageTransition=0,releaseRevealObserver;
+function resetReleaseReveal(){
+  if(!releaseRevealObserver)return;
+  releaseRevealObserver.disconnect();
+  for(const release of timeline.querySelectorAll('.release')){
+    release.classList.remove('revealed');
+    release.classList.add('reveal-pending');
+    releaseRevealObserver.observe(release);
+  }
+}
 function syncTabIndicator(){const active=pageTabs.find(b=>b.classList.contains('active'));if(!active||!tabIndicator)return;tabIndicator.style.width=`${active.offsetWidth}px`;tabIndicator.style.transform=`translateX(${active.offsetLeft}px)`}
 function showPage(name){
   const pageName=name==='tools'&&!hasChosenTool?'landing':name;
@@ -313,54 +369,35 @@ function showPage(name){
   }
   const next=document.getElementById(`${pageName}-page`),current=document.querySelector('.page.on');
   if(!next)return;
-  pageTabs.forEach(b=>b.classList.toggle('active',b.dataset.page===name));requestAnimationFrame(syncTabIndicator);
+  pageTabs.forEach(b=>{const current=b.dataset.page===name;b.classList.toggle('active',current);if(current)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});requestAnimationFrame(syncTabIndicator);
+  if(name==='updates')resetReleaseReveal();
   if(current===next){current.classList.remove('leaving');if(name==='updates')requestAnimationFrame(fitTimeline);return}
   if(name==='about')animateProjectCounts();
   const token=++pageTransition;
-  if(matchMedia('(prefers-reduced-motion: reduce)').matches||!current){if(current)current.classList.remove('on','leaving','entering');next.classList.add('on');next.classList.remove('leaving','entering');if(name==='about')animateAboutCard();if(name==='updates')requestAnimationFrame(fitTimeline);return}
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches||!current){if(current)current.classList.remove('on','leaving','entering');next.classList.add('on');next.classList.remove('leaving','entering');if(name==='updates')requestAnimationFrame(fitTimeline);return}
   current.classList.remove('entering');current.classList.add('leaving');
-  setTimeout(()=>{if(token!==pageTransition)return;current.classList.remove('on','leaving');next.classList.add('on','entering');if(name==='about')animateAboutCard();if(name==='updates')requestAnimationFrame(fitTimeline);setTimeout(()=>{if(token===pageTransition)next.classList.remove('entering')},260)},145);
+  setTimeout(()=>{if(token!==pageTransition)return;current.classList.remove('on','leaving');next.classList.add('on','entering');if(name==='updates')requestAnimationFrame(fitTimeline);setTimeout(()=>{if(token===pageTransition)next.classList.remove('entering')},260)},145);
 }
 pageTabs.forEach(b=>b.onclick=()=>showPage(b.dataset.page));
 requestAnimationFrame(syncTabIndicator);addEventListener('resize',syncTabIndicator);
 const updates=$('updates-page');
 const reduceReleaseMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
-updates.innerHTML=`<div class="page-heading"><img class="page-icon" src="${ASSETS.brandLogo}" alt=""><div><h1>${t('updates.title')}</h1><div class="sub">${t('updates.sub')}</div></div></div><div class="timeline">${strings.RELEASES.map((r,i)=>`<article class="release${reduceReleaseMotion?'':' reveal-pending'}" style="--reveal-delay:${Math.min(i,5)*70}ms"><div class="release-date">${r.date}</div><div class="timeline-dot ${i===0?'latest':''}"></div><div class="release-card"><h2>${r.version}${i===0?`<span class="latest-pill">${t('updates.latest')}</span>`:''}</h2>${r.transition?`<div class="platform-transition" aria-label="${t('updates.transition')}"><div class="platform-node"><span class="platform-window exe-window"><i></i><i></i><i></i></span><strong>${t('updates.desktop')}</strong><small>.EXE</small></div><span class="transition-arrow" aria-hidden="true">→</span><div class="platform-node"><span class="platform-window web-window"><i></i><i></i><i></i></span><strong>${t('updates.web')}</strong><small>${t('updates.browser')}</small></div></div>`:''}${r.sections.map(s=>s.paragraphs?`<div class="release-story">${s.paragraphs.map(p=>`<p>${p}</p>`).join('')}</div>`:`<div class="release-section"><h3>${s.title}</h3><ul>${s.items.map(x=>`<li>${x}</li>`).join('')}</ul>`).join('')}</div></article>`).join('')}<div class="timeline-line" aria-hidden="true"></div></div>`;
+updates.innerHTML=`<div class="page-heading"><img class="page-icon" src="${ASSETS.brandLogo}" alt=""><div><h1>${t('updates.title')}</h1><div class="sub">${t('updates.sub')}</div></div></div><div class="timeline">${strings.RELEASES.map((r,i)=>`<article class="release${reduceReleaseMotion?'':' reveal-pending'}" style="--reveal-delay:${Math.min(i,5)*70}ms"><div class="release-date">${r.date}</div><div class="timeline-dot ${i===0?'latest':''}"></div><div class="release-card"><h2>${r.version}${i===0?`<span class="latest-pill">${t('updates.latest')}</span>`:''}</h2>${r.transition?`<div class="platform-transition" aria-label="${t('updates.transition')}"><div class="platform-node"><svg class="platform-icon exe-window" viewBox="0 0 40 36" aria-hidden="true" focusable="false"><rect x="4" y="3" width="32" height="22" rx="2"/><path d="M14 32h12M20 25v7"/></svg><strong>${t('updates.desktop')}</strong><small>.EXE</small></div><span class="transition-arrow" aria-hidden="true">→</span><div class="platform-node"><svg class="platform-icon web-window" viewBox="0 0 40 36" aria-hidden="true" focusable="false"><rect x="4" y="3" width="32" height="28" rx="2"/><path d="M4 10h32M9 6.5h.1M13 6.5h.1M17 6.5h.1"/></svg><strong>${t('updates.web')}</strong><small>${t('updates.browser')}</small></div></div>`:''}${r.sections.map(s=>s.paragraphs?`<div class="release-story">${s.paragraphs.map(p=>`<p>${p}</p>`).join('')}</div>`:`<div class="release-section"><h3>${s.title}</h3><ul>${s.items.map(x=>`<li>${x}</li>`).join('')}</ul>`).join('')}</div></article>`).join('')}<div class="timeline-line" aria-hidden="true"></div></div>`;
 const timeline=updates.querySelector('.timeline'),timelineLine=timeline.querySelector('.timeline-line');
 function fitTimeline(){const dots=[...timeline.querySelectorAll('.timeline-dot')];if(dots.length<2)return;const parent=timeline.getBoundingClientRect(),first=dots[0].getBoundingClientRect(),last=dots[dots.length-1].getBoundingClientRect();timelineLine.style.top=`${first.top+first.height/2-parent.top}px`;timelineLine.style.height=`${last.top-first.top-first.height/2}px`}
 requestAnimationFrame(fitTimeline);addEventListener('resize',fitTimeline);new ResizeObserver(fitTimeline).observe(timeline);
-if(!reduceReleaseMotion){const revealObserver=new IntersectionObserver(entries=>{for(const entry of entries){if(entry.isIntersecting){entry.target.classList.add('revealed');entry.target.classList.remove('reveal-pending');revealObserver.unobserve(entry.target)}}},{root:document.getElementById('main'),rootMargin:'0px 0px -8% 0px',threshold:.08});timeline.querySelectorAll('.release.reveal-pending').forEach(el=>revealObserver.observe(el))}
+if(!reduceReleaseMotion){releaseRevealObserver=new IntersectionObserver(entries=>{for(const entry of entries){if(entry.isIntersecting){entry.target.classList.add('revealed');entry.target.classList.remove('reveal-pending');releaseRevealObserver.unobserve(entry.target)}}},{root:document.getElementById('main'),rootMargin:'0px 0px -8% 0px',threshold:.08});timeline.querySelectorAll('.release.reveal-pending').forEach(el=>releaseRevealObserver.observe(el))}
 const about=$('about-page');
 const PROJECT_CHARACTER_COUNT=4004347;
 const PROJECT_LINE_COUNT=14941,PROJECT_FILE_COUNT=78;
 about.innerHTML=`<div class="page-heading"><img class="page-icon" src="${ASSETS.aboutMascot}" alt=""><div><h1>${t('about.title')}</h1><div class="sub">Penguin Logistics</div></div></div><div class="about-container"><article class="about-lines" aria-label="${t('about.snapshotLabel')}"><div class="about-stat about-stat-characters"><span class="about-lines-label">${t('about.charactersLabel')}</span><strong class="about-characters-value">${PROJECT_CHARACTER_COUNT.toLocaleString()}</strong><span class="about-lines-note">${t('about.charactersNote')}</span></div><div class="about-stat about-stat-lines"><span class="about-lines-label">${t('about.linesLabel')}</span><strong class="about-lines-value">${PROJECT_LINE_COUNT.toLocaleString()}</strong><span class="about-lines-note">${t('about.linesNote')}</span></div><div class="about-stat about-stat-files"><span class="about-lines-label">${t('about.filesLabel')}</span><strong class="about-files-value">${PROJECT_FILE_COUNT.toLocaleString()}</strong><span class="about-lines-note">${t('about.filesNote')}</span></div></article><div class="about-details"><a class="about-detail about-detail-contact" data-tone="violet" href="https://www.larksuite.com/invitation/page/add_contact/?token=e39p7e0c-09b3-49b3-b59f-e9e497v47fle" target="_blank" rel="noopener noreferrer"><span class="about-detail-badge" aria-hidden="true"><svg class="about-detail-icon" viewBox="0 0 24 24" focusable="false"><path class="duo" d="M5 4.5h14a2 2 0 0 1 2 2v8.2a2 2 0 0 1-2 2h-6.6l-4.4 3.6v-3.6H5a2 2 0 0 1-2-2V6.5a2 2 0 0 1 2-2Z"/><circle class="dot" cx="8.2" cy="10.6" r="1.1"/><circle class="dot" cx="12" cy="10.6" r="1.1"/><circle class="dot" cx="15.8" cy="10.6" r="1.1"/></svg></span><span class="about-detail-text">${t('about.contact')}</span><svg class="about-detail-go" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 17 17 7M9 7h8v8"/></svg></a><p class="about-detail about-detail-creator" data-tone="violet"><span class="about-detail-badge" aria-hidden="true"><svg class="about-detail-icon" viewBox="0 0 24 24" focusable="false"><path d="m4 20 9.6-9.6"/><path class="duo" d="M17 2.8l1.2 3 3 1.2-3 1.2-1.2 3-1.2-3-3-1.2 3-1.2Z"/><path d="M5.5 4.6v2.8M4.1 6h2.8M18.6 15.6v2.8M17.2 17h2.8"/></svg></span><span class="about-detail-text">${t('about.creator')} Champ (AT Math) + Claude, Codex, Zhipu, Antigravity, Copilot, and Cursor (all of them are free btw)</span></p><p class="about-detail about-detail-version" data-tone="violet"><span class="about-detail-badge" aria-hidden="true"><svg class="about-detail-icon" viewBox="0 0 24 24" focusable="false"><path class="duo" d="M3 12.2V5a2 2 0 0 1 2-2h7.2a2 2 0 0 1 1.4.6l7.2 7.2a2 2 0 0 1 0 2.8l-7 7a2 2 0 0 1-2.8 0l-7.4-7.4a2 2 0 0 1-.6-1.4Z"/><circle class="dot" cx="7.6" cy="7.6" r="1.4"/></svg></span><span class="about-detail-text">${t('about.version')} <strong>${APP_VERSION}</strong></span></p><p class="about-detail about-detail-privacy" data-tone="violet"><span class="about-detail-badge" aria-hidden="true"><svg class="about-detail-icon" viewBox="0 0 24 24" focusable="false"><path class="duo" d="M12 2.8 19.5 5.8v5.6c0 4.6-3 8.1-7.5 9.8-4.5-1.7-7.5-5.2-7.5-9.8V5.8Z"/><path d="m8.7 12.1 2.3 2.3 4.4-4.8"/></svg></span><span class="about-detail-text">${t('about.privacy')}</span></p></div></div>`;
-const aboutSnapshot=about.querySelector('.about-lines');
-if(matchMedia('(hover: hover) and (pointer: fine)').matches&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
-  aboutSnapshot.classList.add('is-interactive');
-  aboutSnapshot.addEventListener('pointermove',event=>{
-    const bounds=aboutSnapshot.getBoundingClientRect(),x=(event.clientX-bounds.left)/bounds.width,y=(event.clientY-bounds.top)/bounds.height;
-    aboutSnapshot.style.setProperty('--tilt-x',`${(x-.5)*8}deg`);
-    aboutSnapshot.style.setProperty('--tilt-y',`${(.5-y)*8}deg`);
-    aboutSnapshot.style.setProperty('--pointer-x',`${x*100}%`);
-    aboutSnapshot.style.setProperty('--pointer-y',`${y*100}%`);
-  });
-  aboutSnapshot.addEventListener('pointerleave',()=>{
-    for(const property of ['--tilt-x','--tilt-y','--pointer-x','--pointer-y'])aboutSnapshot.style.removeProperty(property);
-  });
-}
-function animateAboutCard(){
-  if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
-  const card=about.querySelector('.about-lines');
-  if(!card)return;
-  card.classList.remove('about-lines-arriving');
-  void card.offsetWidth;
-  card.classList.add('about-lines-arriving');
-}
-about.querySelector('.about-lines').addEventListener('animationend',event=>{
-  if(event.animationName==='about-lines-arrive'){
-    event.currentTarget.classList.remove('about-lines-arriving');
-  }
-});
+const aboutIcons=[
+  ['.about-detail-contact','<path d="M5 4.5h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-6l-5 3v-3H5a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2Z"/><circle cx="8" cy="11" r=".7"/><circle cx="12" cy="11" r=".7"/><circle cx="16" cy="11" r=".7"/>'],
+  ['.about-detail-creator','<path d="m12 3 1.7 6.3L20 11l-6.3 1.7L12 19l-1.7-6.3L4 11l6.3-1.7L12 3Z"/>'],
+  ['.about-detail-version','<path d="M7 3.5h7l4 4v13H7zM14 3.5v4h4M10 12h5M10 16h5"/>'],
+  ['.about-detail-privacy','<path d="m12 3 7 3v5c0 4.5-3 7.5-7 10-4-2.5-7-5.5-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/>']
+];
+for(const [selector,paths] of aboutIcons)about.querySelector(`${selector} .about-detail-icon`).innerHTML=paths;
 let characterCountAnimation=0,lineCountAnimation=0,fileCountAnimation=0;
 function animateProjectCharacterCount(){
   const value=about.querySelector('.about-characters-value');
@@ -408,6 +445,37 @@ function animateProjectFileCount(){
   fileCountAnimation=requestAnimationFrame(tick);
 }
 const animateProjectCounts=()=>{animateProjectCharacterCount();animateProjectLineCount();animateProjectFileCount()};
+
+const scrollHint=document.getElementById('scroll-hint');
+let scrollHintFrame=0;
+function updateScrollHint(){
+  scrollHintFrame=0;
+  const elements=[document.scrollingElement,...document.querySelectorAll('#main,.page.on,.view.on,.tool-nav,.tool-nav-list,.tool-layout>.tool,.tool-guide')];
+  let best=null,bestArea=0;
+  for(const element of elements){
+    if(!(element instanceof HTMLElement)||element.clientHeight<80||element.scrollHeight-element.clientHeight<24)continue;
+    const bounds=element.getBoundingClientRect();
+    if(bounds.bottom<=0||bounds.top>=innerHeight||bounds.right<=0||bounds.left>=innerWidth)continue;
+    const style=getComputedStyle(element);
+    if(element!==document.scrollingElement&&!['auto','scroll'].includes(style.overflowY))continue;
+    const area=Math.min(bounds.width,innerWidth)*Math.min(bounds.height,innerHeight);
+    if(area>=bestArea){best=element;bestArea=area}
+  }
+  if(!best||best.scrollTop>6){scrollHint.classList.remove('visible');return}
+  const bounds=best.getBoundingClientRect();
+  const left=Math.max(100,Math.min(innerWidth-100,bounds.left+bounds.width/2));
+  const top=Math.max(12,Math.min(innerHeight-48,bounds.bottom-48));
+  scrollHint.style.left=`${left}px`;
+  scrollHint.style.top=`${top}px`;
+  scrollHint.classList.add('visible');
+}
+function scheduleScrollHint(){
+  if(!scrollHintFrame)scrollHintFrame=requestAnimationFrame(updateScrollHint);
+}
+document.addEventListener('scroll',scheduleScrollHint,{passive:true,capture:true});
+addEventListener('resize',scheduleScrollHint,{passive:true});
+new MutationObserver(scheduleScrollHint).observe(document.getElementById('main'),{subtree:true,childList:true,attributes:true,attributeFilter:['class','hidden','open']});
+scheduleScrollHint();
 
 loadAnalytics(); track('app/start','App start');
 if(typeof requestIdleCallback!=='undefined'){requestIdleCallback(()=>topdf.prepare(),{timeout:2500})}else{setTimeout(()=>topdf.prepare(),1200)}

@@ -3,6 +3,7 @@ const SKIP_ENTRY = /(^|\/)thumbnails\/|^preview\.png$|\.(mp4|m4v|mov|avi|wmv|mpe
 import { readImageInfo } from './imgcore.js?v=3.4.0';
 import { fixNames } from './zipnames.js?v=3.4.0';
 import { prepareSvg } from './svgfix.js?v=3.4.0';
+import { orderNotebookPages } from './notebook-pages.js?v=3.4.0-page-order-v2';
 
 const PAGE_WIDTH_PT = 595.28;
 const B64_CACHE_LIMIT = 48 * 1024 * 1024;
@@ -466,17 +467,18 @@ self.onmessage = async e => {
       namesLower.set(name.toLowerCase(), name);
     }
 
-    const pageEntries = [];
+    let pageEntries = [];
     for (const name of Object.keys(zip)) {
       const m = name.match(/^page(\d+)\.svg$/i);
-      if (m) pageEntries.push({ num: parseInt(m[1], 10), name });
+      if (m) pageEntries.push({ number: parseInt(m[1], 10), name });
     }
-    pageEntries.sort((a, b) => a.num - b.num);
+    pageEntries.sort((a, b) => a.number - b.number);
     if (!pageEntries.length) {
       throw new Error("No pageX.svg files were found inside this .notebook file.");
     }
 
     const dec = new TextDecoder('utf-8');
+    pageEntries = orderNotebookPages(zip,pageEntries,dec);
     const pages = [];
     const errs = [];
     let ok = 0, failed = 0;
@@ -485,7 +487,7 @@ self.onmessage = async e => {
 
     let lastW = 0, lastH = 0;     // size of the last good page, used when a page's own size cannot be read
     for (let i = 0; i < pageEntries.length; i++) {
-      const { num, name } = pageEntries[i];
+      const { name } = pageEntries[i];
       let rawSvg = '';
       try {
         let svgText = dec.decode(zip[name]).replace(/^\uFEFF/, '');

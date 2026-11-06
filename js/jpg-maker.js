@@ -1,6 +1,6 @@
 import {msg,track} from './util.js?v=3.4.0';
 import {download} from './nbtool.js?v=3.4.0';
-import {extractNotebookPages} from './jpgcore.js?v=3.4.0';
+import {extractNotebookPages} from './jpgcore.js?v=3.4.0-page-order-v2';
 import {mountGuide} from './instruction-panel.js?v=3.4.0';
 import {t} from './i18n.js?v=3.4.0';
 
@@ -52,7 +52,7 @@ export function mount(root){
               <button type="button" class="btn jpg-mini jpg-view-toggle" data-q="view-toggle" disabled aria-label="${t('jpg.switchToMediumIcons')}" title="${t('jpg.switchToMediumIcons')}" aria-pressed="false"></button>
             </div>
           </div>
-          <div class="jpg-import-feedback" data-q="import-feedback" hidden aria-live="polite"><span class="jpg-import-spinner" aria-hidden="true"></span><span class="jpg-import-label" data-q="import-label"></span><progress data-q="import-progress" max="1" value="0"></progress></div>
+          <div class="jpg-import-feedback" data-q="import-feedback" hidden aria-live="polite"><span class="jpg-import-spinner" aria-hidden="true"></span><span class="jpg-import-label" data-q="import-label"></span><progress data-q="import-progress" max="1" value="0" aria-label="${t('a11y.progressImport')}"></progress></div>
           <div class="jpg-list" data-q="pages"></div>
         </section>
         <div class="jpg-file-controls"><button type="button" class="btn" data-q="browse">${t('jpg.browse')}</button><button type="button" class="btn" data-q="clear" disabled>${t('jpg.removeAllFiles')}</button></div>
@@ -69,8 +69,8 @@ export function mount(root){
     </div>
     <div class="jpg-footer">
       <div class="jpg-status-wrap">
-        <progress data-q="progress" max="1" value="0" hidden></progress>
-        <div class="sub jpg-status" data-q="status" aria-live="polite">${t('jpg.ready')}</div>
+        <progress data-q="progress" max="1" value="0" hidden aria-label="${t('a11y.progressExport')}"></progress>
+        <div class="sub jpg-status" data-q="status" role="status" aria-live="polite" aria-atomic="true">${t('jpg.ready')}</div>
       </div>
       <div class="jpg-export">
         <div class="quality-row"><label for="jpg-quality">${t('jpg.quality')}</label><select id="jpg-quality" data-q="quality"><option value="70">70%</option><option value="80">80%</option><option value="85">85%</option><option value="90">90%</option><option value="95">95%</option><option value="100" selected>100%</option></select></div>
