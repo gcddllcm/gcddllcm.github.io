@@ -1,5 +1,5 @@
 import {msg,track,countBucket} from './util.js?v=3.4.0';
-import {download} from './nbtool.js?v=3.4.0';
+import {download} from './nbtool.js?v=3.4.0-tool-workspace-v1';
 import {jpgSetDpi} from './imgcore.js?v=3.4.0';
 import {zipSync} from './vendor/fflate.js';
 import {mountGuide} from './instruction-panel.js?v=3.4.0';
@@ -171,9 +171,9 @@ async function loadPdf(file){
 
 export function mount(root){
   root.innerHTML=`<div class="tool-layout wide-tool"><div class="tool wideview jpg-tool pdf-jpg-tool">
-    <div class="head jpg-head"><h1>${t('tool.pdfToJpg')}</h1></div>
-    <div class="sub" data-q="tool-sub">${t('pdfToJpg.sub')}</div>
-    <div class="pdf-jpg-modes" role="tablist" aria-label="${t('pdfToJpg.modes')}"><button type="button" id="pdf-jpg-pages-tab" class="pdf-jpg-mode active" data-q="pages-tab" role="tab" aria-selected="true" aria-controls="pdf-jpg-pages-panel" tabindex="0">${t('pdfToJpg.pagesMode')}</button><button type="button" id="pdf-jpg-images-tab" class="pdf-jpg-mode" data-q="images-tab" role="tab" aria-selected="false" aria-controls="pdf-jpg-images-panel" tabindex="-1">${t('pdfToJpg.imagesMode')}</button></div>
+    <h1 class="tool-title-sr">${t('tool.pdfToJpg')}</h1>
+    <div class="pdf-jpg-modes" data-q="mode-tabs" data-active-mode="pages" role="tablist" aria-label="${t('pdfToJpg.modes')}"><button type="button" id="pdf-jpg-pages-tab" class="pdf-jpg-mode active" data-q="pages-tab" role="tab" aria-selected="true" aria-controls="pdf-jpg-pages-panel" tabindex="0">${t('pdfToJpg.pagesMode')}</button><button type="button" id="pdf-jpg-images-tab" class="pdf-jpg-mode" data-q="images-tab" role="tab" aria-selected="false" aria-controls="pdf-jpg-images-panel" tabindex="-1">${t('pdfToJpg.imagesMode')}</button></div>
+    <div class="pdf-jpg-mode-stage">
     <div id="pdf-jpg-pages-panel" data-q="pages-mode" role="tabpanel" aria-labelledby="pdf-jpg-pages-tab" class="pdf-jpg-mode-content">
     <input type="file" data-q="file" accept=".pdf,application/pdf" multiple hidden>
     <div class="jpg-workspace">
@@ -214,6 +214,7 @@ export function mount(root){
         <button type="button" class="btn primary" data-q="images-download" disabled>${t('pdfToJpg.downloadImages')}</button>
       </div>
     </section>
+    </div>
     <dialog class="imgview jpg-imgview" data-q="fullscreen" aria-label="${t('creator.viewAria')}"><img alt="" draggable="false"><button type="button" class="imgview-close" data-q="fullscreen-close" aria-label="${t('creator.viewClose')}" title="${t('creator.viewClose')}">×</button><div class="imgview-zoom" role="group" aria-label="${t('creator.viewZoom')}"><button type="button" data-q="fullscreen-zoom-in" aria-label="${t('creator.zoomIn')}">+</button><button type="button" data-q="fullscreen-zoom-out" aria-label="${t('creator.zoomOut')}">−</button><button type="button" data-q="fullscreen-zoom-fit">${t('creator.fit')}</button><span data-q="fullscreen-zoom-label">100%</span></div><div class="imgview-name" data-q="fullscreen-name"></div><div class="imgview-hint">${t('creator.viewHint')}</div></dialog>
   </div></div>`;
 
@@ -521,10 +522,13 @@ export function mount(root){
 
   function setMode(mode){
     if(busy||extractionBusy)return;
+    if(mode===activeMode)return;
+    const outgoing=q(activeMode==='pages'?'pages-mode':'images-mode'),incoming=q(mode==='pages'?'pages-mode':'images-mode');
+    outgoing.hidden=true;outgoing.inert=true;outgoing.setAttribute('aria-hidden','true');
+    incoming.hidden=false;incoming.inert=false;incoming.setAttribute('aria-hidden','false');
     activeMode=mode;
-    q('tool-sub').textContent=mode==='pages'?t('pdfToJpg.sub'):t('pdfToJpg.imagesSub');
-    q('pages-mode').hidden=mode!=='pages';
-    q('images-mode').hidden=mode!=='images';
+    const tabs=q('mode-tabs');
+    tabs.dataset.activeMode=mode;
     q('pages-tab').classList.toggle('active',mode==='pages');
     q('pages-tab').setAttribute('aria-selected',String(mode==='pages'));
     q('pages-tab').tabIndex=mode==='pages'?0:-1;
@@ -569,7 +573,7 @@ export function mount(root){
   const browse=()=>{if(!busy)q('file').click()};
   q('pages-tab').onclick=()=>setMode('pages');
   q('images-tab').onclick=()=>setMode('images');
-  root.querySelector('[role="tablist"]').onkeydown=event=>{
+  q('mode-tabs').onkeydown=event=>{
     if(busy||extractionBusy)return;
     const tabs=[q('pages-tab'),q('images-tab')],index=tabs.indexOf(event.target);
     if(index<0)return;

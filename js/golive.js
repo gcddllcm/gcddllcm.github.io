@@ -3,10 +3,9 @@
 // It talks to the same companion extension as the Master Canvas extractor (extension/), and every click happens
 // inside the course tab through that extension. Nothing is sent over the internet.
 import {track,msg} from './util.js?v=3.4.0';
-import {download} from './nbtool.js?v=3.4.0';
+import {download} from './nbtool.js?v=3.4.0-tool-workspace-v1';
 import {t} from './i18n.js?v=3.4.0';
-import {initMascot} from './mascot.js?v=3.4.0';
-import {copyInternalPage,installStepsHtml,updateStepsHtml} from './install-help.js?v=3.4.0';
+import {copyInternalPage,installStepsHtml,updateStepsHtml} from './install-help.js?v=3.4.0-install-guide-v5';
 import {zipSync} from './vendor/fflate.js?v=3.4.0';
 import {older,summarizeBridges,staleDownload,freshUrl,FRESH} from './extcore.js?v=3.4.0';
 import {mountGuide} from './instruction-panel.js?v=3.4.0';
@@ -112,31 +111,11 @@ export function mount(root) {
   root.dataset.extensionUpToDate = 'false';
   root.dataset.extensionState = 'unknown';
   root.innerHTML = `<div class="tool-layout"><div class="tool wideview lc">
-    <div class="lc-heading"><div><h1>${t('tool.golive')}</h1><div class="sub">${t('golive.sub')}</div></div><div class="lc-mascot-wrap" aria-hidden="true"><div class="lc-mascot-body"><img class="lc-mascot" src="${ASSETS.learncraftMascot}" alt="" loading="lazy" decoding="async"><span class="lc-scope-glint"></span><span class="lc-laser-beam"></span></div></div></div>
+    <h1 class="tool-title-sr">${t('tool.golive')}</h1>
     <div class="lc-card" id="gl-status"></div>
     <div class="lc-card" id="gl-courses" hidden></div>
     <div class="lc-card" id="gl-result" hidden></div>
   </div></div>`;
-  const mascotWrap = root.querySelector('.lc-mascot-wrap'), mascotHeading = root.querySelector('.lc-heading');
-  const updateMascot = e => {
-    if (e.pointerType === 'touch') return;
-    const rect = mascotWrap.getBoundingClientRect();
-    if (!rect.width || !rect.height) return;
-    const dx = Math.max(rect.left - e.clientX, 0, e.clientX - rect.right), dy = Math.max(rect.top - e.clientY, 0, e.clientY - rect.bottom);
-    const near = Math.hypot(dx, dy) <= 72, hovered = dx === 0 && dy === 0;
-    mascotWrap.classList.toggle('is-near', near);
-    mascotWrap.classList.toggle('is-hovered', hovered);
-    if (!near) return;
-    const localX = (e.clientX - rect.left) / rect.width;
-    mascotWrap.style.setProperty('--lc-mascot-tilt', `${Math.max(-1.8, Math.min(1.8, (localX - .5) * 3.6))}deg`);
-  };
-  const resetMascot = () => {
-    mascotWrap.classList.remove('is-near', 'is-hovered');
-    mascotWrap.style.removeProperty('--lc-mascot-tilt');
-  };
-  mascotHeading.addEventListener('pointermove', updateMascot);
-  mascotHeading.addEventListener('pointerleave', resetMascot);
-  initMascot(root, {kind: 'golive', result: '#gl-result'});
   mountGuide(root.querySelector('.tool-layout'), 'golive');
   const $s = root.querySelector('#gl-status'), $c = root.querySelector('#gl-courses'), $r = root.querySelector('#gl-result');
   let busy = false, checking = false, checkingUpdate = false, closeDone = true, current = null;
@@ -164,10 +143,9 @@ export function mount(root) {
   }
   function showMissing() {
     $s.hidden = false;
-    $s.className = 'lc-card';
+    $s.className = 'lc-card lc-install-notice';
     $c.hidden = true;
-    $s.innerHTML = `<h2 class="lc-h">${t('learncraft.missingTitle')}</h2>
-      <p class="lc-p">${t('learncraft.missingText')}</p>${installStepsHtml()}`;
+    $s.innerHTML = installStepsHtml();
     $s.querySelector('[data-q=dl]').onclick = e => downloadExtension(e.currentTarget);
     $s.querySelector('[data-q=forcereset]').onclick = forceReset;
     $s.querySelectorAll('[data-q=copyChromeExtensions]').forEach(b => b.onclick = () => copyInternalPage('chrome://extensions'));

@@ -2,8 +2,10 @@ Penguin Logistics - LearnCraft bridge
 =====================================
 
 Deployment version note
-  This release is version 1.1.0. Chrome may not automatically update an existing
-  installation whose version is higher.
+  The extension package in this repository is version 1.1.0, matching manifest.json
+  and the version required by the web tools. The versioned notes below document
+  historical releases; they are not the version included in this package. Chrome
+  may not automatically update an existing installation whose version is higher.
 
 What it does
   Lets the Ultimate Go Live popup work directly with your open LearnCraft Master

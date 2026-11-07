@@ -56,6 +56,25 @@ await check('landing: category order, concise titles, new badges and card arrows
   assert.match(app, /key==='learncraft'\|\|key==='golive'\|\|key==='timestamp-maker'/);
   assert.match(app, /\$\{isNewTool\?\`<span class="landing-tool-new" aria-hidden="true">\$\{t\('landing\.new'\)\}<\/span>\`:''\}/);
 });
+await check('PDF to JPG mode tabs and workspaces transition accessibly', () => {
+  const source = fs.readFileSync(new URL('../js/pdf-to-jpg.js', import.meta.url), 'utf8');
+  const css = fs.readFileSync(new URL('../style.css', import.meta.url), 'utf8');
+  assert.match(source, /class="pdf-jpg-modes" data-q="mode-tabs" data-active-mode="pages" role="tablist"/);
+  assert.match(source, /<div class="pdf-jpg-mode-stage">[\s\S]*?data-q="pages-mode" role="tabpanel"[\s\S]*?data-q="images-mode" role="tabpanel"/);
+  assert.match(source, /outgoing\.inert=true;outgoing\.setAttribute\('aria-hidden','true'\)/);
+  assert.match(source, /incoming\.inert=false;incoming\.setAttribute\('aria-hidden','false'\)/);
+  assert.match(source, /outgoing\.hidden=true;outgoing\.inert=true;outgoing\.setAttribute\('aria-hidden','true'\)/);
+  assert.match(source, /incoming\.hidden=false;incoming\.inert=false;incoming\.setAttribute\('aria-hidden','false'\)/);
+  assert.doesNotMatch(source, /modeTransitionTimer|is-entering|is-leaving/);
+  assert.match(css, /\.pdf-jpg-modes\[data-active-mode="images"\]::after\{transform:translateX\(100%\)\}/);
+  assert.match(css, /\.pdf-jpg-modes::after\{[^}]*transition:transform \.24s cubic-bezier\(\.2,\.75,\.25,1\)/);
+  assert.doesNotMatch(source, /is-moving-to-(?:pages|images)|mode-tabs'\)\.addEventListener\('animationend'/);
+  assert.doesNotMatch(css, /pdf-jpg-indicator-to-(?:pages|images)|\.pdf-jpg-modes\.is-moving-to-/);
+  assert.match(css, /\.pdf-jpg-mode-stage\{flex:1 0 320px;min-height:0;/);
+  assert.match(css, /\.pdf-jpg-mode-stage>\.pdf-jpg-mode-content,\.pdf-jpg-mode-stage>\.pdf-image-mode\{grid-area:1\/1\/2\/2/);
+  assert.doesNotMatch(css, /pdf-jpg-mode-enter|pdf-jpg-mode-leave|\.pdf-jpg-mode-stage>\.is-(?:entering|leaving)/);
+  assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{\.pdf-jpg-modes::after,\.pdf-jpg-mode\{transition:none!important\}\}/);
+});
 await check('keyboard: Space does not switch tools while a Timestamp Maker video preview is open', () => {
   const app = fs.readFileSync(new URL('../js/app.js', import.meta.url), 'utf8');
   assert.match(app, /if\(e\.code==='Space'&&document\.querySelector\('\.tf-video-dialog\[open\]'\)\)return;/);
@@ -222,20 +241,24 @@ await check('i18n: every key used as t(\'...\') in js/ exists in en.js', () => {
 });
 await check('LearnCraft install instructions: download and drag the ZIP into Chrome extensions', () => {
   const src = fs.readFileSync(new URL('../js/install-help.js', import.meta.url), 'utf8');
-  assert.equal(en['learncraft.installVisual4'], 'Drag and drop the ZIP file');
-  assert.equal(en['learncraft.installVisual2'], 'Open Chrome extensions page');
-  assert.equal(en['learncraft.installVisual5'], 'Come back to this page and press');
-  assert.equal(en['learncraft.forceReset'], 'Force refresh');
-  assert.equal(en['learncraft.installVisualLabel'], 'Five visual steps to install the extension');
+  assert.equal(en['learncraft.installStep4Description'], 'Drag and drop the downloaded extension ZIP file into the Chrome extensions page.');
+  assert.equal(en['learncraft.installStep2Title'], 'Open Chrome Extensions');
+  assert.equal(en['learncraft.installStep5Title'], 'Refresh Penguin Logistics');
+  assert.equal(en['learncraft.installForceRefresh'], 'Force Refresh');
+  assert.equal(en['learncraft.installVisualLabel'], 'Five steps to install the extension');
+  assert.equal(en['learncraft.installSubtitle'], 'Follow these 5 simple steps to connect Penguin Logistics with your LearnCraft tabs.');
   assert.match(src, /class="lc-install-visual" aria-label="\$\{t\('learncraft\.installVisualLabel'\)\}"/);
   assert.equal((src.match(/class="lc-install-step"/g) || []).length, 5);
-  const step1 = /<article class="lc-install-step lc-install-step-guide"><span class="lc-install-number">1<\/span>[\s\S]*?<\/article>/.exec(src)?.[0] || '';
-  const step5 = /<article class="lc-install-step lc-install-step-guide"><span class="lc-install-number">5<\/span>[\s\S]*?<\/article>/.exec(src)?.[0] || '';
-  assert.match(step1, /<span class="lc-install-content">[\s\S]*?<span class="lc-install-text">[\s\S]*?<\/span><button[^>]*data-q="dl"/);
-  assert.match(src, /<span class="lc-install-content">[\s\S]*?<span class="lc-install-text">\$\{t\('learncraft\.installVisual2'\)\}<\/span><button[^>]*data-q="copyChromeExtensions"/);
-  assert.match(step5, /<span class="lc-install-content">[\s\S]*?<span class="lc-install-text">[\s\S]*?<\/span><button[^>]*data-q="forcereset"/);
-  assert.match(step1, /data-q="dl"/);
-  assert.match(step5, /data-q="forcereset"/);
+  assert.doesNotMatch(src, /installProgress|progressbar/);
+  assert.match(src, /<path d="m16 16 2 2 4-4"\/>/);
+  assert.match(src, /<path d="M21 2v6h-6"\/>/);
+  assert.match(src, /<path d="M21 13a9 9 0 1 1-2\.64-6\.36L21 8"\/>/);
+  assert.equal(en['learncraft.installProgressCount'], undefined);
+  assert.equal(en['learncraft.installProgressLabel'], undefined);
+  assert.match(src, /data-q="dl">\$\{t\('learncraft\.installDownloadZip'\)\}/);
+  assert.match(src, /data-q="copyChromeExtensions"/);
+  assert.match(src, /data-q="forcereset">\$\{t\('learncraft\.installForceRefresh'\)\}/);
+  assert.match(src, /learncraft\.installStep4Description/);
   assert.doesNotMatch(src, /lc-install-details|learncraft\.installDetails|learncraft\.install[1-5]/);
   const page = fs.readFileSync(new URL('../js/learncraft.js', import.meta.url), 'utf8');
   assert.match(page, /querySelectorAll\('\[data-q=copyChromeExtensions\]'\)\.forEach/);
@@ -244,8 +267,8 @@ await check('LearnCraft install instructions: download and drag the ZIP into Chr
   assert.match(page, /copyInternalPage\('chrome:\/\/extensions'\)/);
   const golive = fs.readFileSync(new URL('../js/golive.js', import.meta.url), 'utf8');
   const timestampMaker = fs.readFileSync(new URL('../js/timestamp-maker.js', import.meta.url), 'utf8');
-  assert.match(page, /from '\.\/install-help\.js\?v=3\.3\.0'/);
-  assert.match(golive, /from '\.\/install-help\.js\?v=3\.3\.0'/);
+  assert.match(page, /from '\.\/install-help\.js\?v=3\.4\.0-install-guide-v5'/);
+  assert.match(golive, /from '\.\/install-help\.js\?v=3\.4\.0-install-guide-v5'/);
   assert.doesNotMatch(golive, /from '\.\/learncraft\.js/);
   assert.match(golive, /\$s\.querySelector\('\[data-q=forcereset\]'\)\.onclick = forceReset/);
   assert.match(timestampMaker, /bindRefresh=\(\)=> \$status\.querySelectorAll\('\[data-q=forcereset\]'\)/);
@@ -255,7 +278,8 @@ await check('LearnCraft install instructions: download and drag the ZIP into Chr
 });
 await check('LearnCraft: Force refresh reloads the page with a one-time cache-busting parameter', () => {
   const src = fs.readFileSync(new URL('../js/learncraft.js', import.meta.url), 'utf8');
-  assert.match(src, /data-q="forcereset">\$\{t\('learncraft\.forceReset'\)\}/);
+  const installHelp = fs.readFileSync(new URL('../js/install-help.js', import.meta.url), 'utf8');
+  assert.match(installHelp, /data-q="forcereset">\$\{t\('learncraft\.installForceRefresh'\)\}/);
   assert.match(src, /url\.searchParams\.set\(FORCE_RESET_PARAM,String\(Date\.now\(\)\)\)/);
   assert.match(src, /location\.replace\(url\.href\)/);
   assert.match(src, /cleanUrl\.searchParams\.delete\(FORCE_RESET_PARAM\)/);
@@ -311,7 +335,7 @@ await check('LearnCraft: notify about a newer extension and explain manual updat
   for (const file of ['golive.js', 'timestamp-maker.js']) {
     const app = fs.readFileSync(new URL('../js/' + file, import.meta.url), 'utf8');
     assert.match(app, /updateStepsHtml\(\)/, `${file} uses the shared update guide`);
-    assert.match(app, /from '\.\/install-help\.js\?v=3\.3\.0'/, `${file} imports the shared guide`);
+    assert.match(app, /from '\.\/install-help\.js\?v=3\.4\.0-install-guide-v5'/, `${file} imports the shared guide`);
   }
   assert.equal(en['learncraft.updateStep5'], 'Remove the old version');
   assert.equal(en['learncraft.updateStep6'], 'Come back to this page and press');
@@ -596,10 +620,52 @@ await check('keyboard shortcuts stay enabled, focus styling persists until point
   assert.match(app, /if\(e\.key==='Tab'\)document\.body\.classList\.add\('keyboard-tab-nav'\)/);
   assert.match(css, /body\.keyboard-tab-nav :focus-visible\{outline:2px solid #8e82ff/);
   assert.doesNotMatch(index, /shortcut-toggle/);
-  for (const file of ['creator.js', 'resizer.js', 'nbtool.js']) {
+  for (const file of ['creator.js', 'nbtool.js']) {
     const source = fs.readFileSync(new URL('../js/' + file, import.meta.url), 'utf8');
     assert.match(source, /role="button" aria-keyshortcuts="Enter Space"/, file);
     assert.match(source, /e\.preventDefault\(\);pick\(\)/, file);
+  }
+  const resizer = fs.readFileSync(new URL('../js/resizer.js', import.meta.url), 'utf8');
+  const resizerCss = fs.readFileSync(new URL('../style.css', import.meta.url), 'utf8');
+  assert.equal((resizerCss.match(/M24 31V9m-8 8 8-8 8 8M8 29v10h32V29/g) || []).length, 3, 'all CSS drop-zone icons point up');
+  assert.doesNotMatch(resizerCss, /M24 7v23m-8-8 8 8 8-8M8 33v9h32v-9/);
+  assert.match(resizerCss, /\.advanced-mode \.lrow-title-trigger\{[^}]*background:#1b1c22/);
+  assert.match(resizerCss, /\.advanced-mode \.lrow-title-trigger:hover\{[^}]*background:#1b1c22/);
+  assert.match(resizerCss, /\.advanced-mode \.lrow-title-row input\.lrow-title\{[^}]*background:#1b1c22[^}]*border-radius:5px/);
+  assert.match(resizer, /class="resizer-settings-panel resizer-panel"[\s\S]*?class="row3"[\s\S]*?class="resizer-settings"/);
+  assert.match(resizer, /class="resizer-dimension-field"><span>\$\{t\('resizer\.dpi'\)\}<\/span><input id="rz-dpi"/);
+  assert.match(resizer, /class="resizer-dimension-field"><span>\$\{t\('resizer\.widthName'\)\}<\/span><input id="rz-w"/);
+  assert.match(resizer, /class="resizer-dimension-field"><span>\$\{t\('resizer\.heightName'\)\}<\/span><input id="rz-h"/);
+  assert.match(resizer, /class="resizer-output-panel resizer-panel"[\s\S]*?id="rz-path"[\s\S]*?id="rz-out"/);
+  assert.match(resizer, /class="btn primary" id="rz-out"/);
+  assert.match(resizer, /id="rz-drop"[\s\S]*?id="rz-browse"/);
+  assert.doesNotMatch(resizer, /rz-selection|rz-preview|rz-count|rz-clear|rz-remove/);
+  assert.doesNotMatch(resizer, /resizer-action-panel|rz-run/);
+  assert.match(resizer, /const addEntries=entries=>\{[\s\S]*?run\(added\)/, 'automatically resize images when selected');
+  assert.match(resizer, /const updateControls=\(\)=>\{\$\('rz-browse'\)\.disabled=busy\}/);
+  assert.match(resizer, /try\{await runBatch\(entries,s\)\}catch/);
+  assert.match(resizer, /class="rz-progress-sr" id="rz-progress" role="progressbar"/);
+  assert.match(resizer, /drop\.classList\.add\('off','is-processing'\)/);
+  assert.match(resizer, /updateProgress\(\+\+processed,entries\.length\)/);
+  assert.match(resizer, /progress\.setAttribute\('aria-valuetext',t\('resizer\.filesProgress',completed,total\)\)/);
+  assert.match(resizerCss, /@property --rz-progress\{syntax:"<percentage>";inherits:true;initial-value:0%\}/);
+  assert.match(resizerCss, /\.view\[data-tool="resizer"\] \.rz-drop\{[^}]*transition:--rz-progress \.35s ease/);
+  assert.match(resizerCss, /\.view\[data-tool="resizer"\] \.rz-drop\.is-processing::after\{opacity:1\}/);
+  assert.match(resizerCss, /conic-gradient\(#6c5ce7 0 calc\(var\(--rz-progress,1%\) - 1\.5%\),#e2ddff calc\(var\(--rz-progress,1%\) - 1\.5%\) var\(--rz-progress,1%\),transparent var\(--rz-progress,1%\) 100%\)/);
+  assert.match(resizer, /drop\.onkeydown=e=>\{if\(e\.target===drop&&\(e\.key==='Enter'\|\|e\.key===' '\)/);
+  assert.doesNotMatch(resizer, /rz-progress-container|rz-progress-list|rz-status/);
+  assert.match(resizerCss, /\.resizer-settings-panel \.row3\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
+  assert.match(resizerCss, /\.resizer-settings-panel \.row3 \.resizer-dimension-field\{display:flex;min-width:0;min-height:55px/);
+  assert.match(resizerCss, /\.resizer-settings-panel \.row3 \.resizer-dimension-field:hover,\.resizer-settings-panel \.row3 \.resizer-dimension-field:focus-within\{border-color:#8173e9;box-shadow:0 0 0 1px #8173e955,0 0 16px #6c5ce744\}/);
+  assert.match(resizerCss, /\.resizer-settings-panel \.row3 input:hover,\.resizer-settings-panel \.row3 input:focus\{border-color:transparent;box-shadow:none\}/);
+  assert.match(resizerCss, /\.view\[data-tool="resizer"\] \.rz-drop::before\{display:none\}/);
+  assert.match(resizerCss, /\.resizer-output-row\{display:flex;align-items:center;justify-content:space-between/);
+  assert.doesNotMatch(resizerCss, /\.rz-selection|\.rz-preview|\.rz-remove|\.rz-clear/);
+  assert.doesNotMatch(resizerCss, /\.resizer-action-panel/);
+  assert.doesNotMatch(resizerCss, /\.rz-progress(?!-sr)/);
+  assert.equal(en['resizer.imageSettings'], 'Image Settings');
+  for (const key of ['resizer.resizeImages', 'resizer.selectedCount', 'resizer.noImages', 'resizer.clearAll', 'resizer.removeImage', 'resizer.imageInfo', 'resizer.imageDimensions']) {
+    assert.equal(en[key], undefined, `unused preview label ${key} should be removed`);
   }
   assert.match(background, /const hasHeading = node => node\.nodeType === 1 && \(isHeading\(node\) \|\| \[\.\.\.node\.querySelectorAll\('h5,h6'\)\]\.some\(isHeading\)\)/);
   assert.match(background, /const addsHeading = record =>/);

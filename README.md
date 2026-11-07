@@ -24,6 +24,23 @@ Set the repository's Pages source to **GitHub Actions** for the workflow to publ
 Checks the syntax of every script, the image helpers (`js/imgcore.js`) and the Notebook to PDF worker (`js/pdfworker.js`).
 Everything runs on Node only; no extra packages are needed.
 
+## Tool taglines
+
+Tool names and taglines are kept in `js/locales/en.js` under the keys below. They are reference copy and are not displayed in the workspace.
+
+| Tool | Tagline key | English tagline |
+|---|---|---|
+| File Creator | `creator.sub` | Turn images into a SMART Notebook, one image per page |
+| Convert to PDF | `pdf.sub` | One PDF per .notebook file |
+| PDF to JPG | `pdfToJpg.sub` | Preview PDF pages and export selected pages as JPG |
+| PDF image extraction mode | `pdfToJpg.imagesSub` | Extract embedded images from one PDF and download them as PNG files. |
+| Notebook to JPG | `jpg.sub` | Preview every page in your SMART Notebook and export selected pages as JPG |
+| Page Locker | `pagelock.sub` | Lock or unlock every image on every page |
+| Image Resizer | `resizer.sub` | Resize images and 'TRULY' set DPI in bulk |
+| Canvas Extractor | `learncraft.sub` | Read Master Canvas tabs and extract some data from it. |
+| Ultimate Go Live | `golive.sub` | Takes courses to Ready: it approves the Master Canvas, then updates every variant you selected. |
+| Timestamp Maker | `timestampMaker.sub` | Fill Page and Problem number for assets in an open Master Canvas. |
+
 ## Ultimate Go Live
 
 Code: `js/golive.js` (page), `js/glcore.js` (progress helpers, tested in Node), `extension/background.js` (`runGoLive` / `lcGoLiveStep`).

@@ -3,10 +3,9 @@
 // tool talks to it through window.postMessage (extension/bridge.js). Course data stays in this browser tab.
 import {msg,track} from './util.js?v=3.4.0';
 import {mountGuide} from './instruction-panel.js?v=3.4.0';
-import {download} from './nbtool.js?v=3.4.0';
+import {download} from './nbtool.js?v=3.4.0-tool-workspace-v1';
 import {t} from './i18n.js?v=3.4.0';
-import {initMascot} from './mascot.js?v=3.4.0';
-import {copyInternalPage,installStepsHtml,updateStepsHtml} from './install-help.js?v=3.4.0';
+import {copyInternalPage,installStepsHtml,updateStepsHtml} from './install-help.js?v=3.4.0-install-guide-v5';
 import {zipSync} from './vendor/fflate.js?v=3.4.0';
 import {older,summarizeBridges,staleDownload,freshUrl,FRESH} from './extcore.js?v=3.4.0';
 import {countTree,checkTimes,findGaps,tableTsv,tableCsv,tableRows,summaryTsv,fmtTime,normTime,toSeconds,sumAssetTimes} from './lccore.js?v=3.4.0';
@@ -84,33 +83,12 @@ export function mount(root){
   root.dataset.extensionUpToDate='false';
   root.dataset.extensionState='unknown';
   root.innerHTML=`<div class="tool-layout"><div class="tool wideview lc">
-    <div class="lc-heading"><div><h1>${t('tool.learncraft')}</h1><div class="sub">${t('learncraft.sub')}</div></div><div class="lc-mascot-wrap" aria-hidden="true"><div class="lc-mascot-body"><img class="lc-mascot" src="${ASSETS.learncraftMascot}" alt="" loading="lazy" decoding="async"><span class="lc-scope-glint"></span><span class="lc-laser-beam"></span></div></div></div>
+    <h1 class="tool-title-sr">${t('tool.learncraft')}</h1>
     <div class="lc-card" id="lc-status"></div>
     <div class="lc-card" id="lc-tabs" hidden></div>
     <div class="lc-card" id="lc-result" hidden></div>
   </div></div>`;
   const $s=root.querySelector('#lc-status'),$t=root.querySelector('#lc-tabs'),$r=root.querySelector('#lc-result');
-  const mascotWrap=root.querySelector('.lc-mascot-wrap'),mascotHeading=root.querySelector('.lc-heading');
-  const updateMascot=(e)=>{
-    if(e.pointerType==='touch')return;
-    const rect=mascotWrap.getBoundingClientRect();
-    if(!rect.width||!rect.height)return;
-    const x=e.clientX,y=e.clientY;
-    const dx=Math.max(rect.left-x,0,x-rect.right),dy=Math.max(rect.top-y,0,y-rect.bottom);
-    const near=Math.hypot(dx,dy)<=72,hovered=dx===0&&dy===0;
-    mascotWrap.classList.toggle('is-near',near);
-    mascotWrap.classList.toggle('is-hovered',hovered);
-    if(!near)return;
-    const localX=(x-rect.left)/rect.width;
-    mascotWrap.style.setProperty('--lc-mascot-tilt',`${Math.max(-1.8,Math.min(1.8,(localX-.5)*3.6))}deg`);
-  };
-  const resetMascot=()=>{
-    mascotWrap.classList.remove('is-near','is-hovered');
-    mascotWrap.style.removeProperty('--lc-mascot-tilt');
-  };
-  mascotHeading.addEventListener('pointermove',updateMascot);
-  mascotHeading.addEventListener('pointerleave',resetMascot);
-  initMascot(root,{kind:'learncraft',result:'#lc-result'});
   mountGuide(root.querySelector('.tool-layout'),'learncraft');
   let ext=null,dup=null,latestVersion=null,busy=false,repeat=true,depth='assets',current=null,checking=false,checkingUpdate=false,refreshingTabs=false,needsExtensionUpdate=false,tabRows=null,ghostTargets=[],ghostUpdate=null,ghostResize=null,ghostFrame=0;
   const setExtensionState=state=>{root.dataset.extensionState=state;root.dataset.extensionUpToDate=String(state==='up-to-date');root.dispatchEvent(new Event('extensionstatechange'))};
@@ -125,9 +103,8 @@ export function mount(root){
   // ---- extension status / install help ----
   function showChecking(){$s.hidden=false;$s.className='lc-card';$s.innerHTML=`<div class="lc-line"><span class="lc-spin" aria-hidden="true"></span>${t('learncraft.checking')}</div>`;$t.hidden=true}
   function showMissing(){
-    $s.hidden=false;$s.className='lc-card';$t.hidden=true;
-    $s.innerHTML=`<h2 class="lc-h">${t('learncraft.missingTitle')}</h2><p class="lc-p">${t('learncraft.missingText')}</p>
-    ${installStepsHtml()}`;
+    $s.hidden=false;$s.className='lc-card lc-install-notice';$t.hidden=true;
+    $s.innerHTML=installStepsHtml();
     $s.querySelector('[data-q=dl]').onclick=e=>downloadExtension(e.currentTarget);
     $s.querySelector('[data-q=forcereset]').onclick=forceReset;
     $s.querySelectorAll('[data-q=copyChromeExtensions]').forEach(button=>button.onclick=()=>copyInternalPage('chrome://extensions'));

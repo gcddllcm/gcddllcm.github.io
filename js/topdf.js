@@ -1,5 +1,5 @@
 import {msg,track,countBucket} from './util.js?v=3.4.0';
-import {shell,download,ensureWriteAccess} from './nbtool.js?v=3.4.0';
+import {shell,download,ensureWriteAccess} from './nbtool.js?v=3.4.0-tool-workspace-v1';
 import {t} from './i18n.js?v=3.4.0';
 
 const PDF_RESOLUTION=0;   // 0 = no fixed width: a plain image page keeps its pixels as they are; a page that has to be drawn (ink, text) is rendered at its widest picture's width, between 1600 and 3508 px
@@ -112,7 +112,7 @@ async function exportNb(entry,decide,onPage,quality,resolution){
   return {state:'done',failed:r.failed,err:r.err,fallback};
 }
 export function mount(root){
-  const ui=shell(root,{title:t('tool.topdf'),sub:t('pdf.sub'),guideKey:'topdf',
+  const ui=shell(root,{title:t('tool.topdf'),guideKey:'topdf',
     hideFolder:true,
     top:`<div class="quality-row"><label for="pdf-quality">${t('pdf.quality')}</label><select id="pdf-quality" data-q="quality"><option value="70">70%</option><option value="80">80%</option><option value="90" selected>90${t('pdf.recommended')}</option><option value="95">95%</option><option value="100">100%</option></select></div>`,
     async run(entries,ign,ui){

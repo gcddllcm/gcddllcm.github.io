@@ -1,13 +1,12 @@
 import {msg} from './util.js?v=3.4.0';
-import {download} from './nbtool.js?v=3.4.0';
+import {download} from './nbtool.js?v=3.4.0-tool-workspace-v1';
 import {t} from './i18n.js?v=3.4.0';
 import {mountGuide} from './instruction-panel.js?v=3.4.0';
-import {copyInternalPage,installStepsHtml,updateStepsHtml} from './install-help.js?v=3.4.0';
+import {copyInternalPage,installStepsHtml,updateStepsHtml} from './install-help.js?v=3.4.0-install-guide-v5';
 import {zipSync} from './vendor/fflate.js?v=3.4.0';
 import {older,summarizeBridges,staleDownload,freshUrl,FRESH} from './extcore.js?v=3.4.0';
 import {assetMatchesDateSelection,flattenTimestampAssets,groupTimestampUpdates,normalizeTimestampTree,parseTimestampPaste,selectedTimestampUpdates,summarizeRecordingDays} from './timestampcore.js?v=3.4.0';
-import {ASSETS,extensionAssetUrl} from './assets.js?v=3.4.0';
-import {initMascot} from './mascot.js?v=3.4.0';
+import {extensionAssetUrl} from './assets.js?v=3.4.0';
 
 const EXT_MIN='1.1.0';
 const FORCE_RESET_PARAM='__pl_tf_reset';
@@ -69,25 +68,11 @@ export function mount(root){
   root.dataset.extensionUpToDate='false';
   root.dataset.extensionState='unknown';
   root.innerHTML=`<div class="tool-layout"><div class="tool wideview tf">
-    <div class="lc-heading"><div><h1>${t('tool.timestampMaker')}</h1><div class="sub">${t('timestampMaker.sub')}</div></div><div class="lc-mascot-wrap" aria-hidden="true"><div class="lc-mascot-body"><img class="lc-mascot" src="${ASSETS.learncraftMascot}" alt="" loading="lazy" decoding="async"><span class="lc-scope-glint"></span><span class="lc-laser-beam"></span></div></div></div>
+    <h1 class="tool-title-sr">${t('tool.timestampMaker')}</h1>
     <div class="lc-card tf-status" role="status" aria-live="polite"></div>
     <div class="lc-card tf-courses" hidden></div>
     <div class="lc-card tf-editor" hidden></div>
   </div></div>`;
-  const mascotWrap=root.querySelector('.lc-mascot-wrap'),mascotHeading=root.querySelector('.lc-heading');
-  const updateMascot=event=>{
-    if(event.pointerType==='touch')return;
-    const rect=mascotWrap.getBoundingClientRect();
-    if(!rect.width||!rect.height)return;
-    const dx=Math.max(rect.left-event.clientX,0,event.clientX-rect.right),dy=Math.max(rect.top-event.clientY,0,event.clientY-rect.bottom);
-    const near=Math.hypot(dx,dy)<=72,hovered=dx===0&&dy===0;
-    mascotWrap.classList.toggle('is-near',near);
-    mascotWrap.classList.toggle('is-hovered',hovered);
-    if(near){const localX=(event.clientX-rect.left)/rect.width;mascotWrap.style.setProperty('--lc-mascot-tilt',`${Math.max(-1.8,Math.min(1.8,(localX-.5)*3.6))}deg`)}
-  };
-  mascotHeading.addEventListener('pointermove',updateMascot);
-  mascotHeading.addEventListener('pointerleave',()=>{mascotWrap.classList.remove('is-near','is-hovered');mascotWrap.style.removeProperty('--lc-mascot-tilt')});
-  initMascot(root,{kind:'timestampMaker',result:'.tf-editor'});
   mountGuide(root.querySelector('.tool-layout'),'timestampMaker');
   const $status=root.querySelector('.tf-status'),$courses=root.querySelector('.tf-courses'),$editor=root.querySelector('.tf-editor');
   let extension=null,tabs=[],activeTab=null,assets=[],tree=[],busy=false,stopRequested=false,activeFillRequestId=null,dateSummary={days:[],undated:0},selectedDates=new Set(),includeUndated=false,ghostController=null,refreshGhostPosition=()=>{},updateRangeSummary=()=>{},lastEnteredIntegers={pageNo:null,problemNo:null};
@@ -105,9 +90,9 @@ export function mount(root){
 
   const status=(text,kind='')=>{$status.hidden=false;$status.className=`lc-card tf-status${kind?` ${kind}`:''}`;$status.textContent=text};
   const clearStatus=()=>{$status.hidden=true;$status.textContent=''};
-  const showInstallNotice=(html)=>{
+  const showInstallNotice=(html,className='')=>{
     $status.hidden=false;
-    $status.className='lc-card';
+    $status.className=`lc-card${className?` ${className}`:''}`;
     $status.innerHTML=html;
     $courses.hidden=true;$editor.hidden=true;
     $status.scrollIntoView({block:'nearest'});
@@ -147,7 +132,7 @@ export function mount(root){
     }
   }
   function showMissing(){
-    showInstallNotice(`<h2 class="lc-h">${t('learncraft.missingTitle')}</h2><p class="lc-p">${t('learncraft.missingText')}</p>${installStepsHtml()}`);
+    showInstallNotice(installStepsHtml(),'lc-install-notice');
     $status.querySelector('[data-q=dl]').addEventListener('click',event=>downloadExtension(event.currentTarget));
     bindInstallSteps();bindRefresh();
   }

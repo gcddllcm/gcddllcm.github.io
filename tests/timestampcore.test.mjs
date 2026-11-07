@@ -269,7 +269,7 @@ await check('integration: the LearnCraft directory includes the guarded extensio
   assert.match(module, /tf-day-status-\$\{kind\}/);
   assert.match(module, /timestampMaker\.dateFilterHint/);
   assert.match(module, /data-action=stop/);
-  assert.match(module, /import \{copyInternalPage,installStepsHtml\} from '\.\/install-help\.js\?v=3\.3\.0'/);
+  assert.match(module, /import \{copyInternalPage,installStepsHtml,updateStepsHtml\} from '\.\/install-help\.js\?v=3\.4\.0-install-guide-v5'/);
   assert.match(module, /function showMissing\(\)/);
   assert.match(module, /function showOutdated\(version\)/);
   assert.match(module, /function showDuplicate\(info\)/);

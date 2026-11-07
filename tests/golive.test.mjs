@@ -31,7 +31,7 @@ check('course stage appears before Ready to Go Live except when already Ready', 
   assert.match(page, /<span class="lc-status-go-live">\$\{t\('golive\.tabUsable'\)\}<\/span>/);
 });
 check('missing extension offers Force refresh instead of Check again', () => {
-  assert.match(page, /data-q="forcereset">\$\{t\('learncraft\.forceReset'\)\}/);
+  assert.match(page, /installStepsHtml\(\)/);
   assert.match(page, /\$s\.querySelector\('\[data-q=forcereset\]'\)\.onclick = forceReset/);
   assert.doesNotMatch(page, /data-q="retry">\$\{t\('golive\.checkAgain'\)\}/);
 });

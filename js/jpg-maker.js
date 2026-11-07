@@ -1,5 +1,5 @@
 import {msg,track} from './util.js?v=3.4.0';
-import {download} from './nbtool.js?v=3.4.0';
+import {download} from './nbtool.js?v=3.4.0-tool-workspace-v1';
 import {extractNotebookPages} from './jpgcore.js?v=3.4.0-page-order-v2';
 import {mountGuide} from './instruction-panel.js?v=3.4.0';
 import {t} from './i18n.js?v=3.4.0';
@@ -39,8 +39,7 @@ const hasFiles=event=>[...(event.dataTransfer?.types||[])].includes('Files');
 
 export function mount(root){
   root.innerHTML=`<div class="tool-layout wide-tool"><div class="tool wideview jpg-tool">
-    <div class="head jpg-head"><h1>${t('tool.jpgMaker')}</h1></div>
-    <div class="sub">${t('jpg.sub')}</div>
+    <h1 class="tool-title-sr">${t('tool.jpgMaker')}</h1>
     <input type="file" data-q="file" accept=".notebook" multiple hidden>
     <div class="jpg-workspace">
       <div class="jpg-pages-column">

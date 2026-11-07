@@ -7,8 +7,8 @@ export function download(name,bytes){const a=document.createElement('a');a.href=
 
 // Shared shell for file-conversion tools: drop box, folder picker, progress, and status.
 // run(entries, ignoredCount, ui) does the work. entry = {file, handle|null, dir|null}
-export function shell(root,{title,sub,guideKey,top='',hideFolder=false,accept='.notebook',isAccepted=isNb,pickerTypes=NBTYPES,dropLabel=t('nb.drop'),emptyTitle=t('nb.noFilesTitle'),emptyMessage=t('nb.noFiles'),run}){
-  root.innerHTML=`<div class="tool-layout"><div class="tool"><div class="head"><h1>${title}</h1></div><div class="sub">${sub}</div>${top}
+export function shell(root,{title,guideKey,top='',hideFolder=false,accept='.notebook',isAccepted=isNb,pickerTypes=NBTYPES,dropLabel=t('nb.drop'),emptyTitle=t('nb.noFilesTitle'),emptyMessage=t('nb.noFiles'),run}){
+  root.innerHTML=`<div class="tool-layout"><div class="tool"><h1 class="tool-title-sr">${title}</h1>${top}
   <div class="drop" data-q="drop" tabindex="0" role="button" aria-keyshortcuts="Enter Space"><span class="drop-label">${dropLabel}</span></div>
   ${hideFolder?'':'<div class="btnrow"><button class="btn" data-q="folder">'+t('nb.folder')+'</button></div>'}
   <div class="tool-progress"><progress data-q="prog" max="1" value="0" aria-label="${t('a11y.progressFiles')}"></progress><div class="sub" data-q="status" role="status" aria-live="polite" aria-atomic="true">${t('nb.ready')}</div></div><input type="file" data-q="file" multiple accept="${accept}" hidden></div></div>`;

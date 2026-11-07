@@ -235,35 +235,62 @@ async function processInThread(file,ow,oh,dpi,ext,quality){
 
 // ---- view ----
 export function mount(root){
-  root.innerHTML=`<div class="tool-layout"><div class="tool"><div class="head"><h1>${t('tool.resizer')}</h1></div>
-  <div class="sub">${t('resizer.sub')}</div>
-  <div class="row3"><label>${t('resizer.dpi')}<input id="rz-dpi" value="300" inputmode="numeric"></label><label>${t('resizer.width')}<input id="rz-w" value="2480" inputmode="numeric"></label><label>${t('resizer.height')}<input id="rz-h" value="3508" inputmode="numeric"></label></div>
-  <div class="resizer-settings"><div class="quality-row"><label for="rz-q">${t('resizer.quality')}</label><select id="rz-q"><option value="75">75%</option><option value="85">85%</option><option value="90">90%</option><option value="95">95%</option><option value="100" selected>${t('resizer.qualityDefault')}</option></select></div>
-  <button class="btn reset-btn" id="rz-reset">${t('resizer.reset')}</button></div>
-  <div class="resizer-output-row"><button class="btn primary" id="rz-out">${t('resizer.output')}</button><div class="path" id="rz-path">${HAS_FS?t('resizer.noFolder'):t('resizer.downloadMode')}</div></div>
-  <div class="drop" id="rz-drop" tabindex="0" role="button" aria-keyshortcuts="Enter Space"><span class="drop-label">${t('resizer.drop')}</span></div>
-  <div class="tool-progress"><progress id="rz-prog" max="1" value="0" aria-label="${t('a11y.progressFiles')}"></progress><div class="sub" id="rz-status" role="status" aria-live="polite" aria-atomic="true">${t('resizer.ready')}</div></div>
+  root.innerHTML=`<div class="tool-layout"><div class="tool"><h1 class="tool-title-sr">${t('tool.resizer')}</h1>
+  <section class="resizer-panel resizer-settings-panel" aria-labelledby="rz-settings-title">
+    <h2 class="resizer-section-title" id="rz-settings-title">${t('resizer.imageSettings')}</h2>
+    <div class="row3"><label class="resizer-dimension-field"><span>${t('resizer.dpi')}</span><input id="rz-dpi" value="300" inputmode="numeric"></label><label class="resizer-dimension-field"><span>${t('resizer.widthName')}</span><input id="rz-w" value="2480" inputmode="numeric"></label><label class="resizer-dimension-field"><span>${t('resizer.heightName')}</span><input id="rz-h" value="3508" inputmode="numeric"></label></div>
+    <div class="resizer-settings"><div class="quality-row"><label for="rz-q">${t('resizer.quality')}</label><select id="rz-q"><option value="75">75%</option><option value="85">85%</option><option value="90">90%</option><option value="95">95%</option><option value="100" selected>${t('resizer.qualityDefault')}</option></select></div>
+    <button type="button" class="btn reset-btn" id="rz-reset">${t('resizer.reset')}</button></div>
+  </section>
+  <section class="resizer-panel resizer-output-panel" aria-labelledby="rz-output-title">
+    <h2 class="resizer-section-title" id="rz-output-title">${t('resizer.outputLocation')}</h2>
+    <div class="resizer-output-row"><div class="path" id="rz-path">${HAS_FS?t('resizer.noFolder'):t('resizer.downloadMode')}</div><button type="button" class="btn primary" id="rz-out">${t('resizer.chooseFolder')}</button></div>
+  </section>
+  <section class="resizer-upload-section" aria-label="${t('resizer.browseImages')}">
+    <div class="drop rz-drop" id="rz-drop" tabindex="0" role="group" aria-label="${t('resizer.dropHint')}">
+      <svg class="rz-upload-icon" aria-hidden="true" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M24 31V9m-8 8 8-8 8 8"/><path d="M9 29v10h30V29"/></svg>
+      <strong class="rz-drop-title" id="rz-drop-title" role="status" aria-live="polite" aria-atomic="true">${t('resizer.dropImages')}</strong>
+      <span class="rz-drop-hint">${t('resizer.dropHint')}</span>
+      <button type="button" class="btn rz-browse" id="rz-browse">${t('resizer.browseImages')}</button>
+      <span class="rz-progress-sr" id="rz-progress" role="progressbar" aria-label="${t('a11y.progressFiles')}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden></span>
+    </div>
+  </section>
   <input type="file" id="rz-file" multiple accept=".jpg,.jpeg,.png,.bmp,.webp" hidden></div>
   </div>`;
 
   let outDir=null,busy=false;
-  const drop=$('rz-drop'),status=t=>$('rz-status').textContent=t;
+  const drop=$('rz-drop');
   mountGuide(root.querySelector('.tool-layout'),'resizer');
   $('rz-reset').onclick=()=>{$('rz-dpi').value='300';$('rz-w').value='2480';$('rz-h').value='3508';$('rz-q').value='100'};
   if(!HAS_FS)$('rz-out').hidden=true;
+  const updateControls=()=>{$('rz-browse').disabled=busy};
+  const updateProgress=(completed,total)=>{
+    const percent=Math.round(completed/total*100),progress=$('rz-progress');
+    drop.style.setProperty('--rz-progress',`${Math.max(1,percent)}%`);
+    $('rz-drop-title').textContent=t('resizer.filesProgress',completed,total);
+    progress.setAttribute('aria-valuenow',String(percent));
+    progress.setAttribute('aria-valuetext',t('resizer.filesProgress',completed,total));
+  };
+  const addEntries=entries=>{
+    if(busy)return;
+    const added=entries.filter(entry=>entry.file instanceof File);
+    if(!added.length)return;
+    run(added);
+  };
   $('rz-out').onclick=async()=>{if(busy)return;try{outDir=await showDirectoryPicker({mode:'readwrite'});$('rz-path').textContent=outDir.name;$('rz-path').classList.add('set')}catch{}};
   const pick=async()=>{
     if(busy)return;
-    if('showOpenFilePicker' in window){try{const hs=await showOpenFilePicker({multiple:true,types:[{description:'Images',accept:{'image/*':['.jpg','.jpeg','.png','.bmp','.webp']}}]});run(await Promise.all(hs.map(async h=>({file:await h.getFile(),handle:h}))))}catch{}}
+    if('showOpenFilePicker' in window){try{const hs=await showOpenFilePicker({multiple:true,types:[{description:'Images',accept:{'image/*':['.jpg','.jpeg','.png','.bmp','.webp']}}]});addEntries(await Promise.all(hs.map(async h=>({file:await h.getFile(),handle:h}))))}catch{}}
     else $('rz-file').click();
   };
-  drop.onclick=pick;drop.onkeydown=e=>{if((e.key==='Enter'||e.key===' ')&&!e.repeat){e.preventDefault();pick()}};
-  $('rz-file').onchange=e=>{run([...e.target.files].map(file=>({file,handle:null})));e.target.value=''};
+  drop.onclick=e=>{if(!e.target.closest('button'))pick()};drop.onkeydown=e=>{if(e.target===drop&&(e.key==='Enter'||e.key===' ')&&!e.repeat){e.preventDefault();pick()}};
+  $('rz-browse').onclick=e=>{e.stopPropagation();pick()};
+  $('rz-file').onchange=e=>{addEntries([...e.target.files].map(file=>({file,handle:null})));e.target.value=''};
   drop.ondragover=e=>{e.preventDefault();drop.classList.add('hot')};drop.ondragleave=()=>drop.classList.remove('hot');
   drop.ondrop=async e=>{
     e.preventDefault();drop.classList.remove('hot');if(busy)return;
     const items=[...e.dataTransfer.items].filter(i=>i.kind==='file');
-    run(await Promise.all(items.map(async it=>{const hp=it.getAsFileSystemHandle?it.getAsFileSystemHandle():null,file=it.getAsFile();let h=null;try{h=await hp}catch{}return{file,handle:h&&h.kind==='file'?h:null}})));
+    addEntries(await Promise.all(items.map(async it=>{const hp=it.getAsFileSystemHandle?it.getAsFileSystemHandle():null,file=it.getAsFile();let h=null;try{h=await hp}catch{}return{file,handle:h&&h.kind==='file'?h:null}})));
   };
   function settings(){
     const dpi=$('rz-dpi').value.trim(),w=$('rz-w').value.trim(),h=$('rz-h').value.trim(),bad=(title,s)=>{msg(title,s,'error');return null};
@@ -289,23 +316,27 @@ export function mount(root){
   addEventListener('beforeunload',e=>{if(busy){e.preventDefault();e.returnValue=''}});   // closing the tab mid-run leaves files half written
   async function run(entries){
     if(busy||!entries.length)return;const s=settings();if(!s)return;
-    busy=true;
+    busy=true;updateControls();drop.classList.add('off','is-processing');drop.style.setProperty('--rz-progress','1%');
+    $('rz-progress').hidden=false;updateProgress(0,entries.length);
     try{await runBatch(entries,s)}catch(e){msg(t('nb.error'),String(e&&e.message||e),'error')}
-    finally{busy=false;drop.classList.remove('off');$('rz-prog').value=0}
+    finally{
+      busy=false;updateControls();drop.classList.remove('off','is-processing');drop.style.removeProperty('--rz-progress');
+      $('rz-drop-title').textContent=t('resizer.dropImages');
+      $('rz-progress').hidden=true;$('rz-progress').setAttribute('aria-valuenow','0');$('rz-progress').removeAttribute('aria-valuetext');
+    }
   }
   async function runBatch(entries,s){
-    drop.classList.add('off');$('rz-prog').max=entries.length*2;$('rz-prog').value=0;
-    const fails=[],results=[],used=new Set(),direct=!!outDir;let ok=0,processed=0,steps=0,stretched=0,webp=0;
+    drop.classList.add('off');
+    const fails=[],results=[],used=new Set(),direct=!!outDir;let ok=0,stretched=0,webp=0;
+    let processed=0;
     const workerPool=getPool();
-    const step=n=>{steps+=n;$('rz-prog').value=steps};
     // Two inputs with the same name (from different folders) must not overwrite each other in the output folder.
     const uniqueName=name=>{let n=name,k=1;while(used.has(n.toLowerCase()))n=name.replace(/(\.[^.]*)?$/,`_${++k}$1`);used.add(n.toLowerCase());return n};
 
     // Decode, resize and encode in the worker pool. With an output folder each result is written
     // straight away (overlapping disk writes with other files' processing), so results never pile up in memory.
-    status(t('resizer.processing',1,entries.length));
     const processEntry=async(entry,index)=>{
-      const {file,handle}=entry,ext=extOf(file.name);let credited=0;
+      const {file,handle}=entry,ext=extOf(file.name);
       try{
         if(!SUPPORTED.has(ext))throw new Error(t('resizer.unsupportedInput',ext));
         const head=await headInfo(file,ext);
@@ -325,21 +356,18 @@ export function mount(root){
         const outW=res.w||s.w,outH=res.h||s.h;
         const why=await verify(res.blob,ext,outW,outH,s.dpi);
         if(why)throw new Error(why);
-        step(1);credited++;
         if(s.w&&s.h&&head.width&&head.height&&Math.abs(head.width/head.height/(s.w/s.h)-1)>0.02)stretched++;   // shape differs from the requested size
         if(ext==='.webp')webp++;                                                                              // WebP cannot hold a DPI value
         if(direct){
           const saved=await save(uniqueName(file.name),res.blob,handle);
           const why2=await verify(saved,ext,outW,outH,s.dpi);
           if(why2)throw new Error(why2);
-          ok++;step(1);credited++;
+          ok++;
         }else results.push({index,file,handle,blob:res.blob,ext,w:outW,h:outH});
       }catch(e){
         fails.push(`${file.name}: ${e.message||e}`);
       }finally{
-        step((direct?2:1)-credited);
-        processed++;
-        status(t('resizer.processing',Math.min(processed,entries.length),entries.length));
+        updateProgress(++processed,entries.length);
       }
     };
 
@@ -355,29 +383,27 @@ export function mount(root){
     // Several results are bundled into one zip: browsers ask permission for (or drop) many automatic downloads.
     if(results.length>1){
       try{
-        status(t('resizer.saving',1,results.length,'resized_images.zip'));
         const files={};
         for(const r of results)files[uniqueName(r.file.name)]=[new Uint8Array(await r.blob.arrayBuffer()),{level:0}];
         const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([zipSync(files)],{type:'application/zip'}));a.download='resized_images.zip';a.click();
         setTimeout(()=>URL.revokeObjectURL(a.href),30000);
-        ok+=results.length;results.length=0;$('rz-prog').value=entries.length*2;
+        ok+=results.length;results.length=0;
       }catch{/* zip failed (for example not enough memory): fall back to one download per file below */}
     }
     for(let i=0;i<results.length;i++){
-      const r=results[i];status(t('resizer.saving',i+1,results.length,r.file.name));
+      const r=results[i];
       try{
         await save(r.file.name,r.blob,r.handle);
         ok++;
       }catch(e){
         fails.push(`${r.file.name}: ${e.message||e}`);
       }
-      $('rz-prog').value=entries.length+i+1;
     }
 
-    busy=false;drop.classList.remove('off');$('rz-prog').value=0;
+    busy=false;drop.classList.remove('off');
     track('resizer/run','Resizer run');if(ok>0)track('resizer/files/'+countBucket(ok),'Resizer files '+countBucket(ok));
     const notes=[stretched?t('resizer.stretchNote',stretched):null,webp?t('resizer.webpNote',webp):null].filter(Boolean),extra=notes.length?'\n\n'+notes.join('\n'):'';
-    if(fails.length){status(t('resizer.errorStatus',fails.length));msg(t('resizer.errorTitle'),t('resizer.errorMsg',ok,entries.length,fails.slice(0,10).join('\n')+(fails.length>10?'\n...':''))+extra,'warning')}
-    else{status(t('resizer.successStatus',ok));msg(t('resizer.doneTitle'),t('resizer.doneMsg',ok)+extra,notes.length?'warning':'info')}
+    if(fails.length){msg(t('resizer.errorTitle'),t('resizer.errorMsg',ok,entries.length,fails.slice(0,10).join('\n')+(fails.length>10?'\n...':''))+extra,'warning')}
+    else{msg(t('resizer.doneTitle'),t('resizer.doneMsg',ok)+extra,notes.length?'warning':'info')}
   }
 }

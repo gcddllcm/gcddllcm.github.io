@@ -1,5 +1,5 @@
 import {msg,track,countBucket,yieldNow} from './util.js?v=3.4.0';
-import {shell,download,ensureWriteAccess,saveToHandle} from './nbtool.js?v=3.4.0';
+import {shell,download,ensureWriteAccess,saveToHandle} from './nbtool.js?v=3.4.0-tool-workspace-v1';
 import {setLock} from './lockcore.js?v=3.4.0';
 import {fixNames} from './zipnames.js?v=3.4.0';
 import {unzipSync,zipSync} from './vendor/fflate.js?v=3.4.0';
@@ -16,7 +16,7 @@ async function process(file,lock){
 }
 export function mount(root){
   let mode='lock';
-  const ui=shell(root,{title:t('tool.pagelock'),sub:t('pagelock.sub'),guideKey:'pagelock',hideFolder:true,
+  const ui=shell(root,{title:t('tool.pagelock'),guideKey:'pagelock',hideFolder:true,
     top:`<div class="seg" role="group" aria-label="${t('pagelock.mode')}"><button type="button" class="btn on" data-m="lock" aria-pressed="true">${t('pagelock.lock')}</button><button type="button" class="btn danger" data-m="unlock" aria-pressed="false">${t('pagelock.unlock')}</button></div>
     <div class="tf-note">${t('pagelock.warn')}</div>`,
     async run(entries,ign,ui){
