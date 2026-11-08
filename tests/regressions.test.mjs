@@ -1,3 +1,4 @@
+import "./theme-shim.mjs";
 // Tests for the page locker, BMP headers, i18n keys and small helpers (no browser needed). Run: node tests/regressions.test.mjs
 import {setLock, LOCK_VALUE} from '../js/lockcore.js';
 import {readImageInfo, bmpEncode} from '../js/imgcore.js';
@@ -35,25 +36,25 @@ await check('landing: category order, concise titles, new badges and card arrows
   const css = fs.readFileSync(new URL('../style.css', import.meta.url), 'utf8');
   const app = fs.readFileSync(new URL('../js/app.js', import.meta.url), 'utf8');
   const index = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-  assert.match(css, /animation:landing-card-in \.6s cubic-bezier\(\.2,\.75,\.25,1\) both;animation-delay:var\(--landing-delay,100ms\)/);
+  assert.match(css, /\.landing-tool-new-card\{animation:landing-card-in \.38s cubic-bezier\(\.2,\.75,\.25,1\) var\(--landing-delay,40ms\) both\}/);
   assert.match(css, /animation:landing-intro-in \.6s cubic-bezier\(\.2,\.75,\.25,1\) both/);
-  assert.match(app, /100\+TOOLS\.findIndex\(item=>item\[0\]===key\)\*80/);
-  assert.match(app, /className:'notebook'\},\s*\{label:t\('library\.categoryImages'\),className:'images'\},\s*\{label:t\('library\.categoryLearnCraft'\),className:'learncraft'\}/);
-  assert.match(app, /TOOLS\.filter\(item=>item\[3\]===category\.label\)/);
+  assert.match(app, /card\.style\.setProperty\('--landing-delay',`\$\{40\+cardIndex\*40\}ms`\)/);
+  assert.match(app, /library\.categoryNotebook[\s\S]*library\.categoryLearnCraft[\s\S]*library\.categoryImages[\s\S]*library\.categoryPdf[\s\S]*library\.categoryArchive/);
+  assert.match(app, /tools:TOOLS\.filter\(item=>item\[3\]===t\('library\.categoryNotebook'\)\)/);
   assert.doesNotMatch(app, /landing-archive|archiveDetails|expandArchiveAtBottom/);
-  assert.match(app, /\{label:t\('library\.categoryArchive'\),tools:TOOLS\.filter\(item=>item\[3\]===t\('library\.categoryArchive'\)\)\}/);
+  assert.match(app, /\{label:t\('library\.categoryArchive'\),tools:TOOLS\.filter\(item=>item\[3\]===t\('library\.categoryArchive'\)\),collapsed:true\}/);
   assert.match(app, /card\.onclick=\(\)=>\{hasChosenTool=true;selectTool\(key\);showPage\('tools'\)\}/);
-  assert.match(css, /\.landing-tool-action\{[^}]*width:24px;height:24px;display:grid;place-items:center/);
-  assert.match(css, /\.landing-tool-new\{position:absolute;top:11px;right:11px/);
-  assert.match(css, /\.landing-tool-shortcut\{position:absolute;top:11px;right:11px/);
-  assert.match(app, /key==='creator'\?`<kbd class="page-shortcut-key landing-tool-shortcut" aria-hidden="true">SPACE<\/kbd>`:''/);
-  assert.match(css, /grid-template-columns:52px minmax\(0,1fr\) 24px/);
-  assert.match(index, /style\.css\?v=3\.3\.0/);
-  assert.match(index, /app\.js\?v=3\.3\.0/);
-  assert.match(app, /i18n\.js\?v=3\.3\.0/);
+  assert.match(css, /\.landing-tool-action\{[^}]*width:20px;height:20px;display:grid;place-items:center/);
+  assert.match(css, /\.landing-tool-new\{position:absolute;top:7px;right:6px/);
+  assert.match(css, /\.landing-tool-shortcut\{position:absolute;top:7px;right:6px/);
+  assert.match(app, /isNewTool\?`<span class=\"landing-tool-new\"/);
+  assert.match(css, /grid-template-columns:44px minmax\(0,1fr\) 20px/);
+  assert.match(index, /style\.css\?v=\d+\.\d+\.\d+/);
+  assert.match(index, /app\.js\?v=\d+\.\d+\.\d+/);
+  assert.match(app, /i18n\.js\?v=\d+\.\d+\.\d+/);
   const i18n = fs.readFileSync(new URL('../js/i18n.js', import.meta.url), 'utf8');
-  assert.match(i18n, /locales\/en\.js\?v=3\.3\.0/);
-  assert.match(app, /key==='learncraft'\|\|key==='golive'\|\|key==='timestamp-maker'/);
+  assert.match(i18n, /locales\/en\.js\?v=\d+\.\d+\.\d+/);
+  assert.match(app, /if\(key==='learncraft'&&!isMobileOrTablet\)learncraft\.activate\(\)[\s\S]*if\(key==='golive'&&!isMobileOrTablet\)golive\.activate\(\)[\s\S]*if\(key==='timestamp-maker'&&!isMobileOrTablet\)timestampMaker\.activate\(\)/);
   assert.match(app, /\$\{isNewTool\?\`<span class="landing-tool-new" aria-hidden="true">\$\{t\('landing\.new'\)\}<\/span>\`:''\}/);
 });
 await check('PDF to JPG mode tabs and workspaces transition accessibly', () => {
@@ -67,7 +68,7 @@ await check('PDF to JPG mode tabs and workspaces transition accessibly', () => {
   assert.match(source, /incoming\.hidden=false;incoming\.inert=false;incoming\.setAttribute\('aria-hidden','false'\)/);
   assert.doesNotMatch(source, /modeTransitionTimer|is-entering|is-leaving/);
   assert.match(css, /\.pdf-jpg-modes\[data-active-mode="images"\]::after\{transform:translateX\(100%\)\}/);
-  assert.match(css, /\.pdf-jpg-modes::after\{[^}]*transition:transform \.24s cubic-bezier\(\.2,\.75,\.25,1\)/);
+  assert.match(css, /\.pdf-jpg-modes::after\{[^}]*transition:transform \.4s cubic-bezier\(\.22,1,\.36,1\)/);
   assert.doesNotMatch(source, /is-moving-to-(?:pages|images)|mode-tabs'\)\.addEventListener\('animationend'/);
   assert.doesNotMatch(css, /pdf-jpg-indicator-to-(?:pages|images)|\.pdf-jpg-modes\.is-moving-to-/);
   assert.match(css, /\.pdf-jpg-mode-stage\{flex:1 0 320px;min-height:0;/);
@@ -77,7 +78,7 @@ await check('PDF to JPG mode tabs and workspaces transition accessibly', () => {
 });
 await check('keyboard: Space does not switch tools while a Timestamp Maker video preview is open', () => {
   const app = fs.readFileSync(new URL('../js/app.js', import.meta.url), 'utf8');
-  assert.match(app, /if\(e\.code==='Space'&&document\.querySelector\('\.tf-video-dialog\[open\]'\)\)return;/);
+  assert.match(app, /if\(document\.querySelector\('dialog\[open\]'\)\)return;[\s\S]*if\(e\.code==='Space'&&!e\.repeat&&\$\('tools-page'\)\.classList\.contains\('on'\)\)/);
 });
 await check('Timestamp Maker: Page/Pb input text is vertically centered in its field', () => {
   const css = fs.readFileSync(new URL('../style.css', import.meta.url), 'utf8');
@@ -85,14 +86,14 @@ await check('Timestamp Maker: Page/Pb input text is vertically centered in its f
 });
 await check('Timestamp Maker: outdated extensions still list tabs in a locked state', () => {
   const app = fs.readFileSync(new URL('../js/timestamp-maker.js', import.meta.url), 'utf8');
-  assert.match(app, /if\(older\(info\.version,EXT_MIN\)\)\{extension=info;showOutdated\(info\.version\);await refresh\(true\);return\}/);
+  assert.match(app, /if\(older\(info\.version,EXT_MIN\)\)\{showOutdated\(info\.version\);await refresh\(true\);return\}/);
   assert.match(app, /function renderTabs\(rows,updateRequired=false\)/);
   assert.doesNotMatch(app, /timestampMaker\.chooseCourse|tf-course-heading/);
   assert.match(app, /updateRequired\?' update-locked':''/);
   assert.match(app, /updateRequired\?' aria-disabled="true"':''/);
   assert.match(app, /updateRequired\?t\('golive\.needUpdate'\)/);
   assert.match(app, /const isReady=!!tab\.code&&state==='ready',canUse=isReady&&!updateRequired/);
-  assert.match(app, /if\(!updateRequired\)connectedStatus\(extension\.version\)/);
+  assert.match(app, /if\(!updateRequired\)clearStatus\(\)/);
 });
 await check('Timestamp Maker: arrow keys navigate Page/Pb fields without interrupting text editing', () => {
   const app = fs.readFileSync(new URL('../js/timestamp-maker.js', import.meta.url), 'utf8');
@@ -112,7 +113,7 @@ await check('Timestamp Maker: A/D keys select visible suggestions', () => {
   assert.match(app, /\['A','D'\]\[index\]/);
   const css = fs.readFileSync(new URL('../style.css', import.meta.url), 'utf8');
   assert.match(css, /\.tf-suggestion-key\{/);
-  assert.match(css, /\.tf-suggestion-arrows\{[^}]*display:grid;[^}]*grid-template-columns:repeat\(3,17px\)/);
+  assert.match(css, /\.tf-suggestion-arrows\{[^}]*display:grid;[^}]*grid-template-columns:repeat\(3,13px\)/);
   assert.match(css, /\.tf-suggestion-arrows kbd:nth-child\(4\)\{grid-row:2;grid-column:3\}/);
 });
 await check('LearnCraft tools use one short extension check', () => {
@@ -247,8 +248,10 @@ await check('LearnCraft install instructions: download and drag the ZIP into Chr
   assert.equal(en['learncraft.installForceRefresh'], 'Force Refresh');
   assert.equal(en['learncraft.installVisualLabel'], 'Five steps to install the extension');
   assert.equal(en['learncraft.installSubtitle'], 'Follow these 5 simple steps to connect Penguin Logistics with your LearnCraft tabs.');
-  assert.match(src, /class="lc-install-visual" aria-label="\$\{t\('learncraft\.installVisualLabel'\)\}"/);
-  assert.equal((src.match(/class="lc-install-step"/g) || []).length, 5);
+  assert.match(src, /class="lc-install-visual" aria-label="\$\{t\(update\?'learncraft\.updateStepsLabel':'learncraft\.installVisualLabel'\)\}"/);
+  assert.equal((src.match(/class="lc-install-step"/g) || []).length, 6);
+  assert.match(src, /learncraft\.updateDeleteOldVersionTitle/);
+  assert.match(src, /learncraft\.updateDeleteOldVersionDescription/);
   assert.doesNotMatch(src, /installProgress|progressbar/);
   assert.match(src, /<path d="m16 16 2 2 4-4"\/>/);
   assert.match(src, /<path d="M21 2v6h-6"\/>/);
@@ -267,8 +270,8 @@ await check('LearnCraft install instructions: download and drag the ZIP into Chr
   assert.match(page, /copyInternalPage\('chrome:\/\/extensions'\)/);
   const golive = fs.readFileSync(new URL('../js/golive.js', import.meta.url), 'utf8');
   const timestampMaker = fs.readFileSync(new URL('../js/timestamp-maker.js', import.meta.url), 'utf8');
-  assert.match(page, /from '\.\/install-help\.js\?v=3\.4\.0-install-guide-v5'/);
-  assert.match(golive, /from '\.\/install-help\.js\?v=3\.4\.0-install-guide-v5'/);
+  assert.match(page, /from '\.\/install-help\.js\?v=\d+\.\d+\.\d+'/);
+  assert.match(golive, /from '\.\/install-help\.js\?v=\d+\.\d+\.\d+'/);
   assert.doesNotMatch(golive, /from '\.\/learncraft\.js/);
   assert.match(golive, /\$s\.querySelector\('\[data-q=forcereset\]'\)\.onclick = forceReset/);
   assert.match(timestampMaker, /bindRefresh=\(\)=> \$status\.querySelectorAll\('\[data-q=forcereset\]'\)/);
@@ -320,25 +323,21 @@ await check('LearnCraft: notify about a newer extension and explain manual updat
   assert.match(src, /downloadExtension\(updateButton\)/);
   assert.match(src, /\[data-q=copyChromeExtensions\]/);
   assert.equal(en['learncraft.updateAvailable']('3.3.2'), 'Update available: v3.3.2. Update to continue.');
-  assert.equal(en['learncraft.updateStep1'], 'Download the extension file');
-  assert.equal(en['learncraft.updateStep2'], 'Open Chrome extensions page');
-  assert.equal(en['learncraft.updateStep3'], 'Turn on Developer mode');
-  assert.equal(en['learncraft.updateStep4'], 'Drag and drop the ZIP file');
+  assert.equal(en['learncraft.updateDeleteOldVersionTitle'], 'Remove the old version');
+  assert.match(en['learncraft.updateDeleteOldVersionDescription'], /Penguin Logistics - LearnCraft bridge/);
   assert.equal(en['learncraft.updateChrome'], 'Copy chrome://extensions');
   const installHelp = fs.readFileSync(new URL('../js/install-help.js', import.meta.url), 'utf8');
-  assert.match(installHelp, /export function updateStepsHtml\(\)/);
-  assert.match(installHelp, /data-q="update" aria-label="\$\{t\('learncraft\.downloadUpdate'\)\}"/);
+  assert.match(installHelp, /export function installStepsHtml\(\{update=false\}=\{\}\)/);
+  assert.doesNotMatch(installHelp, /updateStepsHtml|data-q="update"/);
   assert.match(installHelp, /data-q="copyChromeExtensions"/);
   assert.match(installHelp, /data-q="forcereset"/);
-  assert.equal((installHelp.match(/class="lc-install-step lc-install-step-guide"/g) || []).length, 11);
-  assert.match(src, /updateStepsHtml\(\)/);
+  assert.match(src, /installStepsHtml\(\{update:true\}\)/);
   for (const file of ['golive.js', 'timestamp-maker.js']) {
     const app = fs.readFileSync(new URL('../js/' + file, import.meta.url), 'utf8');
-    assert.match(app, /updateStepsHtml\(\)/, `${file} uses the shared update guide`);
-    assert.match(app, /from '\.\/install-help\.js\?v=3\.4\.0-install-guide-v5'/, `${file} imports the shared guide`);
+    assert.match(app, /installStepsHtml\(\{update:true\}\)/, `${file} uses the shared update guide`);
+    assert.match(app, /\[data-q=dl\]/, `${file} binds the shared download button`);
+    assert.match(app, /from '\.\/install-help\.js\?v=\d+\.\d+\.\d+'/, `${file} imports the shared guide`);
   }
-  assert.equal(en['learncraft.updateStep5'], 'Remove the old version');
-  assert.equal(en['learncraft.updateStep6'], 'Come back to this page and press');
   assert.equal(en['learncraft.updateStepsLabel'], 'Six visual steps to update the extension');
   for (const key of ['updateDetails', 'updateDetail1', 'updateDetail2', 'updateDetail3', 'updateDetail4', 'updateDetail5']) {
     assert.equal(en[`learncraft.${key}`], undefined, `obsolete update-detail key ${key} must be removed`);
@@ -349,8 +348,8 @@ await check('LearnCraft: notify about a newer extension and explain manual updat
   assert.match(src, /needsExtensionUpdate\?' update-locked':''/);
   assert.match(src, /lc-line\$\{needsExtensionUpdate\?' lc-tabs-count-locked':''\}/);
   assert.match(src, /aria-disabled="true"/);
-  assert.match(src, /st\.key==='other'\?' not-master-page':''/);
-  assert.match(src, /st\.key==='other'\|\|needsExtensionUpdate\?' aria-disabled="true"':''/);
+  assert.match(src, /st\.ok\?'':' off'/);
+  assert.match(src, /needsExtensionUpdate\?' aria-disabled="true"':''/);
   assert.match(src, /data-extract="\$\{r\.tabId\}"\$\{st\.ok&&!needsExtensionUpdate\?'':' disabled'\}/);
   const css = fs.readFileSync(new URL('../style.css', import.meta.url), 'utf8');
   assert.match(css, /\.lc-tab\.not-master-page\{pointer-events:none;cursor:not-allowed\}/);
@@ -425,6 +424,7 @@ await check('Canvas Extractor uses plain Ready to extract text beside its action
   const css = fs.readFileSync(new URL('../style.css', import.meta.url), 'utf8');
   assert.match(src, /st\.ok\?`<span class="lc-extract-ready">\$\{t\('learncraft\.extractReady'\)\}<\/span>`/);
   assert.match(css, /\.lc-extract-ready\{color:#8fe9d6;font-size:12px\}/);
+  assert.match(css, /\.lc-extract-btn:has\(\[aria-busy="true"\]\)::before\{[^}]*inset:-3px;padding:2px;border-radius:calc\(var\(--radius-control\) \+ 2px\)/);
   assert.equal(en['learncraft.extractReady'], 'Ready to extract');
 });
 await check('Canvas Extractor course-type chip matches Timestamp Maker', () => {
@@ -445,30 +445,30 @@ await check('LearnCraft hides connected status unless update guidance is needed'
   const css = fs.readFileSync(new URL('../style.css', import.meta.url), 'utf8');
   assert.doesNotMatch(src, /installation-guide|learncraft\.connected/);
   assert.match(src, /\$s\.innerHTML=panel;\s*\$s\.hidden=!panel/);
-  assert.match(src, /function showMissing\(\)\{\$s\.hidden=false/);
+  assert.match(src, /function showMissing\(\)\{/);
   assert.match(src, /dup=null,latestVersion=null/);
-  assert.match(src, /try\{latestVersion=await latestExtensionVersion\(\);showConnected\(latestVersion\)\}/);
-  assert.match(src, /catch\(error\)\{latestVersion=null;showConnected\(null,error\)\}/);
+  assert.match(src, /try\{latestVersion=await latestExtensionVersion\(\);showConnected\(latestVersion\);/);
+  assert.match(src, /catch\(error\)\{latestVersion=null;showConnected\(null,error\);/);
   assert.match(src, /const refreshButton=updateRequired\?'':`<button class="btn" data-q="refresh"/);
   assert.match(src, /const masters=rows\.filter\(r=>r\.code&&r\.url&&new URL\(r\.url\)\.pathname\.startsWith\('\/master-canvas\/'\)\)/);
   assert.match(src, /const order=\[\.\.\.masters\]\.sort/);
   assert.match(src, /rows\.length\?t\('golive\.noMaster'\):t\('learncraft\.noTabs'\)/);
   assert.match(src, /const tabsCount=`<div class="lc-line\$\{needsExtensionUpdate\?' lc-tabs-count-locked':''\}"><strong>\$\{t\('learncraft\.tabsFound',rows\.length,courses\.length\)\}<\/strong><span class="lc-grow"><\/span>\$\{refreshButton\}<\/div>`/);
   assert.match(src, /if\(refreshButtonEl\)refreshButtonEl\.onclick=\(\)=>\{refresh\(\);checkUpdates\(\)\}/);
-  assert.match(src, /if\(!rows\.length\)\{\$t\.innerHTML=`\$\{tabsCount\}<div class="lc-p">\$\{t\('learncraft\.noTabs'\)\}<\/div>`/);
+  assert.match(src, /if\(!order\.length\)\{\$t\.innerHTML=`\$\{tabsCount\}<div class="lc-p">/);
   assert.match(src, /checkingUpdate=false;if\(tabRows&&!busy&&!refreshingTabs\)renderTabs\(tabRows\)/);
   assert.match(src, /if\(!ext\|\|busy\|\|refreshingTabs\)return/);
   assert.match(src, /if\(!Array\.isArray\(rows\)\)throw new Error\('The extension returned an invalid tab list\.'\)/);
   assert.match(src, /finally\{refreshingTabs=false\}/);
   const installHelp = fs.readFileSync(new URL('../js/install-help.js', import.meta.url), 'utf8');
-  assert.match(installHelp, /class="btn primary lc-install-action lc-install-download" data-q="dl" aria-label="\$\{t\('learncraft\.download'\)\}" title="\$\{t\('learncraft\.download'\)\}"><svg aria-hidden="true"/);
-  assert.match(installHelp, /class="lc-install-copy lc-install-action" data-q="forcereset"/);
+  assert.match(installHelp, /class="btn primary lc-install-action" data-q="dl">/);
+  assert.match(installHelp, /class="btn lc-install-copy lc-install-action" data-q="forcereset"/);
   assert.match(css, /\.btn\.primary\{background:var\(--accent\);border-color:var\(--accent\);color:#fff\}/);
   assert.match(css, /\.btn\.primary:hover:not\(:disabled\)\{background:var\(--accent-h\)\}/);
   assert.match(css, /\.btn:disabled\{background:var\(--border\);cursor:not-allowed\}/);
-  assert.match(css, /\.lc-install-visual\{display:flex;flex-direction:column;gap:10px;margin:0;padding:0;list-style:none\}/);
+  assert.match(css, /\.lc-install-visual\{display:flex;flex-direction:column;gap:10px;width:min\(100%,800px\);margin:0;padding:0;list-style:none\}/);
   assert.match(css, /\.lc-install-step\{[^}]*grid-template-columns:30px 44px minmax\(0,1fr\) auto/);
-  assert.match(css, /@container \(max-width:520px\)\{\.lc-install-step\{grid-template-columns:30px 44px minmax\(0,1fr\)/);
+  assert.match(css, /@container \(max-width:520px\)\{\.lc-install-step-guide\{grid-template-columns:30px 44px minmax\(0,1fr\)/);
   assert.match(css, /\.lc-install-step:not\(:last-child\)::after\{position:absolute/);
   assert.match(css, /\.lc-install-download\{display:grid;place-items:center;flex:none;width:38px;height:38px;padding:0/);
   assert.match(css, /\.lc-install-step \.lc-install-download svg\{width:21px;height:21px;padding:0/);
@@ -555,10 +555,8 @@ await check('LearnCraft: Copy current view exports collapsed nodes as summary ro
   assert.match(src, /tableTsv\(r,options\)/);
   assert.match(core, /collapsedNodes\.has\(n\)/);
 });
-await check('LearnCraft: transparent penguin mascot is used in the tool heading', () => {
+await check('LearnCraft: the transparent penguin mascot asset and its styles are kept', () => {
   const src = fs.readFileSync(new URL('../js/learncraft.js', import.meta.url), 'utf8');
-  assert.match(src, /src="\$\{ASSETS\.learncraftMascot\}"/);
-  assert.match(src, /class="lc-scope-glint"/);
   assert.ok(fs.existsSync(new URL(ASSETS.learncraftMascot)));
   const css = fs.readFileSync(new URL('../style.css', import.meta.url), 'utf8');
   assert.match(css, /\.lc-scope-glint\{[^}]*background:transparent;box-shadow:none/);
@@ -612,31 +610,31 @@ await check('keyboard shortcuts stay enabled, focus styling persists until point
   assert.doesNotMatch(app, /singleKeyShortcutsEnabled|app-operation-running/);
   assert.doesNotMatch(app, /numberShortcut|TOOLS\[\(activeIndex\+1\)%TOOLS\.length\]/);
   assert.doesNotMatch(app, /tool-nav-shortcut|tool\.shortcutNumber/);
-  assert.match(app, /if\(e\.code==='Space'&&landing\.classList\.contains\('on'\)/);
+  assert.match(app, /if\(e\.code==='Space'&&!e\.repeat&&\$\('tools-page'\)\.classList\.contains\('on'\)\)/);
   assert.doesNotMatch(css, /tool-nav-shortcut/);
   assert.match(app, /setAttribute\('aria-keyshortcuts','G'\)/);
-  assert.match(app, /KeyG:'g'/);
-  assert.match(app, /if\(guide\?\.openGuide&&\(!interactive\|\|isOpen\|\|target===guideButton\)\)\{[\s\S]*?if\(isOpen\)guide\.closeGuide\(true\);else guide\.openGuide\(\)/);
+  assert.match(app, /e\.code!=='KeyG'&&e\.key\?\.toLowerCase\(\)!=='g'/);
+  assert.match(app, /if\(guide\.parentElement\.classList\.contains\('guide-open'\)\)guide\.closeGuide\(true\);\s*else\{guide\.openGuide\(\);if\(isPhone\)setPhoneToolPickerOpen\(false\)\}/);
   assert.match(app, /if\(e\.key==='Tab'\)document\.body\.classList\.add\('keyboard-tab-nav'\)/);
   assert.match(css, /body\.keyboard-tab-nav :focus-visible\{outline:2px solid #8e82ff/);
   assert.doesNotMatch(index, /shortcut-toggle/);
   for (const file of ['creator.js', 'nbtool.js']) {
     const source = fs.readFileSync(new URL('../js/' + file, import.meta.url), 'utf8');
-    assert.match(source, /role="button" aria-keyshortcuts="Enter Space"/, file);
+    assert.match(source, /aria-keyshortcuts="Enter Space"/, file);
     assert.match(source, /e\.preventDefault\(\);pick\(\)/, file);
   }
   const resizer = fs.readFileSync(new URL('../js/resizer.js', import.meta.url), 'utf8');
   const resizerCss = fs.readFileSync(new URL('../style.css', import.meta.url), 'utf8');
-  assert.equal((resizerCss.match(/M24 31V9m-8 8 8-8 8 8M8 29v10h32V29/g) || []).length, 3, 'all CSS drop-zone icons point up');
+  assert.equal((resizerCss.match(/M24 31V9m-8 8 8-8 8 8M8 29v10h32V29/g) || []).length, 4, 'all CSS drop-zone icons point up (3 dark + 1 light-theme override)');
   assert.doesNotMatch(resizerCss, /M24 7v23m-8-8 8 8 8-8M8 33v9h32v-9/);
   assert.match(resizerCss, /\.advanced-mode \.lrow-title-trigger\{[^}]*background:#1b1c22/);
   assert.match(resizerCss, /\.advanced-mode \.lrow-title-trigger:hover\{[^}]*background:#1b1c22/);
-  assert.match(resizerCss, /\.advanced-mode \.lrow-title-row input\.lrow-title\{[^}]*background:#1b1c22[^}]*border-radius:5px/);
-  assert.match(resizer, /class="resizer-settings-panel resizer-panel"[\s\S]*?class="row3"[\s\S]*?class="resizer-settings"/);
+  assert.match(resizerCss, /\.advanced-mode \.lrow-title-row input\.lrow-title\{[^}]*border-radius:5px;background:#1b1c22/);
+  assert.match(resizer, /class="resizer-panel resizer-settings-panel"[\s\S]*?class="row3"[\s\S]*?class="resizer-settings"/);
   assert.match(resizer, /class="resizer-dimension-field"><span>\$\{t\('resizer\.dpi'\)\}<\/span><input id="rz-dpi"/);
   assert.match(resizer, /class="resizer-dimension-field"><span>\$\{t\('resizer\.widthName'\)\}<\/span><input id="rz-w"/);
   assert.match(resizer, /class="resizer-dimension-field"><span>\$\{t\('resizer\.heightName'\)\}<\/span><input id="rz-h"/);
-  assert.match(resizer, /class="resizer-output-panel resizer-panel"[\s\S]*?id="rz-path"[\s\S]*?id="rz-out"/);
+  assert.match(resizer, /class="resizer-panel resizer-output-panel"[\s\S]*?id="rz-path"[\s\S]*?id="rz-out"/);
   assert.match(resizer, /class="btn primary" id="rz-out"/);
   assert.match(resizer, /id="rz-drop"[\s\S]*?id="rz-browse"/);
   assert.doesNotMatch(resizer, /rz-selection|rz-preview|rz-count|rz-clear|rz-remove/);

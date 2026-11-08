@@ -1,8 +1,8 @@
-import {unzipSync} from './vendor/fflate.js?v=3.4.0';
-import {fixNames} from './zipnames.js?v=3.4.0';
-import {prepareSvg} from './svgfix.js?v=3.4.0';
-import {readImageInfo} from './imgcore.js?v=3.4.0';
-import {orderNotebookPages} from './notebook-pages.js?v=3.4.0-page-order-v2';
+import {unzipSync} from './vendor/fflate.js?v=3.6.0';
+import {fixNames} from './zipnames.js?v=3.6.0';
+import {prepareSvg} from './svgfix.js?v=3.6.0';
+import {readImageInfo} from './imgcore.js?v=3.6.0';
+import {orderNotebookPages,normalizedPath} from './notebook-pages.js?v=3.6.0';
 
 const SKIP_ENTRY=/(^|\/)thumbnails\/|^preview\.png$|\.(mp4|m4v|mov|avi|wmv|mpe?g|webm|mp3|wav|ogg|m4a|wma|swf|flv)$/i;
 const MIME_TYPES={'.bmp':'image/bmp','.gif':'image/gif','.jpeg':'image/jpeg','.jpg':'image/jpeg','.png':'image/png','.svg':'image/svg+xml','.webp':'image/webp'};
@@ -133,7 +133,7 @@ export function extractNotebookPages(bytes){
   const zip=fixNames(unzipSync(new Uint8Array(bytes),{filter:file=>!SKIP_ENTRY.test(file.name)}));
   const namesLower=new Map();
   for(const name of Object.keys(zip))if(!namesLower.has(normalizedPath(name).toLowerCase()))namesLower.set(normalizedPath(name).toLowerCase(),name);
-  let entries=Object.keys(zip).map(name=>({name,match:/^page(\d+)\.svg$/i.exec(name)}))
+  let entries=Object.keys(zip).map(name=>({name,match:/(?:^|\/)page(\d+)\.svg$/i.exec(name)}))
     .filter(entry=>entry.match).map(entry=>({name:entry.name,number:Number(entry.match[1])}))
     .sort((a,b)=>a.number-b.number);
   if(!entries.length)throw new Error('No pageX.svg files were found inside this .notebook file.');

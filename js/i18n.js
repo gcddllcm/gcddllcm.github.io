@@ -1,4 +1,4 @@
-import en from './locales/en.js?v=3.4.0-install-guide-v5';
+import en from './locales/en.js?v=3.6.0';
 
 export const strings = en;
 export const t = (key, ...args) => {

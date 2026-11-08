@@ -1,6 +1,6 @@
-import {msg,track,countBucket} from './util.js?v=3.4.0';
-import {shell,download,ensureWriteAccess} from './nbtool.js?v=3.4.0-tool-workspace-v1';
-import {t} from './i18n.js?v=3.4.0';
+import {msg,track,countBucket} from './util.js?v=3.6.0';
+import {shell,download,ensureWriteAccess} from './nbtool.js?v=3.6.0';
+import {t} from './i18n.js?v=3.6.0';
 
 const PDF_RESOLUTION=0;   // 0 = no fixed width: a plain image page keeps its pixels as they are; a page that has to be drawn (ink, text) is rendered at its widest picture's width, between 1600 and 3508 px
 let worker=null,seq=0,prepared=false;const waits=new Map();let onStatus=()=>{};
@@ -72,7 +72,7 @@ function drawSvgPage(svgText,width,height,quality){
 }
 function getWorker(){
   if(worker)return worker;
-  worker=new Worker(new URL('./pdfworker.js?v=3.4.0-page-order-v2',import.meta.url),{type:'module'});
+  worker=new Worker(new URL('./pdfworker.js?v=3.6.0',import.meta.url),{type:'module'});
   worker.onmessage=async e=>{
     const m=e.data;
     if(m.type==='renderSvg'){

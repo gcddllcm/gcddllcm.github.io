@@ -1,3 +1,4 @@
+import "./theme-shim.mjs";
 // Tests for the LearnCraft helpers (time maths, checks, table for Google Sheets). Run: node tests/lccore.test.mjs
 import {toSeconds, fmtTime, normTime, sumAssetTimes, countTree, checkTimes, findGaps, tableHeader, tableRows, tableTsv, csvCell, tableCsv, summaryTsv, cell, parseCode} from '../js/lccore.js';
 import assert from 'node:assert/strict';

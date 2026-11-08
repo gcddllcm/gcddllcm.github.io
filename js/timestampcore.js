@@ -39,12 +39,13 @@ export function timestampVideoPlaybackUrl(previewUrl) {
 export function timestampPageAndProblemFromTitle(title) {
   const text = String(title || '');
   const readNumber = expression => {
-    const match = expression.exec(text);
-    return match ? match[1].replace(/\s+/g, '') : '';
+    let match, value = '';
+    while ((match = expression.exec(text))) value = match[1].replace(/\s+/g, '');
+    return value;
   };
   return {
-    pageNo: readNumber(/(?:^|[\s([{_-])(?:หน้าที่|หน้า)\s*[:：.]?\s*(\d+(?:\s*[-–]\s*\d+)?)(?!\d)/u),
-    problemNo: readNumber(/(?:^|[\s([{_-])(?:ข้อที่|ข้อ)\s*[:：.]?\s*(\d+(?:\.\d+)?(?:\s*[-–]\s*\d+)?)(?!\d)/u),
+    pageNo: readNumber(/(?:^|[\s([{_-])(?:หน้าที่|หน้า)\s*[:：.]?\s*(\d+(?:\s*[-–]\s*\d+)?)(?!\d)/gu),
+    problemNo: readNumber(/(?:^|[\s([{_-])(?:ข้อที่|ข้อ)\s*[:：.]?\s*(\d+(?:\.\d+)?(?:\s*[-–]\s*\d+)?)(?!\d)/gu),
   };
 }
 

@@ -38,5 +38,14 @@
       reply(m.id, {ok: false, error: 'The extension was reloaded. Refresh this page.'});
     }
   });
+  // Share the site's colour theme with the popup (stored locally in the browser, never sent anywhere).
+  const syncTheme = () => {
+    try {
+      const t = localStorage.getItem('pl-theme') === 'light' ? 'light' : 'dark';
+      chrome.storage.local.set({plTheme: t});
+    } catch {}
+  };
+  syncTheme();
+  window.addEventListener('pl-theme-change', syncTheme);
   window.postMessage({pl: 'learncraft-ready', version: VERSION}, target);
 })();

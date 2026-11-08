@@ -1,25 +1,25 @@
 // LearnCraft : Master Canvas extractor.
 // A web page cannot read other browser tabs, so a small companion extension (extension/) does the reading and this
 // tool talks to it through window.postMessage (extension/bridge.js). Course data stays in this browser tab.
-import {msg,track} from './util.js?v=3.4.0';
-import {mountGuide} from './instruction-panel.js?v=3.4.0';
-import {download} from './nbtool.js?v=3.4.0-tool-workspace-v1';
-import {t} from './i18n.js?v=3.4.0';
-import {copyInternalPage,installStepsHtml,updateStepsHtml} from './install-help.js?v=3.4.0-install-guide-v5';
-import {zipSync} from './vendor/fflate.js?v=3.4.0';
-import {older,summarizeBridges,staleDownload,freshUrl,FRESH} from './extcore.js?v=3.4.0';
-import {countTree,checkTimes,findGaps,tableTsv,tableCsv,tableRows,summaryTsv,fmtTime,normTime,toSeconds,sumAssetTimes} from './lccore.js?v=3.4.0';
-import {fmtElapsed} from './glcore.js?v=3.4.0';
-import {ASSETS,extensionAssetUrl} from './assets.js?v=3.4.0';
+import {msg,track} from './util.js?v=3.6.0';
+import {mountGuide} from './instruction-panel.js?v=3.6.0';
+import {download} from './nbtool.js?v=3.6.0';
+import {t} from './i18n.js?v=3.6.0';
+import {copyInternalPage,installStepsHtml} from './install-help.js?v=3.6.0';
+import {zipSync} from './vendor/fflate.js?v=3.6.0';
+import {older,summarizeBridges,staleDownload,freshUrl,FRESH} from './extcore.js?v=3.6.0';
+import {countTree,checkTimes,findGaps,tableTsv,tableCsv,tableRows,summaryTsv,fmtTime,normTime,toSeconds,sumAssetTimes} from './lccore.js?v=3.6.0';
+import {fmtElapsed} from './glcore.js?v=3.6.0';
+import {ASSETS,extensionAssetUrl} from './assets.js?v=3.6.0';
 
-const EXT_MIN='1.1.0';
+const EXT_MIN='1.2.0';
 // Every file the extension needs, read from its own manifest, so adding a file to the extension never needs a change here.
 function extensionFiles(manifest){
   const files=new Set(['manifest.json','README.txt']);
   const add=f=>{if(typeof f==='string'&&/^[\w./-]+$/.test(f)&&!f.includes('..'))files.add(f.replace(/^\.?\//,''))};
   add(manifest.background?.service_worker);
   add(manifest.action?.default_popup);
-  if(manifest.action?.default_popup){add('popup.js');add('popup.css');}
+  if(manifest.action?.default_popup){add('popup.js');add('popup.css');add('theme-init.js');}
   (manifest.content_scripts||[]).forEach(c=>[...(c.js||[]),...(c.css||[])].forEach(add));
   Object.values(manifest.icons||{}).forEach(add);
   return[...files];
@@ -119,10 +119,10 @@ export function mount(root){
     const updateAvailable=latestVersion&&older(ext.version,latestVersion);
     needsExtensionUpdate=!!(old||updateAvailable||dup);
     $s.className='lc-card';
-    const panel=`${dup?`<section class="lc-update-panel lc-dup-panel" aria-labelledby="lc-dup-title"><h2 class="lc-h" id="lc-dup-title">${t('learncraft.duplicateTitle')}</h2><p class="lc-p">${t('learncraft.duplicateText',dup.count,esc(dup.versions.map(v=>'v'+v).join(', ')))}</p><ol class="lc-steps"><li>${t('learncraft.duplicate1')} <button type="button" class="lc-install-copy" data-q="copyChromeExtensions">${t('learncraft.updateChrome')}</button></li><li>${t('learncraft.duplicate2')}</li><li>${t('learncraft.duplicate3')}</li></ol><div class="btnrow"><button class="btn primary" data-q="dup-recheck">${t('learncraft.updateForceRefresh')}</button></div></section>`:''}${old||updateAvailable?`<section class="lc-update-panel" aria-labelledby="lc-update-title"><h2 class="lc-h" id="lc-update-title">${t('learncraft.updateAvailableTitle')}</h2><p class="lc-p">${updateAvailable?t('learncraft.updateAvailable',esc(latestVersion)):t('learncraft.outdated',esc(ext.version))}</p>${updateStepsHtml()}</section>`:''}${updateCheckError?`<div class="warn">${t('learncraft.updateCheckFailed',esc(updateCheckError.message||updateCheckError))}</div>`:''}`;
+    const panel=`${dup?`<section class="lc-update-panel lc-dup-panel" aria-labelledby="lc-dup-title"><h2 class="lc-h" id="lc-dup-title">${t('learncraft.duplicateTitle')}</h2><p class="lc-p">${t('learncraft.duplicateText',dup.count,esc(dup.versions.map(v=>'v'+v).join(', ')))}</p><ol class="lc-steps"><li>${t('learncraft.duplicate1')} <button type="button" class="lc-install-copy" data-q="copyChromeExtensions">${t('learncraft.updateChrome')}</button></li><li>${t('learncraft.duplicate2')}</li><li>${t('learncraft.duplicate3')}</li></ol><div class="btnrow"><button class="btn primary" data-q="dup-recheck">${t('learncraft.updateForceRefresh')}</button></div></section>`:''}${old||updateAvailable?`<section class="lc-update-panel" aria-labelledby="lc-update-title"><h2 class="lc-h" id="lc-update-title">${t('learncraft.updateAvailableTitle')}</h2><p class="lc-p">${updateAvailable?t('learncraft.updateAvailable',esc(latestVersion)):t('learncraft.outdated',esc(ext.version))}</p>${installStepsHtml({update:true})}</section>`:''}${updateCheckError?`<div class="warn">${t('learncraft.updateCheckFailed',esc(updateCheckError.message||updateCheckError))}</div>`:''}`;
     $s.innerHTML=panel;
     $s.hidden=!panel;
-    const updateButton=$s.querySelector('[data-q=update]');
+    const updateButton=$s.querySelector('[data-q=dl]');
     if(updateButton)updateButton.onclick=()=>downloadExtension(updateButton);
     const forceRefreshButton=$s.querySelector('[data-q=forcereset]');
     if(forceRefreshButton)forceRefreshButton.onclick=forceReset;

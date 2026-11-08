@@ -1,9 +1,9 @@
-import { unzipSync, zlibSync } from './vendor/fflate.js?v=3.4.0';
+import { unzipSync, zlibSync } from './vendor/fflate.js?v=3.6.0';
 const SKIP_ENTRY = /(^|\/)thumbnails\/|^preview\.png$|\.(mp4|m4v|mov|avi|wmv|mpe?g|webm|mp3|wav|ogg|m4a|wma|swf|flv)$/i;
-import { readImageInfo } from './imgcore.js?v=3.4.0';
-import { fixNames } from './zipnames.js?v=3.4.0';
-import { prepareSvg } from './svgfix.js?v=3.4.0';
-import { orderNotebookPages } from './notebook-pages.js?v=3.4.0-page-order-v2';
+import { readImageInfo } from './imgcore.js?v=3.6.0';
+import { fixNames } from './zipnames.js?v=3.6.0';
+import { prepareSvg } from './svgfix.js?v=3.6.0';
+import { orderNotebookPages } from './notebook-pages.js?v=3.6.0';
 
 const PAGE_WIDTH_PT = 595.28;
 const B64_CACHE_LIMIT = 48 * 1024 * 1024;
@@ -582,7 +582,7 @@ self.onmessage = async e => {
         }
       } catch (err) {
         failed++;
-        errs.push(`page ${num}: ${shortError(err)}`);
+        errs.push(`page ${i + 1}: ${shortError(err)}`);
         pages.push(blankPage(rawSvg, lastW, lastH));
       }
       const lastGood = pages[pages.length - 1];

@@ -1,14 +1,14 @@
-import {msg} from './util.js?v=3.4.0';
-import {download} from './nbtool.js?v=3.4.0-tool-workspace-v1';
-import {t} from './i18n.js?v=3.4.0';
-import {mountGuide} from './instruction-panel.js?v=3.4.0';
-import {copyInternalPage,installStepsHtml,updateStepsHtml} from './install-help.js?v=3.4.0-install-guide-v5';
-import {zipSync} from './vendor/fflate.js?v=3.4.0';
-import {older,summarizeBridges,staleDownload,freshUrl,FRESH} from './extcore.js?v=3.4.0';
-import {assetMatchesDateSelection,flattenTimestampAssets,groupTimestampUpdates,normalizeTimestampTree,parseTimestampPaste,selectedTimestampUpdates,summarizeRecordingDays} from './timestampcore.js?v=3.4.0';
-import {extensionAssetUrl} from './assets.js?v=3.4.0';
+import {msg} from './util.js?v=3.6.0';
+import {download} from './nbtool.js?v=3.6.0';
+import {t} from './i18n.js?v=3.6.0';
+import {mountGuide} from './instruction-panel.js?v=3.6.0';
+import {copyInternalPage,installStepsHtml} from './install-help.js?v=3.6.0';
+import {zipSync} from './vendor/fflate.js?v=3.6.0';
+import {older,summarizeBridges,staleDownload,freshUrl,FRESH} from './extcore.js?v=3.6.0';
+import {assetMatchesDateSelection,flattenTimestampAssets,groupTimestampUpdates,normalizeTimestampTree,parseTimestampPaste,selectedTimestampUpdates,summarizeRecordingDays} from './timestampcore.js?v=3.6.0';
+import {extensionAssetUrl} from './assets.js?v=3.6.0';
 
-const EXT_MIN='1.1.0';
+const EXT_MIN='1.2.0';
 const FORCE_RESET_PARAM='__pl_tf_reset';
 if(new URL(location.href).searchParams.has(FORCE_RESET_PARAM)){
   const cleanUrl=new URL(location.href);cleanUrl.searchParams.delete(FORCE_RESET_PARAM);
@@ -58,7 +58,7 @@ function extensionFiles(manifest){
   const add=file=>{if(typeof file==='string'&&/^[\w./-]+$/.test(file)&&!file.includes('..'))files.add(file.replace(/^\.?\//,''))};
   add(manifest.background?.service_worker);
   add(manifest.action?.default_popup);
-  if(manifest.action?.default_popup){add('popup.js');add('popup.css')}
+  if(manifest.action?.default_popup){add('popup.js');add('popup.css');add('theme-init.js')}
   (manifest.content_scripts||[]).forEach(content=>[...(content.js||[]),...(content.css||[])].forEach(add));
   Object.values(manifest.icons||{}).forEach(add);
   return[...files];
@@ -137,8 +137,8 @@ export function mount(root){
     bindInstallSteps();bindRefresh();
   }
   function showOutdated(version){
-    showInstallNotice(`<section class="lc-update-panel" aria-labelledby="tf-update-title"><h2 class="lc-h" id="tf-update-title">${t('learncraft.updateAvailableTitle')}</h2><p class="lc-p">${t('learncraft.outdated',esc(version))}</p>${updateStepsHtml()}</section>`);
-    $status.querySelector('[data-q=update]').addEventListener('click',event=>downloadExtension(event.currentTarget));
+    showInstallNotice(`<section class="lc-update-panel" aria-labelledby="tf-update-title"><h2 class="lc-h" id="tf-update-title">${t('learncraft.updateAvailableTitle')}</h2><p class="lc-p">${t('learncraft.outdated',esc(version))}</p>${installStepsHtml({update:true})}</section>`);
+    $status.querySelector('[data-q=dl]').addEventListener('click',event=>downloadExtension(event.currentTarget));
     bindInstallSteps();bindRefresh();
   }
   function showDuplicate(info){

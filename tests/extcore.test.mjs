@@ -1,3 +1,4 @@
+import "./theme-shim.mjs";
 // Checks for js/extcore.js: several installed copies of the extension, and downloads that must never be stale.
 import assert from 'node:assert/strict';
 import {older, summarizeBridges, staleDownload, freshUrl, FRESH} from '../js/extcore.js';

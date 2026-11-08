@@ -1,4 +1,4 @@
-import {t} from './i18n.js?v=3.4.0';
+import {t} from './i18n.js?v=3.6.0';
 
 const GUIDES = {
   learncraft: {
@@ -362,7 +362,10 @@ export function mountGuide(layout, toolKey){
     layout.classList.remove('guide-open');
     guideEl.setAttribute('aria-hidden', 'true');
     guideEl.inert = true;
-    if(restoreFocus)document.getElementById('tool-guide-open')?.focus();
+    if(restoreFocus){
+      const phonePicker=document.querySelector('#tools-page.phone-tool-device #phone-tool-current');
+      (phonePicker||document.getElementById('tool-guide-open'))?.focus();
+    }
   };
   guideEl.inert = true;
   guideEl.openGuide = () => {

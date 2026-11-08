@@ -1,3 +1,4 @@
+import "./theme-shim.mjs";
 // Ultimate Go Live: the page, bridge and background must agree on the protocol, and the page may only ask for the allowed clicks.
 // Run: node tests/golive.test.mjs
 import assert from 'node:assert/strict';
@@ -55,7 +56,7 @@ check('Go Live is disabled when the Master Canvas is already Ready', () => {
   assert.match(page, /const state = alreadyReady[\s\S]*?extensionOld/);
   assert.match(page, /const readyNote = alreadyReady \? `<span>\$\{t\('golive\.noNeedGoLive'\)\}<\/span>` : ''/);
   assert.match(page, /class="lc-tab-meta">\$\{stageChip\}\$\{state\}\$\{readyNote\}/);
-  assert.match(page, /extensionOld && !alreadyReady \? ' update-locked' : ''/);
+  assert.match(page, /extensionOld \? ' update-locked' : ''/);
   assert.equal(en['golive.noNeedGoLive'], 'No need to Go Live');
   assert.equal(en['golive.variantCount'](0), '0 variant');
   assert.equal(en['golive.variantCount'](1), '1 variant');
@@ -202,7 +203,7 @@ check('an outdated extension hides Refresh tabs and dims Master Canvas tabs', ()
   assert.match(page, /const refreshButton = extensionOld \? '' : `<button class="btn" data-q="refresh"/);
   assert.match(page, /const tabsCount = `<div class="lc-line\$\{extensionOld \? ' lc-tabs-count-locked' : ''\}"><strong>\$\{t\('learncraft\.tabsFound', rows\.length, courses\.length\)\}<\/strong><span class="lc-grow"><\/span>\$\{refreshButton\}<\/div>`/);
   assert.match(page, /if \(refreshButtonEl\) refreshButtonEl\.onclick = refresh;/);
-  assert.match(page, /class="lc-tab\$\{ok \? '' : ' off'\}\$\{extensionOld && !alreadyReady \? ' update-locked' : ''\}"/);
+  assert.match(page, /class="lc-tab\$\{ok \? '' : ' off'\}\$\{extensionOld \? ' update-locked' : ''\}"/);
   assert.match(read('style.css'), /\.lc-tab\.update-locked\{opacity:\.48;filter:grayscale\(\.55\);pointer-events:none;cursor:not-allowed\}/);
 });
 check('an outdated extension shows but disables the close-ready-tabs option', () => {
@@ -230,11 +231,12 @@ check('Go Live uses the Canvas extractor extension update guide and checks the l
   assert.match(page, /async function latestExtensionVersion\(\)/);
   assert.match(page, /fetch\(freshUrl\('extension\/manifest\.json', document\.baseURI\), FRESH\)/);
   assert.match(page, /const updateAvailable = latestVersion && older\(ext\.version, latestVersion\)/);
-  assert.match(page, /learncraft\.updateStepsLabel/);
+  assert.match(page, /installStepsHtml\(\{update:true\}\)/);
+  assert.match(read('js/install-help.js'), /learncraft\.updateStepsLabel/);
   assert.doesNotMatch(page, /learncraft\.updateDetail[1-5]|learncraft\.updateDetails/);
-  assert.match(page, /data-q="update"/);
-  assert.match(page, /data-q="forcereset"/);
-  assert.match(page, /data-q="copyChromeExtensions"/);
+  assert.match(read('js/install-help.js'), /data-q="dl"/);
+  assert.match(page, /\[data-q=forcereset\]/);
+  assert.match(page, /\[data-q=copyChromeExtensions\]/);
   assert.match(page, /const extensionOld = older\(ext\.version, EXT_MIN\) \|\| !!\(latestVersion && older\(ext\.version, latestVersion\)\)/);
   assert.match(page, /extensionOld \? ' update-locked' : ''/);
   assert.match(page, /data-tab="\$\{r\.tabId\}"\$\{extensionOld \? ' aria-disabled="true"' : ''\}/);
@@ -250,7 +252,7 @@ check('extension downloads include the packaged manifest version in their filena
 });
 check('extension popup is trusted, can list/run Go Live, and does not steal focus', () => {
   const popup = read('extension/popup.js');
-  assert.equal(manifest.version, '1.1.0');
+  assert.equal(manifest.version, '1.2.0');
   assert.deepEqual(manifest.action, {default_title: 'Ultimate Go Live', default_popup: 'popup.html'});
   assert.ok(manifest.permissions.includes('storage'));
   assert.match(background, /m\.ns === 'pl-lc-popup' && fromPopup\(sender\)/);
@@ -634,14 +636,11 @@ check('Go Live has a Quick Guide whose steps all have texts', () => {
   assert.doesNotMatch(read('style.css'), /\.gl-flow/);
   for (const key of ['golive.flowTitle', 'golive.flow.master', 'golive.flow.masterSteps', 'golive.flow.variants', 'golive.flow.variantSteps']) assert.equal(key in en, false, key);
 });
-check('Go Live heading uses the reflective LearnCraft penguin mascot', () => {
-  assert.match(page, /class="lc-heading"[\s\S]*class="lc-mascot-wrap" aria-hidden="true"><img class="lc-mascot" src="\$\{ASSETS\.learncraftMascot\}"[^>]*><span class="lc-scope-glint"><\/span><span class="lc-laser-beam"><\/span>/);
-  assert.match(page, /mascotHeading\.addEventListener\('pointermove', updateMascot\)/);
-  assert.match(page, /mascotHeading\.addEventListener\('pointerleave', resetMascot\)/);
+check('Go Live heading keeps the LearnCraft heading layout and the mascot styles', () => {
   const css = read('style.css');
-  assert.match(css, /\.lc-heading\{[^}]*padding:8px;overflow:clip/);
+  assert.match(css, /\.lc-heading\{[^}]*padding:0 8px;overflow:clip/);
   assert.match(css, /\.view\.on\{[^}]*scrollbar-gutter:stable/);
-  assert.match(css, /\.tool-layout>\.tool,\.tool-layout>\.tool\.wideview\{overflow-y:auto;scrollbar-gutter:stable/);
+  assert.match(css, /\.tool-layout>\.tool,\.tool-layout>\.tool\.wideview\{overflow-y:auto;scrollbar-gutter:auto/);
   assert.match(css, /\.lc-scope-glint\{[^}]*background:transparent;box-shadow:none/);
 });
 check('the close-ready-tabs option has clear primary and helper text', () => {
@@ -661,11 +660,12 @@ check('safety section is removed from the Detailed Guide', () => {
   assert.equal('golive.ignoreHelp' in en, false);
 });
 check('v3.4.0 release notes cover Timestamp Maker and LearnCraft tool updates', () => {
-  assert.equal(en.RELEASES[0].version, 'v3.4.0');
-  const release = en.RELEASES[0].sections.map(x => x.items.join(' ')).join(' ');
+  const v340 = en.RELEASES.find(r => r.version === 'v3.4.0');
+  assert.ok(v340, 'v3.4.0 stays in the release history');
+  const release = v340.sections.map(x => x.items.join(' ')).join(' ');
   assert.match(release, /LearnCraft : Timestamp Maker/);
   assert.match(release, /How to use/);
-  assert.match(release, /up to date/);
+  assert.match(release, /Visit site/);
   assert.match(release, /stay in place/);
 });
 if (failed) { console.log(`\n${failed} FAILED`); process.exit(1); }

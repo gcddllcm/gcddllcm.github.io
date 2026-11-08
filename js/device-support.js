@@ -3,3 +3,8 @@ export function isMobileOrTabletDevice({userAgent = '', platform = '', maxTouchP
   if (/iPhone|iPad|iPod|Android|Tablet|PlayBook|Silk|Windows Phone/i.test(userAgent)) return true;
   return /MacIntel/i.test(platform) && maxTouchPoints > 1;
 }
+
+export function isPhoneDevice({userAgent = '', userAgentData} = {}) {
+  if (/iPhone/i.test(userAgent)) return true;
+  return /Android/i.test(userAgent) && (userAgentData?.mobile === true || /Mobile/i.test(userAgent));
+}

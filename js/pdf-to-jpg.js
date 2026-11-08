@@ -1,9 +1,9 @@
-import {msg,track,countBucket} from './util.js?v=3.4.0';
-import {download} from './nbtool.js?v=3.4.0-tool-workspace-v1';
-import {jpgSetDpi} from './imgcore.js?v=3.4.0';
+import {msg,track,countBucket} from './util.js?v=3.6.0';
+import {download} from './nbtool.js?v=3.6.0';
+import {jpgSetDpi} from './imgcore.js?v=3.6.0';
 import {zipSync} from './vendor/fflate.js';
-import {mountGuide} from './instruction-panel.js?v=3.4.0';
-import {t} from './i18n.js?v=3.4.0';
+import {mountGuide} from './instruction-panel.js?v=3.6.0';
+import {t} from './i18n.js?v=3.6.0';
 
 const MAX_CANVAS_PIXELS=16000000;
 const MAX_CANVAS_SIDE=8192;
@@ -220,6 +220,7 @@ export function mount(root){
 
   const q=key=>root.querySelector(`[data-q="${key}"]`),pdfs=[],selected=new Set();
   let busy=false,activeMode='pages',previewId=null,anchorId=null,previewUrl=null,previewToken=0,previewZoom=1,previewPanX=0,previewPanY=0,pan=null,viewMode='details';
+  let modeTransitionId=0,modeAnimations=[];
   const fullscreen=q('fullscreen'),fullscreenImage=fullscreen.querySelector('img');
   let fullscreenZoom=1,fullscreenPanX=0,fullscreenPanY=0,fullscreenDrag=null,fullscreenPanned=false;
   let extractionBusy=false,extractedZip=null,extractedName='';
@@ -524,8 +525,15 @@ export function mount(root){
     if(busy||extractionBusy)return;
     if(mode===activeMode)return;
     const outgoing=q(activeMode==='pages'?'pages-mode':'images-mode'),incoming=q(mode==='pages'?'pages-mode':'images-mode');
-    outgoing.hidden=true;outgoing.inert=true;outgoing.setAttribute('aria-hidden','true');
-    incoming.hidden=false;incoming.inert=false;incoming.setAttribute('aria-hidden','false');
+    const panels=[q('pages-mode'),q('images-mode')],stage=root.querySelector('.pdf-jpg-mode-stage');
+    const transitionId=++modeTransitionId;
+    for(const animation of modeAnimations)animation.cancel();
+    modeAnimations=[];
+    for(const panel of panels){
+      const visible=panel===outgoing;
+      panel.hidden=!visible;panel.inert=!visible;panel.setAttribute('aria-hidden',String(!visible));panel.style.zIndex='';
+    }
+    const overlapping=getComputedStyle(stage).display==='grid';
     activeMode=mode;
     const tabs=q('mode-tabs');
     tabs.dataset.activeMode=mode;
@@ -535,6 +543,53 @@ export function mount(root){
     q('images-tab').classList.toggle('active',mode==='images');
     q('images-tab').setAttribute('aria-selected',String(mode==='images'));
     q('images-tab').tabIndex=mode==='images'?0:-1;
+    const reduceMotion=window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if(reduceMotion||typeof outgoing.animate!=='function'){
+      outgoing.hidden=true;outgoing.inert=true;outgoing.setAttribute('aria-hidden','true');
+      incoming.hidden=false;incoming.inert=false;incoming.setAttribute('aria-hidden','false');
+      return;
+    }
+
+    const easing='cubic-bezier(.22,1,.36,1)';
+    const finish=()=>{
+      if(transitionId!==modeTransitionId)return;
+      outgoing.hidden=true;outgoing.inert=true;outgoing.setAttribute('aria-hidden','true');
+      incoming.hidden=false;incoming.inert=false;incoming.setAttribute('aria-hidden','false');
+      outgoing.style.zIndex='';incoming.style.zIndex='';
+      for(const animation of modeAnimations)animation.cancel();
+      modeAnimations=[];
+    };
+    const animateIn=()=>incoming.animate(
+      [{opacity:0},{opacity:1}],
+      {duration:220,easing,fill:'both'},
+    );
+    if(overlapping){
+      incoming.hidden=false;incoming.inert=false;incoming.setAttribute('aria-hidden','false');
+      outgoing.inert=true;outgoing.setAttribute('aria-hidden','true');
+      outgoing.style.zIndex='2';incoming.style.zIndex='1';
+      const animateOut=outgoing.animate(
+        [{opacity:1},{opacity:0}],
+        {duration:180,easing:'ease-out',fill:'both'},
+      );
+      const animateIncoming=animateIn();modeAnimations=[animateOut,animateIncoming];
+      Promise.all([animateOut.finished.catch(()=>{}),animateIncoming.finished.catch(()=>{})]).then(finish);
+      return;
+    }
+
+    // The compact layout stacks panels, so fade the outgoing workspace before swapping to avoid a double-height flash.
+    outgoing.inert=true;outgoing.setAttribute('aria-hidden','true');
+    const animateOut=outgoing.animate(
+      [{opacity:1},{opacity:0}],
+      {duration:180,easing:'ease-out',fill:'both'},
+    );
+    modeAnimations=[animateOut];
+    animateOut.finished.catch(()=>{}).then(()=>{
+      if(transitionId!==modeTransitionId)return;
+      outgoing.hidden=true;
+      incoming.hidden=false;incoming.inert=false;incoming.setAttribute('aria-hidden','false');
+      const animateIncoming=animateIn();modeAnimations=[animateIncoming];
+      animateIncoming.finished.catch(()=>{}).then(finish);
+    });
   }
   async function extractImages(file){
     if(extractionBusy)return;

@@ -36,6 +36,6 @@ print(f"Version {ver}: config.js and {total} ?v= references updated.")
 
 # ---- sanity checks (warnings only) ----
 en = read(root / "js" / "locales" / "en.js")
-top = re.search(r"RELEASES:\[\s*\{version:'v([^']+)'", en)
+top = re.search(r"RELEASES:\s*\[\s*\{\s*version:'v([^']+)'", en)
 if not top or top.group(1) != ver:
     print(f"WARNING: the newest entry in RELEASES (js/locales/en.js) is v{top.group(1) if top else '?'}, not v{ver}. Add the release notes.")

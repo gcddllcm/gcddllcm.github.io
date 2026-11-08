@@ -1,3 +1,4 @@
+import "./theme-shim.mjs";
 import {assetMatchesDateSelection, flattenTimestampAssets, groupTimestampUpdates, normalizeTimestampTree, parseTimestampPaste, selectedTimestampUpdates, summarizeRecordingDays, timestampPageAndProblemFromTitle, timestampUpdates, timestampVideoPlaybackUrl, timestampVideoRecordingInfo} from '../js/timestampcore.js';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -191,7 +192,7 @@ await check('integration: the LearnCraft directory includes the guarded extensio
   assert.match(module, /timestampMaker\.workingSwitch/);
   assert.match(module, /timestampMaker\.progressAsset/);
   assert.match(module, /finally\{\s*busy=false;stopRequested=false;activeFillRequestId=null;[\s\S]*?updatePending\(\);\s*\$result\.scrollIntoView\(\{behavior:matchMedia\('\(prefers-reduced-motion: reduce\)'\)\.matches\?'auto':'smooth',block:'end'\}\);/);
-  assert.match(module, /import \{[^}]*parseTimestampPaste[^}]*\} from '\.\/timestampcore\.js\?v=3\.3\.0'/);
+  assert.match(module, /import \{[^}]*parseTimestampPaste[^}]*\} from '\.\/timestampcore\.js\?v=\d+\.\d+\.\d+'/);
   assert.match(module, /input\.addEventListener\('paste',event=>\{[\s\S]*?parseTimestampPaste\(text\)[\s\S]*?const paired=pastedRows\.some\(row=>row\.length>1\)/);
   assert.match(module, /const fields=paired\?\['pageNo','problemNo'\]:\[input\.dataset\.field\]/);
   assert.match(module, /field\.dispatchEvent\(new Event\('input',\{bubbles:true\}\)\)/);
@@ -199,7 +200,7 @@ await check('integration: the LearnCraft directory includes the guarded extensio
   assert.match(module, /The extension returned no asset list/);
   assert.match(module, /normalizeTimestampTree/);
   assert.match(module, /locked=!asset\.canFill/);
-  assert.match(module, /selectedTimestampUpdates\(assets,selectedIndices\(\)\)/);
+  assert.match(module, /selected=selectedIndices\(\),updates=selectedTimestampUpdates\(assets,selected\)/);
   assert.match(module, /value="\$\{esc\(asset\.pageNo\)\}"/);
   assert.match(module, /asset\.pageNoPrefilled\?' tf-prefilled':''/);
   assert.match(module, /input\.classList\.remove\('tf-prefilled'\)/);
@@ -244,7 +245,7 @@ await check('integration: the LearnCraft directory includes the guarded extensio
   assert.match(background, /listbox\.querySelectorAll\('\[role="option"\]'\)/);
   assert.match(background, /await clickWithErrorRecovery\(save\);\s*saved = true;\s*await waitFor\(\(\) => !findDialog\(\), 'the timestamp dialog to close'\);\s*await waitFor\(\(\) => \{/);
   assert.match(background, /findDialogAsset = \(entry, dialog\)/);
-  assert.match(background, /could not uniquely identify/);
+  assert.match(background, /Could not uniquely identify/);
   assert.match(background, /await clickWithErrorRecovery\(targetAsset\.row\);\s*await settleTimestampEditor\(\);/);
   assert.match(background, /const settleTimestampEditor = \(\) => new Promise\(resolve => setTimeout\(resolve, 300\)\)/);
   assert.match(background, /if \(entry\.problemNo\) setInputValue\(problemInput, entry\.problemNo\);\s*if \(index \+ 1 < group\.length\) await settleTimestampEditor\(\);/);
@@ -269,12 +270,12 @@ await check('integration: the LearnCraft directory includes the guarded extensio
   assert.match(module, /tf-day-status-\$\{kind\}/);
   assert.match(module, /timestampMaker\.dateFilterHint/);
   assert.match(module, /data-action=stop/);
-  assert.match(module, /import \{copyInternalPage,installStepsHtml,updateStepsHtml\} from '\.\/install-help\.js\?v=3\.4\.0-install-guide-v5'/);
+  assert.match(module, /import \{copyInternalPage,installStepsHtml\} from '\.\/install-help\.js\?v=\d+\.\d+\.\d+'/);
   assert.match(module, /function showMissing\(\)/);
   assert.match(module, /function showOutdated\(version\)/);
   assert.match(module, /function showDuplicate\(info\)/);
-  assert.match(module, /data-q="dl"/);
-  assert.match(module, /data-q="update"/);
+  assert.match(module, /\[data-q=dl\]/);
+  assert.match(module, /installStepsHtml\(\{update:true\}\)/);
   assert.match(module, /function extensionFiles\(manifest\)/);
   assert.match(module, /action:'cancel',target:activeFillRequestId/);
   assert.match(module, /timestampMaker\.stopped/);
@@ -292,13 +293,13 @@ await check('integration: the LearnCraft directory includes the guarded extensio
   assert.match(module, /videoViewport\.addEventListener\('pointerdown'/);
   assert.match(module, /videoPanDrag\.panX\+dx/);
   assert.match(module, /event\.ctrlKey/);
-  assert.match(module, /videoZoom=\s*Math\.max\(1,Math\.min\(3/);
+  assert.match(module, /nextZoom=Math\.max\(1,Math\.min\(3,videoZoom/);
   assert.match(module, /resetVideoZoom\(\)/);
-  assert.match(background, /already has a filled timestamp and cannot be filled/);
-  assert.equal(manifest.version, '1.1.0');
-  assert.match(module, /const EXT_MIN='1\.1\.0'/);
-  assert.match(learncraft, /const EXT_MIN='1\.1\.0'/);
-  assert.match(golive, /const EXT_MIN = '1\.1\.0'/);
+  assert.match(background, /already has a filled timestamp\./);
+  assert.equal(manifest.version, '1.2.0');
+  assert.match(module, /const EXT_MIN='1\.2\.0'/);
+  assert.match(learncraft, /const EXT_MIN='1\.2\.0'/);
+  assert.match(golive, /const EXT_MIN = '1\.2\.0'/);
 });
 
 await check('date filter: summarizes recorded days in order and counts undated videos separately', () => {

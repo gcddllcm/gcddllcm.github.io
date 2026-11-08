@@ -1,6 +1,6 @@
 // English interface text and release notes. Add new visible strings here.
 const en = {
-  'nav.main':'Main navigation','nav.tools':'Tools','nav.updates':"Release Notes",'nav.about':'About Us',
+  'nav.main':'Main navigation','nav.tools':'Tools','nav.updates':"Release Notes",'nav.about':'About Us','nav.themeToLight':'Switch to light mode','nav.themeToDark':'Switch to dark mode',
   'a11y.progressCreator':'Notebook creation progress','a11y.progressFiles':'File processing progress','a11y.progressImport':'Page import progress','a11y.progressExport':'Export progress','a11y.progressPdf':'PDF conversion progress','a11y.progressImages':'Image extraction progress',
   'creator.imageList':'Images to include in the notebook',
   'sidebar.title':'Tools','library.categoryNotebook':'SMART NOTEBOOK','library.categoryImages':'IMAGE','library.categoryArchive':'ARCHIVE TOOLS','library.categoryPdf':'I PHILO PDF',
@@ -105,7 +105,7 @@ const en = {
   'learncraft.missingText':'A web page cannot see your other browser tabs. This extension lets Penguin Logistics list your LearnCraft tabs and read the course in the one you choose. Nothing leaves your browser.',
   'learncraft.installVisualLabel':'Five steps to install the extension','learncraft.installSubtitle':'Follow these 5 simple steps to connect Penguin Logistics with your LearnCraft tabs.','learncraft.installStep1Title':'Download the extension','learncraft.installStep1Description':'Download the Penguin Logistics extension ZIP file.','learncraft.installDownloadZip':'Download ZIP','learncraft.installStep2Title':'Open Chrome Extensions','learncraft.installStep2Description':'Open the Chrome extensions management page.','learncraft.installStep3Title':'Enable Developer Mode','learncraft.installStep3Description':'Turn on Developer mode in the top-right corner of the Chrome extensions page.','learncraft.installStep4Title':'Install the Extension','learncraft.installStep4Description':'Drag and drop the downloaded extension ZIP file into the Chrome extensions page.','learncraft.installStep5Title':'Refresh Penguin Logistics','learncraft.installStep5Description':'Return to this page and refresh it to activate the extension.','learncraft.installForceRefresh':'Force Refresh','learncraft.installVisual1':'Download the extension file','learncraft.installVisual2':'Open Chrome extensions page','learncraft.installVisual3':'Turn on Developer mode','learncraft.installVisual4':'Drag and drop the ZIP file','learncraft.installVisual5':'Come back to this page and press',
   'learncraft.internalPageActionTitle':'Extensions page address','learncraft.internalPageCopied':url=>`Copied ${url}. Paste it into your browser address bar and press Enter.`,'learncraft.internalPageCopyFail':url=>`Could not copy ${url}. Open a new tab, enter this address in the address bar, and press Enter.`,
-  'learncraft.download':'Download extension','learncraft.downloadUpdate':'Download update','learncraft.downloadFail':'Could not prepare the download','learncraft.downloadFailedDetail':error=>`The extension ZIP could not be prepared. Check your connection and try again. Details: ${error}`,'learncraft.updateAvailable':version=>`Update available: v${version}. Update to continue.`,'learncraft.updateAvailableTitle':'Update the extension','learncraft.updateStepsLabel':'Six visual steps to update the extension','learncraft.updateRequiredExtract':'Update the extension before extracting. Download the latest version, replace the files in its current folder, and click Reload on the extensions page.','learncraft.updateStep1':'Download the extension file','learncraft.updateStep2':'Open Chrome extensions page','learncraft.updateStep3':'Turn on Developer mode','learncraft.updateStep4':'Drag and drop the ZIP file','learncraft.updateStep5':'Remove the old version','learncraft.updateStep6':'Come back to this page and press','learncraft.updateChrome':'Copy chrome://extensions','learncraft.updateForceRefresh':'Force refresh','learncraft.updateCheckFailed':error=>`Could not check for extension updates: ${error}`,'learncraft.forceReset':'Force refresh','learncraft.noAssets':'No assets',
+  'learncraft.download':'Download extension','learncraft.downloadUpdate':'Download update','learncraft.downloadFail':'Could not prepare the download','learncraft.downloadFailedDetail':error=>`The extension ZIP could not be prepared. Check your connection and try again. Details: ${error}`,'learncraft.updateAvailable':version=>`Update available: v${version}. Update to continue.`,'learncraft.updateAvailableTitle':'Update the extension','learncraft.updateStepsLabel':'Six visual steps to update the extension','learncraft.updateDeleteOldVersionTitle':'Remove the old version','learncraft.updateDeleteOldVersionDescription':'On the extensions page, find “Penguin Logistics - LearnCraft bridge”, click Remove, and confirm.','learncraft.updateRequiredExtract':'Update the extension before extracting. Download the latest version, replace the files in its current folder, and click Reload on the extensions page.','learncraft.updateStep1':'Download the extension file','learncraft.updateStep2':'Open Chrome extensions page','learncraft.updateStep3':'Turn on Developer mode','learncraft.updateStep4':'Drag and drop the ZIP file','learncraft.updateStep5':'Remove the old version','learncraft.updateStep6':'Come back to this page and press','learncraft.updateChrome':'Copy chrome://extensions','learncraft.updateForceRefresh':'Force refresh','learncraft.updateCheckFailed':error=>`Could not check for extension updates: ${error}`,'learncraft.forceReset':'Force refresh','learncraft.noAssets':'No assets',
   'learncraft.duplicateTitle':'More than one copy of the extension is installed',
   'learncraft.duplicateText':(n,versions)=>`Chrome is running ${n} copies of the extension (${versions}). Every copy answers this page, so it can keep showing the old version, and one click could run twice. Keep only one copy.`,
   'learncraft.duplicate1':'Open the Chrome extensions page and find every card named "Penguin Logistics - LearnCraft bridge".',
@@ -198,6 +198,24 @@ const en = {
   'learncraft.gaps':(n,names)=>`${n} item${n===1?' has':'s have'} nothing inside (${names}).`,
   'learncraft.timeIssues':n=>`${n} time${n===1?'':'s'} do not add up:`,'learncraft.timeMismatch':(shown,sum)=>`shown ${shown}, items inside add up to ${sum}`,
   RELEASES:[
+    {
+      version:'v3.6.0',
+      date:'8 November 2026',
+      sections:[
+        {title:'Added',items:[
+          'Introduce Light mode.',
+          'New suggestion rules to <strong>LearnCraft : Timestamp Maker</strong> to make recommendations more relevant.'
+        ]},
+        {title:'Changed',items:[
+          'Refined the animation after clicking Extract in <strong>LearnCraft : Master Canvas Extractor</strong>.',
+          'Improved the hover effects for the Page and Pb fields in <strong>LearnCraft : Timestamp Maker</strong>.',
+          'Improved mobile layout for a better experience on smaller screens.'
+        ]},
+        {title:'Fixed',items:[
+          'Fixed path normalization in <strong>SMART Notebook : Convert to JPG</strong>, which prevented .notebook files from being added.'
+        ]}
+      ]
+    },
     {
       version:'v3.5.0',
       date:'7 November 2026',

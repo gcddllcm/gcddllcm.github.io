@@ -16,7 +16,7 @@ await check('notebook pages are read in numeric order and embedded assets are re
     'images/photo.png':new Uint8Array([1,2,3])
   });
   const result=extractNotebookPages(bytes);
-  assert.deepEqual(result.pages.map(page=>page.number),[2,10]);
+  assert.deepEqual(result.pages.map(page=>page.number),[1,2]);
   assert.deepEqual(result.pages.map(page=>[page.width,page.height]),[[800,600],[640,480]]);
   assert.match(result.pages[0].svg,/href="data:image\/png;base64,AQID"/);
   assert.doesNotMatch(result.pages[0].svg,/<script|onload=/);

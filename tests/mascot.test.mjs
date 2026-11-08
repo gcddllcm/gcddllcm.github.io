@@ -1,3 +1,4 @@
+import "./theme-shim.mjs";
 // The interactive penguin (js/mascot.js) is cosmetic: it only reads the page. Checks that it stays wired up and polite.
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
@@ -17,7 +18,7 @@ check('every mascot line exists in the English strings', () => {
   assert.ok(en.includes("'mascot.idleExtract'") && en.includes("'mascot.idleGolive'") && en.includes("'mascot.tap'"));
 });
 check('reduced motion switches the penguin animations off', () => {
-  assert.match(css, /prefers-reduced-motion:reduce\)\{\.lc-mascot,[^}]*animation:none/);
+  assert.match(css, /prefers-reduced-motion:reduce\)\{\.lc-mascot-body,[^}]*animation:none/);
   assert.match(mascot, /prefers-reduced-motion: reduce/);
 });
 check('speech bubble stays beside the penguin without covering its head', () => {
