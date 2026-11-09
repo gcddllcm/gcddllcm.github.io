@@ -1,6 +1,6 @@
-import {msg,track} from './util.js?v=3.6.0';
-import {mountGuide} from './instruction-panel.js?v=3.6.0';
-import {t} from './i18n.js?v=3.6.0';
+import {msg,track} from './util.js?v=3.6.1';
+import {mountGuide} from './instruction-panel.js?v=3.6.1';
+import {t} from './i18n.js?v=3.6.1';
 export const isNb=n=>/\.notebook$/i.test(n);
 const NBTYPES=[{description:'SMART Notebook',accept:{'application/octet-stream':['.notebook']}}];
 export function download(name,bytes){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([bytes]));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),30000)}

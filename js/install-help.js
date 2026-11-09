@@ -1,5 +1,5 @@
-import {msg} from './util.js?v=3.6.0';
-import {t} from './i18n.js?v=3.6.0';
+import {msg} from './util.js?v=3.6.1';
+import {t} from './i18n.js?v=3.6.1';
 
 export function installStepsHtml({update=false}={}) {
   const installHeader=update?'':`<header class="lc-install-header">

@@ -1,16 +1,16 @@
 // LearnCraft : Master Canvas extractor.
 // A web page cannot read other browser tabs, so a small companion extension (extension/) does the reading and this
 // tool talks to it through window.postMessage (extension/bridge.js). Course data stays in this browser tab.
-import {msg,track} from './util.js?v=3.6.0';
-import {mountGuide} from './instruction-panel.js?v=3.6.0';
-import {download} from './nbtool.js?v=3.6.0';
-import {t} from './i18n.js?v=3.6.0';
-import {copyInternalPage,installStepsHtml} from './install-help.js?v=3.6.0';
-import {zipSync} from './vendor/fflate.js?v=3.6.0';
-import {older,summarizeBridges,staleDownload,freshUrl,FRESH} from './extcore.js?v=3.6.0';
-import {countTree,checkTimes,findGaps,tableTsv,tableCsv,tableRows,summaryTsv,fmtTime,normTime,toSeconds,sumAssetTimes} from './lccore.js?v=3.6.0';
-import {fmtElapsed} from './glcore.js?v=3.6.0';
-import {ASSETS,extensionAssetUrl} from './assets.js?v=3.6.0';
+import {msg,track} from './util.js?v=3.6.1';
+import {mountGuide} from './instruction-panel.js?v=3.6.1';
+import {download} from './nbtool.js?v=3.6.1';
+import {t} from './i18n.js?v=3.6.1';
+import {copyInternalPage,installStepsHtml} from './install-help.js?v=3.6.1';
+import {zipSync} from './vendor/fflate.js?v=3.6.1';
+import {older,summarizeBridges,staleDownload,freshUrl,FRESH} from './extcore.js?v=3.6.1';
+import {countTree,checkTimes,findGaps,tableTsv,tableCsv,tableRows,summaryTsv,fmtTime,normTime,toSeconds,sumAssetTimes} from './lccore.js?v=3.6.1';
+import {fmtElapsed} from './glcore.js?v=3.6.1';
+import {ASSETS,extensionAssetUrl} from './assets.js?v=3.6.1';
 
 const EXT_MIN='1.2.0';
 // Every file the extension needs, read from its own manifest, so adding a file to the extension never needs a change here.

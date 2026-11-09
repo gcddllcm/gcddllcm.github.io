@@ -199,6 +199,15 @@ const en = {
   'learncraft.timeIssues':n=>`${n} time${n===1?'':'s'} do not add up:`,'learncraft.timeMismatch':(shown,sum)=>`shown ${shown}, items inside add up to ${sum}`,
   RELEASES:[
     {
+      version:'v3.6.1',
+      date:'9 November 2026',
+      sections:[
+        {title:'Added',items:[
+          'Added more animations across the app.'
+        ]}
+      ]
+    },
+    {
       version:'v3.6.0',
       date:'8 November 2026',
       sections:[

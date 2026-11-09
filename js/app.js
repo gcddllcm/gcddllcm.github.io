@@ -1,19 +1,20 @@
-import {APP_VERSION} from '../config.js?v=3.6.0';
-import {$,msg,track,loadAnalytics} from './util.js?v=3.6.0';
-import * as resizer from './resizer.js?v=3.6.0';
-import * as creator from './creator.js?v=3.6.0';
-import * as pagelock from './pagelock.js?v=3.6.0';
-import * as topdf from './topdf.js?v=3.6.0';
-import * as pdfToJpg from './pdf-to-jpg.js?v=3.6.0';
-import * as jpgMaker from './jpg-maker.js?v=3.6.0';
-import * as learncraft from './learncraft.js?v=3.6.0';
-import * as golive from './golive.js?v=3.6.0';
-import * as timestampMaker from './timestamp-maker.js?v=3.6.0';
-import {isMobileOrTabletDevice,isPhoneDevice} from './device-support.js?v=3.6.0';
-import {strings,t} from './i18n.js?v=3.6.0';
-import {ASSETS} from './assets.js?v=3.6.0';
-import './animated-select.js?v=3.6.0';
-import {initTheme} from './theme.js?v=3.6.0';
+import {APP_VERSION} from '../config.js?v=3.6.1';
+import {$,msg,track,loadAnalytics} from './util.js?v=3.6.1';
+import * as resizer from './resizer.js?v=3.6.1';
+import * as creator from './creator.js?v=3.6.1';
+import * as pagelock from './pagelock.js?v=3.6.1';
+import * as topdf from './topdf.js?v=3.6.1';
+import * as pdfToJpg from './pdf-to-jpg.js?v=3.6.1';
+import * as jpgMaker from './jpg-maker.js?v=3.6.1';
+import * as learncraft from './learncraft.js?v=3.6.1';
+import * as golive from './golive.js?v=3.6.1';
+import * as timestampMaker from './timestamp-maker.js?v=3.6.1';
+import {isMobileOrTabletDevice,isPhoneDevice} from './device-support.js?v=3.6.1';
+import {strings,t} from './i18n.js?v=3.6.1';
+import {ASSETS} from './assets.js?v=3.6.1';
+import './animated-select.js?v=3.6.1';
+import './effects.js?v=3.6.1';
+import {initTheme} from './theme.js?v=3.6.1';
 
 document.querySelector('[data-page="tools"]').textContent=t('nav.tools');
 document.querySelector('[data-page="updates"]').textContent=t('nav.updates');
@@ -441,8 +442,8 @@ function fitTimeline(){const dots=[...timeline.querySelectorAll('.timeline-dot')
 requestAnimationFrame(fitTimeline);addEventListener('resize',fitTimeline);new ResizeObserver(fitTimeline).observe(timeline);
 if(!reduceReleaseMotion){releaseRevealObserver=new IntersectionObserver(entries=>{for(const entry of entries){if(entry.isIntersecting){entry.target.classList.add('revealed');entry.target.classList.remove('reveal-pending');releaseRevealObserver.unobserve(entry.target)}}},{root:document.getElementById('main'),rootMargin:'0px 0px -8% 0px',threshold:.08});timeline.querySelectorAll('.release.reveal-pending').forEach(el=>releaseRevealObserver.observe(el))}
 const about=$('about-page');
-const PROJECT_CHARACTER_COUNT=4192572;
-const PROJECT_LINE_COUNT=17147,PROJECT_FILE_COUNT=88;
+const PROJECT_CHARACTER_COUNT=4201497;
+const PROJECT_LINE_COUNT=17258,PROJECT_FILE_COUNT=89;
 about.innerHTML=`<div class="page-heading"><img class="page-icon" src="${ASSETS.aboutMascot}" alt=""><div><h1>${t('about.title')}</h1><div class="sub">Penguin Logistics</div></div></div><div class="about-container"><article class="about-lines" aria-label="${t('about.snapshotLabel')}"><div class="about-stat about-stat-characters"><span class="about-lines-label">${t('about.charactersLabel')}</span><strong class="about-characters-value">${PROJECT_CHARACTER_COUNT.toLocaleString()}</strong><span class="about-lines-note">${t('about.charactersNote')}</span></div><div class="about-stat about-stat-lines"><span class="about-lines-label">${t('about.linesLabel')}</span><strong class="about-lines-value">${PROJECT_LINE_COUNT.toLocaleString()}</strong><span class="about-lines-note">${t('about.linesNote')}</span></div><div class="about-stat about-stat-files"><span class="about-lines-label">${t('about.filesLabel')}</span><strong class="about-files-value">${PROJECT_FILE_COUNT.toLocaleString()}</strong><span class="about-lines-note">${t('about.filesNote')}</span></div></article><div class="about-details"><a class="about-detail about-detail-contact" data-tone="violet" href="https://www.larksuite.com/invitation/page/add_contact/?token=e39p7e0c-09b3-49b3-b59f-e9e497v47fle" target="_blank" rel="noopener noreferrer"><span class="about-detail-badge" aria-hidden="true"><svg class="about-detail-icon" viewBox="0 0 24 24" focusable="false"><path class="duo" d="M5 4.5h14a2 2 0 0 1 2 2v8.2a2 2 0 0 1-2 2h-6.6l-4.4 3.6v-3.6H5a2 2 0 0 1-2-2V6.5a2 2 0 0 1 2-2Z"/><circle class="dot" cx="8.2" cy="10.6" r="1.1"/><circle class="dot" cx="12" cy="10.6" r="1.1"/><circle class="dot" cx="15.8" cy="10.6" r="1.1"/></svg></span><span class="about-detail-text">${t('about.contact')}</span><svg class="about-detail-go" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 17 17 7M9 7h8v8"/></svg></a><p class="about-detail about-detail-creator" data-tone="violet"><span class="about-detail-badge" aria-hidden="true"><svg class="about-detail-icon" viewBox="0 0 24 24" focusable="false"><path d="m4 20 9.6-9.6"/><path class="duo" d="M17 2.8l1.2 3 3 1.2-3 1.2-1.2 3-1.2-3-3-1.2 3-1.2Z"/><path d="M5.5 4.6v2.8M4.1 6h2.8M18.6 15.6v2.8M17.2 17h2.8"/></svg></span><span class="about-detail-text">${t('about.creator')} Champ (AT Math) + Claude, Codex, Zhipu, Antigravity, Copilot, and Cursor (all of them are free btw)</span></p><p class="about-detail about-detail-version" data-tone="violet"><span class="about-detail-badge" aria-hidden="true"><svg class="about-detail-icon" viewBox="0 0 24 24" focusable="false"><path class="duo" d="M3 12.2V5a2 2 0 0 1 2-2h7.2a2 2 0 0 1 1.4.6l7.2 7.2a2 2 0 0 1 0 2.8l-7 7a2 2 0 0 1-2.8 0l-7.4-7.4a2 2 0 0 1-.6-1.4Z"/><circle class="dot" cx="7.6" cy="7.6" r="1.4"/></svg></span><span class="about-detail-text">${t('about.version')} <strong>${APP_VERSION}</strong></span></p><p class="about-detail about-detail-privacy" data-tone="violet"><span class="about-detail-badge" aria-hidden="true"><svg class="about-detail-icon" viewBox="0 0 24 24" focusable="false"><path class="duo" d="M12 2.8 19.5 5.8v5.6c0 4.6-3 8.1-7.5 9.8-4.5-1.7-7.5-5.2-7.5-9.8V5.8Z"/><path d="m8.7 12.1 2.3 2.3 4.4-4.8"/></svg></span><span class="about-detail-text">${t('about.privacy')}</span></p></div></div>`;
 const aboutIcons=[
   ['.about-detail-contact','<path d="M5 4.5h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-6l-5 3v-3H5a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2Z"/><circle cx="8" cy="11" r=".7"/><circle cx="12" cy="11" r=".7"/><circle cx="16" cy="11" r=".7"/>'],
