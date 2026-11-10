@@ -1,8 +1,8 @@
-import {$,msg,track,countBucket,yieldNow} from './util.js?v=3.6.1';
-import {mountGuide} from './instruction-panel.js?v=3.6.1';
-import {t} from './i18n.js?v=3.6.1';
-import {pngSetDpi,jpgSetDpi,bmpEncode,readImageInfo,resizeLanczos,ppm} from './imgcore.js?v=3.6.1';
-import {zipSync} from './vendor/fflate.js?v=3.6.1';
+import {$,msg,track,countBucket,yieldNow} from './util.js?v=3.6.2';
+import {mountGuide} from './instruction-panel.js?v=3.6.2';
+import {t} from './i18n.js?v=3.6.2';
+import {pngSetDpi,jpgSetDpi,bmpEncode,readImageInfo,resizeLanczos,ppm} from './imgcore.js?v=3.6.2';
+import {zipSync} from './vendor/fflate.js?v=3.6.2';
 const HAS_FS='showDirectoryPicker' in window;
 const sleep=yieldNow;
 const IN_THREAD_MAX_MP=40;     // the page itself only processes images up to this size (fallback path)
@@ -78,7 +78,7 @@ class ResizerPool {
   }
 
   _spawnWorker(){
-    const w=new Worker(new URL('./resizer-worker.js?v=3.6.1',import.meta.url),{type:'module'});
+    const w=new Worker(new URL('./resizer-worker.js?v=3.6.2',import.meta.url),{type:'module'});
     w.onmessage=e=>{
       const {id,ok,blob,w:rw,h:rh,dpi:rdpi,error}=e.data;
       const h=this.handlers.get(id);
@@ -252,7 +252,7 @@ export function mount(root){
       <strong class="rz-drop-title" id="rz-drop-title" role="status" aria-live="polite" aria-atomic="true">${t('resizer.dropImages')}</strong>
       <span class="rz-drop-hint">${t('resizer.dropHint')}</span>
       <button type="button" class="btn rz-browse" id="rz-browse">${t('resizer.browseImages')}</button>
-      <span class="rz-progress-sr" id="rz-progress" role="progressbar" aria-label="${t('a11y.progressFiles')}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden></span>
+      <div class="rz-meter-row"><div class="rz-meter" id="rz-progress" role="progressbar" aria-label="${t('a11y.progressFiles')}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span class="rz-meter-fill"></span></div><span class="rz-meter-percent" id="rz-percent" aria-hidden="true">0%</span></div>
     </div>
   </section>
   <input type="file" id="rz-file" multiple accept=".jpg,.jpeg,.png,.bmp,.webp" hidden></div>
@@ -265,11 +265,13 @@ export function mount(root){
   if(!HAS_FS)$('rz-out').hidden=true;
   const updateControls=()=>{$('rz-browse').disabled=busy};
   const updateProgress=(completed,total)=>{
-    const percent=Math.round(completed/total*100),progress=$('rz-progress');
-    drop.style.setProperty('--rz-progress',`${Math.max(1,percent)}%`);
+    const percent=Math.round(completed/total*100),bar=$('rz-progress');
+    bar.style.setProperty('--rz-progress',`${percent}%`);
+    bar.classList.toggle('is-done',completed>=total);
+    $('rz-percent').textContent=`${percent}%`;
     $('rz-drop-title').textContent=t('resizer.filesProgress',completed,total);
-    progress.setAttribute('aria-valuenow',String(percent));
-    progress.setAttribute('aria-valuetext',t('resizer.filesProgress',completed,total));
+    bar.setAttribute('aria-valuenow',String(percent));
+    bar.setAttribute('aria-valuetext',t('resizer.filesProgress',completed,total));
   };
   const addEntries=entries=>{
     if(busy)return;
@@ -316,13 +318,15 @@ export function mount(root){
   addEventListener('beforeunload',e=>{if(busy){e.preventDefault();e.returnValue=''}});   // closing the tab mid-run leaves files half written
   async function run(entries){
     if(busy||!entries.length)return;const s=settings();if(!s)return;
-    busy=true;updateControls();drop.classList.add('off','is-processing');drop.style.setProperty('--rz-progress','1%');
-    $('rz-progress').hidden=false;updateProgress(0,entries.length);
+    busy=true;updateControls();drop.classList.add('off','is-processing');
+    const bar=$('rz-progress');
+    updateProgress(0,entries.length);
     try{await runBatch(entries,s)}catch(e){msg(t('nb.error'),String(e&&e.message||e),'error')}
     finally{
-      busy=false;updateControls();drop.classList.remove('off','is-processing');drop.style.removeProperty('--rz-progress');
+      busy=false;updateControls();drop.classList.remove('off','is-processing');
       $('rz-drop-title').textContent=t('resizer.dropImages');
-      $('rz-progress').hidden=true;$('rz-progress').setAttribute('aria-valuenow','0');$('rz-progress').removeAttribute('aria-valuetext');
+      bar.classList.remove('is-done');bar.style.removeProperty('--rz-progress');
+      bar.setAttribute('aria-valuenow','0');bar.removeAttribute('aria-valuetext');$('rz-percent').textContent='0%';
     }
   }
   async function runBatch(entries,s){

@@ -3,7 +3,7 @@
 //   - click / tap the penguin: recoil, muzzle flash, tracer, speech bubble (4 quick taps = "easy there")
 //   - while a run is going: the laser sweeps
 //   - when a run ends: confetti for success, a sweat drop for "needs attention"
-import {t} from './i18n.js?v=3.6.1';
+import {t} from './i18n.js?v=3.6.2';
 
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 const pick = list => list[Math.floor(Math.random() * list.length)];

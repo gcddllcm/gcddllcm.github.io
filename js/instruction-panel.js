@@ -1,4 +1,4 @@
-import {t} from './i18n.js?v=3.6.1';
+import {t} from './i18n.js?v=3.6.2';
 
 const GUIDES = {
   learncraft: {

@@ -642,14 +642,17 @@ await check('keyboard shortcuts stay enabled, focus styling persists until point
   assert.match(resizer, /const addEntries=entries=>\{[\s\S]*?run\(added\)/, 'automatically resize images when selected');
   assert.match(resizer, /const updateControls=\(\)=>\{\$\('rz-browse'\)\.disabled=busy\}/);
   assert.match(resizer, /try\{await runBatch\(entries,s\)\}catch/);
-  assert.match(resizer, /class="rz-progress-sr" id="rz-progress" role="progressbar"/);
+  assert.match(resizer, /class="rz-meter" id="rz-progress" role="progressbar"[^>]*aria-valuenow="0"><span class="rz-meter-fill"><\/span><\/div><span class="rz-meter-percent" id="rz-percent" aria-hidden="true">/);
   assert.match(resizer, /drop\.classList\.add\('off','is-processing'\)/);
   assert.match(resizer, /updateProgress\(\+\+processed,entries\.length\)/);
-  assert.match(resizer, /progress\.setAttribute\('aria-valuetext',t\('resizer\.filesProgress',completed,total\)\)/);
-  assert.match(resizerCss, /@property --rz-progress\{syntax:"<percentage>";inherits:true;initial-value:0%\}/);
-  assert.match(resizerCss, /\.view\[data-tool="resizer"\] \.rz-drop\{[^}]*transition:--rz-progress \.35s ease/);
-  assert.match(resizerCss, /\.view\[data-tool="resizer"\] \.rz-drop\.is-processing::after\{opacity:1\}/);
-  assert.match(resizerCss, /conic-gradient\(#6c5ce7 0 calc\(var\(--rz-progress,1%\) - 1\.5%\),#e2ddff calc\(var\(--rz-progress,1%\) - 1\.5%\) var\(--rz-progress,1%\),transparent var\(--rz-progress,1%\) 100%\)/);
+  assert.match(resizer, /bar\.setAttribute\('aria-valuetext',t\('resizer\.filesProgress',completed,total\)\)/);
+  assert.doesNotMatch(resizer + resizerCss, /is-segmented|MAX_SEGMENTS|--rz-seg/, 'the progress bar is one smooth bar for every batch size');
+  assert.match(resizer, /bar\.style\.setProperty\('--rz-progress',`\$\{percent\}%`\)/);
+  assert.doesNotMatch(resizerCss, /conic-gradient\(#6c5ce7|@property --rz-progress|\.rz-drop::after/, 'the old ring progress is removed');
+  assert.match(resizerCss, /\.rz-meter-fill\{[^}]*width:var\(--rz-progress,0%\)[^}]*transition:width \.35s/);
+  assert.match(resizerCss, /\.rz-drop\.is-processing \.rz-meter-row\{display:flex\}/);
+  assert.match(resizerCss, /\.rz-drop\.is-processing :is\(\.rz-upload-icon,\.rz-drop-hint,\.rz-browse\)\{display:none\}/);
+  assert.match(resizerCss, /prefers-reduced-motion:reduce\)\{[^}]*\.rz-meter-fill\{transition:none!important\}\.rz-meter::after\{animation:none!important/);
   assert.match(resizer, /drop\.onkeydown=e=>\{if\(e\.target===drop&&\(e\.key==='Enter'\|\|e\.key===' '\)/);
   assert.doesNotMatch(resizer, /rz-progress-container|rz-progress-list|rz-status/);
   assert.match(resizerCss, /\.resizer-settings-panel \.row3\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
@@ -660,7 +663,8 @@ await check('keyboard shortcuts stay enabled, focus styling persists until point
   assert.match(resizerCss, /\.resizer-output-row\{display:flex;align-items:center;justify-content:space-between/);
   assert.doesNotMatch(resizerCss, /\.rz-selection|\.rz-preview|\.rz-remove|\.rz-clear/);
   assert.doesNotMatch(resizerCss, /\.resizer-action-panel/);
-  assert.doesNotMatch(resizerCss, /\.rz-progress(?!-sr)/);
+  assert.doesNotMatch(resizerCss, /\.rz-progress(?!-)/);
+  assert.doesNotMatch(resizerCss, /\.rz-progress-sr/);
   assert.equal(en['resizer.imageSettings'], 'Image Settings');
   for (const key of ['resizer.resizeImages', 'resizer.selectedCount', 'resizer.noImages', 'resizer.clearAll', 'resizer.removeImage', 'resizer.imageInfo', 'resizer.imageDimensions']) {
     assert.equal(en[key], undefined, `unused preview label ${key} should be removed`);
