@@ -6,6 +6,116 @@ import {t} from './i18n.js?v=3.7.0';
 const hasFiles=event=>[...(event.dataTransfer?.types||[])].includes('Files');
 let qrDecoderPromise=null;
 const QR_SCAN_MAX_SIDE=1600;
+const QR_PAGE_RENDER_MAX_SIDE=1800;
+const QR_WORKER_LIMIT=4;
+
+function createQrWorkerPool(){
+  if(typeof Worker!=='function')return null;
+  const coreCount=Number.isInteger(navigator.hardwareConcurrency)?navigator.hardwareConcurrency:2;
+  const size=Math.max(1,Math.min(QR_WORKER_LIMIT,coreCount-1));
+  const workers=[],idle=[],queue=[],pending=new Map();
+  let sequence=0,closed=false;
+  function pump(){
+    while(!closed&&idle.length&&queue.length){
+      const request=queue.shift(),worker=idle.pop(),id=++sequence;
+      pending.set(id,{...request,worker});worker._taskId=id;
+      try{worker.postMessage({id,width:request.width,height:request.height,data:request.data},[request.data.buffer])}
+      catch(error){pending.delete(id);worker._taskId=null;idle.push(worker);request.reject(error)}
+    }
+  }
+  try{
+    for(let index=0;index<size;index++){
+      const worker=new Worker(new URL('./pdf-qr-worker.js?v=3.7.0',import.meta.url),{type:'module'});
+      worker.onmessage=event=>{
+        const {id,ok,detections,error}=event.data,request=pending.get(id);
+        if(!request)return;
+        pending.delete(id);worker._taskId=null;idle.push(worker);
+        if(ok)request.resolve(detections);else request.reject(new Error(error||'QR worker failed'));
+        pump();
+      };
+      worker.onerror=event=>{
+        const id=worker._taskId,request=pending.get(id);
+        if(request){pending.delete(id);request.reject(new Error(event.message||'QR worker failed'))}
+        worker.terminate();
+        const workerIndex=workers.indexOf(worker);if(workerIndex>=0)workers.splice(workerIndex,1);
+        const idleIndex=idle.indexOf(worker);if(idleIndex>=0)idle.splice(idleIndex,1);
+        if(!workers.length){
+          for(const request of queue.splice(0))request.reject(new Error('QR workers are unavailable'));
+        }
+        pump();
+      };
+      workers.push(worker);idle.push(worker);
+    }
+  }catch(error){
+    for(const worker of workers)worker.terminate();
+    console.warn('QR workers are unavailable; using the main thread:',error);
+    return null;
+  }
+  return {
+    get size(){return workers.length},
+    decode(data,width,height){
+      if(closed||!workers.length)return Promise.reject(new Error('QR workers are unavailable'));
+      return new Promise((resolve,reject)=>{queue.push({data,width,height,resolve,reject});pump()});
+    },
+    destroy(){
+      closed=true;
+      for(const request of pending.values())request.reject(new Error('QR worker pool was closed'));
+      for(const request of queue)request.reject(new Error('QR worker pool was closed'));
+      pending.clear();queue.length=0;
+      for(const worker of workers)worker.terminate();
+      workers.length=0;idle.length=0;
+    }
+  };
+}
+
+function normalizeDetectionBounds(bounds,canvas){
+  if(!bounds||(!Number.isFinite(bounds.x)&&!Number.isFinite(bounds.y)&&!Number.isFinite(bounds.width)&&!Number.isFinite(bounds.height))){
+    return {x:0,y:0,width:canvas.width,height:canvas.height};
+  }
+  const x=Number.isFinite(bounds.x)?bounds.x:0;
+  const y=Number.isFinite(bounds.y)?bounds.y:0;
+  const width=Number.isFinite(bounds.width)&&bounds.width>0?bounds.width:Math.max(1,canvas.width);
+  const height=Number.isFinite(bounds.height)&&bounds.height>0?bounds.height:Math.max(1,canvas.height);
+  return {x,y,width,height};
+}
+
+async function renderPdfPageCanvas(pdfDocument,pageNumber){
+  const page=await pdfDocument.getPage(pageNumber);
+  let canvas=null,completed=false;
+  try{
+    const viewport=page.getViewport({scale:1});
+    const maxDimension=Math.max(viewport.width,viewport.height);
+    const scale=QR_PAGE_RENDER_MAX_SIDE/maxDimension;
+    const renderViewport=page.getViewport({scale});
+    canvas=document.createElement('canvas');
+    canvas.width=Math.max(1,Math.ceil(renderViewport.width));
+    canvas.height=Math.max(1,Math.ceil(renderViewport.height));
+    const context=canvas.getContext('2d',{alpha:false});
+    if(!context)throw new Error(t('pdfQr.canvasError'));
+    context.fillStyle='#fff';
+    context.fillRect(0,0,canvas.width,canvas.height);
+    await page.render({canvasContext:context,viewport:renderViewport}).promise;
+    completed=true;
+    return canvas;
+  }finally{
+    page.cleanup();
+    if(!completed&&canvas){canvas.width=0;canvas.height=0}
+  }
+}
+
+async function addDetectedQr(detection,canvas,pageNumber,codes,previewUrls){
+  const rawValue=detection?.rawValue||detection?.data;
+  if(!rawValue)return;
+  let code=codes.get(rawValue);
+  if(!code){
+    const bounds=normalizeDetectionBounds(detection.boundingBox,canvas);
+    const preview=await qrPreview(canvas,bounds);
+    code={value:rawValue,pages:new Set(),previewUrl:URL.createObjectURL(preview)};
+    previewUrls.push(code.previewUrl);
+    codes.set(code.value,code);
+  }
+  code.pages.add(pageNumber);
+}
 
 const ICON_QR_FRAME='<path d="M4 11V6a2 2 0 0 1 2-2h5M21 4h5a2 2 0 0 1 2 2v5M28 21v5a2 2 0 0 1-2 2h-5M11 28H6a2 2 0 0 1-2-2v-5"/><rect x="10" y="10" width="4.5" height="4.5" rx=".8"/><rect x="17.5" y="10" width="4.5" height="4.5" rx=".8"/><rect x="10" y="17.5" width="4.5" height="4.5" rx=".8"/><path d="M18 18h4v4h-4z"/>';
 const svgAttrs='viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"';
@@ -55,36 +165,58 @@ function qrPreview(bitmap,bounds){
 }
 
 async function detectorForQr(){
+  let nativeDetector=null;
   if(typeof globalThis.BarcodeDetector==='function'&&typeof globalThis.BarcodeDetector.getSupportedFormats==='function'){
     try{
       const formats=await globalThis.BarcodeDetector.getSupportedFormats();
-      if(formats.includes('qr_code'))return new globalThis.BarcodeDetector({formats:['qr_code']});
+      if(formats.includes('qr_code'))nativeDetector=new globalThis.BarcodeDetector({formats:['qr_code']});
     }catch(error){console.warn('Native QR detection is unavailable; using the local QR decoder:',error)}
   }
-  if(!qrDecoderPromise){
-    qrDecoderPromise=import('./vendor/jsqr.js?v=3.7.0').then(()=>{
-      if(typeof globalThis.jsQR!=='function')throw new Error(t('pdfQr.decoderUnavailable'));
-      return globalThis.jsQR;
-    }).catch(error=>{qrDecoderPromise=null;throw error});
+  const workerPool=createQrWorkerPool();
+  function decodePixels(decode,data,width,height){
+    const result=decode(data,width,height,{inversionAttempts:'attemptBoth'});
+    if(!result)return [];
+    const points=[result.location.topLeftCorner,result.location.topRightCorner,result.location.bottomLeftCorner,result.location.bottomRightCorner];
+    const xs=points.map(point=>point.x),ys=points.map(point=>point.y);
+    const left=Math.min(...xs),top=Math.min(...ys);
+    return [{rawValue:result.data,boundingBox:{x:left,y:top,width:Math.max(...xs)-left,height:Math.max(...ys)-top}}];
   }
-  const decode=await qrDecoderPromise;
+  async function decodeWithJsQr(bitmap){
+    if(!qrDecoderPromise){
+      qrDecoderPromise=import('./vendor/jsqr.js?v=3.7.0').then(()=>{
+        if(typeof globalThis.jsQR!=='function')throw new Error(t('pdfQr.decoderUnavailable'));
+        return globalThis.jsQR;
+      }).catch(error=>{qrDecoderPromise=null;throw error});
+    }
+    const decode=await qrDecoderPromise;
+    const canvas=document.createElement('canvas');
+    canvas.width=bitmap.width;canvas.height=bitmap.height;
+    const context=canvas.getContext('2d',{willReadFrequently:true});
+    if(!context)throw new Error(t('pdfQr.canvasError'));
+    try{
+      context.drawImage(bitmap,0,0);
+      const pixels=context.getImageData(0,0,bitmap.width,bitmap.height);
+      if(workerPool){
+        try{return await workerPool.decode(pixels.data,bitmap.width,bitmap.height)}
+        catch(error){
+          console.warn('QR worker decoding failed; retrying on the main thread:',error);
+          return decodePixels(decode,context.getImageData(0,0,bitmap.width,bitmap.height).data,bitmap.width,bitmap.height);
+        }
+      }
+      return decodePixels(decode,pixels.data,bitmap.width,bitmap.height);
+    }finally{canvas.width=0;canvas.height=0}
+  }
   return {
+    get concurrency(){return Math.max(1,workerPool?.size||1)},
+    destroy(){workerPool?.destroy()},
     async detect(bitmap){
-      const canvas=document.createElement('canvas');
-      canvas.width=bitmap.width;canvas.height=bitmap.height;
-      const context=canvas.getContext('2d',{willReadFrequently:true});
-      if(!context)throw new Error(t('pdfQr.canvasError'));
-      try{
-        context.drawImage(bitmap,0,0);
-        const pixels=context.getImageData(0,0,bitmap.width,bitmap.height);
-        const result=decode(pixels.data,bitmap.width,bitmap.height,{inversionAttempts:'dontInvert'})
-          ||decode(pixels.data,bitmap.width,bitmap.height,{inversionAttempts:'onlyInvert'});
-        if(!result)return [];
-        const points=[result.location.topLeftCorner,result.location.topRightCorner,result.location.bottomLeftCorner,result.location.bottomRightCorner];
-        const xs=points.map(point=>point.x),ys=points.map(point=>point.y);
-        const left=Math.min(...xs),top=Math.min(...ys);
-        return [{rawValue:result.data,boundingBox:{x:left,y:top,width:Math.max(...xs)-left,height:Math.max(...ys)-top}}];
-      }finally{canvas.width=0;canvas.height=0}
+      if(nativeDetector){
+        try{
+          const detections=await nativeDetector.detect(bitmap);
+          if(detections.length)return detections;
+        }catch(error){console.warn('Native QR detection failed; trying the local QR decoder:',error)}
+      }
+      return decodeWithJsQr(bitmap);
     }
   };
 }
@@ -217,11 +349,11 @@ export function mount(root){
     q('browse').classList.toggle('primary',!compact);
   }
   // end: '' while running, 'done' when finished, 'stopped' after an error
-  function showTiming(startedAt,currentPage,totalPages,end=''){
+  function showTiming(startedAt,currentStep,totalSteps,end=''){
     const elapsed=(performance.now()-startedAt)/1000,elapsedText=formatDuration(elapsed);
     q('timing').textContent=end==='done'?t('pdfQr.timingDone',elapsedText)
       :end==='stopped'?t('pdfQr.timingStopped',elapsedText)
-      :currentPage?t('pdfQr.timingEta',elapsedText,formatDuration(Math.max(1,Math.ceil(elapsed/currentPage*(totalPages-currentPage+1)))))
+      :currentStep?t('pdfQr.timingEta',elapsedText,formatDuration(Math.max(1,Math.ceil(elapsed/currentStep*(totalSteps-currentStep+1)))))
       :t('pdfQr.timingEstimating',elapsedText);
   }
   function paintViewButtons(mode){
@@ -245,22 +377,23 @@ export function mount(root){
     q('filename').textContent=file.name;q('filename').title=file.name;q('filename').hidden=false;
     setState('busy');setDetail('');
     q('progress').removeAttribute('value');q('progress').hidden=false;
-    const startedAt=performance.now();let currentPage=0,totalPages=0,finished=false;
-    q('timing').hidden=false;showTiming(startedAt,currentPage,totalPages);
-    const timer=setInterval(()=>showTiming(startedAt,currentPage,totalPages,finished?'done':''),250);
+    const startedAt=performance.now();let currentStep=0,totalPages=0,totalSteps=0,finished=false;
+    q('timing').hidden=false;showTiming(startedAt,currentStep,totalSteps);
+    const timer=setInterval(()=>showTiming(startedAt,currentStep,totalSteps,finished?'done':''),250);
     setStatus(t('pdfQr.loading',file.name));
-    let loaded=null;
+    let loaded=null,detector=null;
     try{
       sourcePdfUrl=URL.createObjectURL(file);
-      const detector=await detectorForQr();
+      detector=await detectorForQr();
       loaded=await loadPdf(file);
-      totalPages=loaded.document.numPages;q('progress').max=totalPages;
+      totalPages=loaded.document.numPages;totalSteps=totalPages*2;q('progress').max=totalSteps;
       setStatus(t('pdfQr.scanning'));
+      setDetail(t('pdfQr.checkingImages'));
       const codes=new Map(),imageCodeValues=new Map();
-      let imageCount=0;
+      let imageCount=0,pageRenderFailures=0;
       const pdfjs=await loadPdfjs();
       const {images,failures}=await extractPdfImageObjects(loaded.document,pdfjs,page=>{
-        currentPage=page;q('progress').value=page;setDetail(t('pdfQr.readingPage',page,totalPages));
+        currentStep=page;q('progress').value=currentStep;
       },async(entry,page)=>{
         const priorCodes=imageCodeValues.get(entry.key);
         if(priorCodes){
@@ -268,21 +401,20 @@ export function mount(root){
           return;
         }
         imageCount++;
-        setDetail(t('pdfQr.checkingImage',imageCount,page));
         let canvas=null;const foundValues=[];
         try{
           canvas=imageObjectToCanvas(entry.image,pdfjs,{maxSide:QR_SCAN_MAX_SIDE,maxPixels:QR_SCAN_MAX_SIDE*QR_SCAN_MAX_SIDE});
           const detections=await detector.detect(canvas);
           for(const detection of detections){
-            if(!detection.rawValue)continue;
-            let code=codes.get(detection.rawValue);
+            const rawValue=detection.rawValue||detection.data;
+            if(!rawValue)continue;
+            let code=codes.get(rawValue);
             if(!code){
-              const bounds=detection.boundingBox||{x:0,y:0,width:canvas.width,height:canvas.height};
-              const preview=await qrPreview(canvas,bounds);
-              code={value:detection.rawValue,pages:new Set(),previewUrl:URL.createObjectURL(preview)};
+              const preview=await qrPreview(canvas,normalizeDetectionBounds(detection.boundingBox,canvas));
+              code={value:rawValue,pages:new Set(),previewUrl:URL.createObjectURL(preview)};
               previewUrls.push(code.previewUrl);codes.set(code.value,code);
             }
-            code.pages.add(page);foundValues.push(detection.rawValue);
+            code.pages.add(page);foundValues.push(rawValue);
           }
           imageCodeValues.set(entry.key,[...new Set(foundValues)]);
         }catch(error){
@@ -290,6 +422,38 @@ export function mount(root){
           throw error;
         }finally{if(canvas){canvas.width=0;canvas.height=0}}
       });
+      let renderedPages=0;
+      const pageConcurrency=detector.concurrency;
+      for(let firstPage=1;firstPage<=totalPages;firstPage+=pageConcurrency){
+        const pageNumbers=Array.from({length:Math.min(pageConcurrency,totalPages-firstPage+1)},(_,index)=>firstPage+index);
+        const scannedPages=await Promise.all(pageNumbers.map(async pageNumber=>{
+          let pageCanvas=null;
+          try{
+            pageCanvas=await renderPdfPageCanvas(loaded.document,pageNumber);
+            const detections=await detector.detect(pageCanvas);
+            return {pageNumber,pageCanvas,detections};
+          }catch(error){
+            if(pageCanvas){pageCanvas.width=0;pageCanvas.height=0}
+            return {pageNumber,error};
+          }
+        }));
+        for(const scan of scannedPages){
+          try{
+            if(scan.error)throw scan.error;
+            for(const detection of scan.detections||[]){
+              await addDetectedQr(detection,scan.pageCanvas,scan.pageNumber,codes,previewUrls);
+            }
+          }catch(error){
+            pageRenderFailures++;
+            console.warn(`Page render scan failed on page ${scan.pageNumber}:`,error);
+          }finally{
+            if(scan.pageCanvas){scan.pageCanvas.width=0;scan.pageCanvas.height=0}
+            renderedPages++;
+            currentStep=totalPages+renderedPages;q('progress').value=currentStep;
+            setDetail(t('pdfQr.renderingPage',scan.pageNumber,totalPages));
+          }
+        }
+      }
       const found=[...codes.values()];
       detectedCodes=found;
       const head=q('results-head');
@@ -297,19 +461,22 @@ export function mount(root){
       if(found.length)q('summary').textContent=t('pdfQr.summary',found.length,new Set(found.flatMap(code=>[...code.pages])).size);
       renderResults(results,detectedCodes,resultMode,sourcePdfUrl);
       setDetail('');
-      if(!imageCount){
-        setStatus(failures.length?t('pdfQr.imagesFailed'):t('pdfQr.noImages'));setState(failures.length?'error':'empty');
-      }else if(!found.length){
-        setStatus(failures.length?t('pdfQr.noneWithErrors',failures.length):t('pdfQr.noneFound',imageCount));setState(failures.length?'warn':'empty');
-      }else{
+      if(found.length){
         setStatus(t('pdfQr.found',found.length));setState('done');
-        track('pdf-qr-detector/scan','PDF embedded QR detection');
+        if(pageRenderFailures)setDetail(t('pdfQr.renderFailures',pageRenderFailures));
+        track('pdf-qr-detector/scan','PDF QR detection');
+      }else if(pageRenderFailures){
+        setStatus(t('pdfQr.renderFailures',pageRenderFailures));setState('warn');
+      }else if(!imageCount){
+        setStatus(failures.length?t('pdfQr.imagesFailed'):t('pdfQr.noImages'));setState(failures.length?'error':'empty');
+      }else{
+        setStatus(failures.length?t('pdfQr.noneWithErrors',failures.length):t('pdfQr.noneFound',imageCount));setState(failures.length?'warn':'empty');
       }
-      finished=true;showTiming(startedAt,currentPage,totalPages,'done');
+      finished=true;showTiming(startedAt,currentStep,totalSteps,'done');
       if(failures.length&&found.length)await msg(t('pdfQr.title'),t('pdfQr.found',found.length),'success');
-      if(!images.length&&failures.length)await msg(t('pdfQr.title'),t('pdfQr.imagesFailedDetails',failures.join('\n')),'warning');
+      if(!images.length&&failures.length&&!found.length)await msg(t('pdfQr.title'),t('pdfQr.imagesFailedDetails',failures.join('\n')),'warning');
     }catch(error){
-      clearInterval(timer);showTiming(startedAt,currentPage,totalPages,'stopped');
+      clearInterval(timer);showTiming(startedAt,currentStep,totalSteps,'stopped');
       clearResults();
       detectedCodes=[];q('results-head').hidden=true;q('view-tabs').hidden=true;
       setDetail('');setState('error');
@@ -317,8 +484,9 @@ export function mount(root){
       await msg(t('pdfQr.title'),t('pdfQr.failed',error.message||error),'error');
     }finally{
       clearInterval(timer);
-      if(!finished)showTiming(startedAt,currentPage,totalPages,'stopped');
+      if(!finished)showTiming(startedAt,currentStep,totalSteps,'stopped');
       if(loaded)loaded.document.destroy().catch(error=>console.error('Could not release PDF document:',error));
+      detector?.destroy();
       busy=false;q('file').disabled=false;q('browse').disabled=false;q('progress').hidden=true;
       drop.classList.remove('is-busy');results.removeAttribute('aria-busy');
     }
