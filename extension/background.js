@@ -593,7 +593,8 @@ async function listTimestampAssets(m) {
 async function fillTimestamps(m, sender) {
   const tabId = Number(m.tabId), courseCode = typeof m.courseCode === 'string' ? m.courseCode : '';
   if (!Number.isInteger(tabId) || !courseCode || !Array.isArray(m.entries) || !m.entries.length || m.entries.length > 2000 ||
-      !Array.isArray(m.groups) || !m.groups.length || m.groups.length > m.entries.length) {
+      !Array.isArray(m.groups) || !m.groups.length || m.groups.length > m.entries.length ||
+      !Array.isArray(m.subsectionAssetIndices) || m.subsectionAssetIndices.length !== m.groups.length) {
     throw new Error('Bad Timestamp Maker request.');
   }
   const entries = m.entries.map(entry => {
@@ -615,10 +616,20 @@ async function fillTimestamps(m, sender) {
   });
   const entryByIndex = new Map(entries.map(entry => [entry.assetIndex, entry]));
   const assigned = new Set();
-  const groups = m.groups.map(group => {
+  const subsectionAssetIndices = m.subsectionAssetIndices.map(group => {
+    if (!Array.isArray(group) || !group.length || group.length > 2000 ||
+        group.some(assetIndex => !Number.isInteger(assetIndex) || assetIndex < 0) ||
+        new Set(group).size !== group.length) {
+      throw new Error('Timestamp Maker contains an invalid subsection asset list.');
+    }
+    return group;
+  });
+  const groups = m.groups.map((group, groupIndex) => {
     if (!Array.isArray(group) || !group.length) throw new Error('Timestamp Maker contains an invalid subsection group.');
+    const subsectionAssets = new Set(subsectionAssetIndices[groupIndex]);
     return group.map(assetIndex => {
-      if (!Number.isInteger(assetIndex) || !entryByIndex.has(assetIndex) || assigned.has(assetIndex)) {
+      if (!Number.isInteger(assetIndex) || !entryByIndex.has(assetIndex) || assigned.has(assetIndex) ||
+          !subsectionAssets.has(assetIndex)) {
         throw new Error('Timestamp Maker contains an invalid subsection group.');
       }
       assigned.add(assetIndex);
@@ -653,7 +664,7 @@ async function fillTimestamps(m, sender) {
     await waitForCompleteTab(tabId);
     if (job.cancelled) return {ok: false, state: 'cancelled', updated: 0, results: []};
     scriptStarted = true;
-    const result = await withTimeout(run(tabId, lcFillTimestamps, [groups, courseCode, reqId]), 300000);
+    const result = await withTimeout(run(tabId, lcFillTimestamps, [groups, subsectionAssetIndices, courseCode, reqId]), 300000);
     if (!result || !Array.isArray(result.results)) throw new Error('The LearnCraft page did not return an update report.');
     completed = result.state === 'done';
     return result;
@@ -787,7 +798,7 @@ async function lcListTimestampAssets(expectedCode) {
 
 // INJECTED into the selected Master Canvas tab. Each subsection is saved and verified before moving on.
 // The Master Canvas itself is never saved here.
-async function lcFillTimestamps(groups, expectedCode, reqId) {
+async function lcFillTimestamps(groups, subsectionAssetIndices, expectedCode, reqId) {
   const clean = value => String(value || '').replace(/\s+/g, ' ').trim();
   const shown = element => !!element && element.getClientRects().length > 0;
   const entries = groups.flat();
@@ -867,8 +878,14 @@ async function lcFillTimestamps(groups, expectedCode, reqId) {
     }
     return record;
   };
-  const findDialogAsset = (entry, dialog) => {
+  const findDialogAsset = (entry, dialog, subsectionIndices) => {
     const records = assetNavs(dialog).map((nav, index) => assetRecord(nav, dialog, index));
+    const expectedIndex = subsectionIndices.indexOf(entry.assetIndex);
+    if (expectedIndex >= 0 && records.length === subsectionIndices.length) {
+      const record = records[expectedIndex];
+      if (record.title === entry.title && record.type === entry.type && record.href === entry.href) return record;
+      throw new Error(`The subsection asset order changed while identifying "${entry.title}". Refresh the asset list and try again.`);
+    }
     const matches = records.filter(record =>
       record.title === entry.title && record.type === entry.type && record.href === entry.href);
     if (matches.length !== 1) throw new Error(`Could not uniquely identify "${entry.title}" in its subsection dialog.`);
@@ -888,7 +905,8 @@ async function lcFillTimestamps(groups, expectedCode, reqId) {
   const cancelled = () => !!(globalThis.__plLcCancel && globalThis.__plLcCancel[reqId]);
   tick({phase: 'start', total: entries.length});
   let completedEntries = 0;
-  for (const group of groups) {
+  for (let groupIndex = 0; groupIndex < groups.length; groupIndex++) {
+    const group = groups[groupIndex];
     if (cancelled()) break;
     const groupStart = completedEntries;
     if (Date.now() >= deadline) {
@@ -931,7 +949,7 @@ async function lcFillTimestamps(groups, expectedCode, reqId) {
         const current = findDialog();
         return current && clean(current.querySelector('h2')?.textContent) === 'Add Timestamp' ? current : null;
       }, 'the Add Timestamp dialog');
-      const dialogRecords = group.map(entry => findDialogAsset(entry, dialog));
+      const dialogRecords = group.map(entry => findDialogAsset(entry, dialog, subsectionAssetIndices[groupIndex]));
       for (let index = 0; index < group.length; index++) {
         const entry = group[index], targetAsset = dialogRecords[index];
         tick({phase: 'asset', current: groupStart + index + 1, total: entries.length, title: entry.title, state: 'working'});

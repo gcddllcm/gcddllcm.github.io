@@ -2,10 +2,24 @@ Penguin Logistics - LearnCraft bridge
 =====================================
 
 Deployment version note
-  The extension package in this repository is version 1.2.0, matching manifest.json
-  and the version required by the web tools. The versioned notes below document
-  historical releases; they are not the version included in this package. Chrome
+  The extension package in this repository is version 1.3.0, matching manifest.json
+  and the version required by the web tools. The Version 1.3.0 entry describes
+  this package. Release-history sections below are clearly labeled as earlier
+  changes included in this release or later archived releases. Chrome
   may not automatically update an existing installation whose version is higher.
+
+Version 1.3.0
+  Rolls up the extension improvements from 1.2.1 through 1.2.10. Ultimate Go Live
+  now finishes correctly when a Master has no variants, reports page status when
+  a run stops, and waits for LearnCraft dialogs and disabled confirmation buttons
+  to become ready instead of repeating clicks. It handles approval, update, and
+  Submit as Ready confirmations more reliably, with clear timeout details.
+  Linked variants are processed in parallel in background tabs, with per-variant
+  progress, safe retries after page reloads, an optional setting to close
+  successfully finished tabs, and a run-duration summary.
+  Timestamp Maker identifies assets by their order within a subsection, so
+  multiple assets with identical names can be filled safely.
+  Update this extension to 1.3.0 or later before using the updated tools.
 
 What it does
   Lets the Ultimate Go Live popup work directly with your open LearnCraft Master
@@ -56,118 +70,8 @@ Using your own address
   and keep <meta name="penguin-logistics"> in index.html.
 
 
-Version 1.4.0
-  Adds the Ultimate Go Live extension popup. It lists open Master Canvas tabs,
-  previews the next step, runs the confirmed workflow, shows progress, and can
-  close variant tabs that finish successfully. The web app is no longer needed
-  to start a run. Reload the extension from chrome://extensions after updating.
-
-Version 1.4.1
-  Fixes the web Preview activating the Master Canvas tab. Preview no longer
-  switches tabs. Update the extension and reload it from chrome://extensions.
-
-Version 1.4.2
-  Reports the Master Canvas status to the web app. Go Live is disabled when
-  the Master is already Ready. Update the extension and reload it from
-  chrome://extensions.
-
-Version 1.4.3
-  Removes the Preview button from the Ultimate Go Live popup.
-  Update the extension and reload it from chrome://extensions.
-
-Version 1.4.4
-  Removes the active/open tab label from the Ultimate Go Live popup.
-  Update the extension and reload it from chrome://extensions.
-
-Version 1.4.5
-  Removes the duplicate course code line from the Ultimate Go Live popup.
-  Update the extension and reload it from chrome://extensions.
-
-Version 1.4.6
-  Puts courses that can Go Live at the top of the Ultimate Go Live popup.
-  Update the extension and reload it from chrome://extensions.
-
-Version 1.4.7
-  Matches the popup Go Live button colors to the web tool.
-  Update the extension and reload it from chrome://extensions.
-
-Version 1.4.8
-  Adds the shared Penguin Logistics logo to the Ultimate Go Live popup.
-  Update the extension and reload it from chrome://extensions.
-
-Version 1.4.9
-  Uses the same Penguin Logistics logo asset in the web app and extension popup.
-  Update the extension and reload it from chrome://extensions.
-
-Version 1.4.10
-  Shows "Ready to Go Live" for eligible courses in the popup.
-  Update the extension and reload it from chrome://extensions.
-
-Version 1.4.11
-  Detects course codes with alphabetic prefixes, including EC9203 and P2030.
-  Update the extension and reload it from chrome://extensions.
-
-Version 1.4.12
-  Handles the Master Canvas Alert stage by selecting its red Update button.
-  Update the extension and reload it from chrome://extensions.
-
-Version 1.4.13
-  Confirms the "Update this Master Canvas ?" dialog after updating an alert Master Canvas.
-  Update the extension and reload it from chrome://extensions.
-
-Version 1.4.14
-  Shows the number of linked variants in each Master Canvas status chip.
-  Update the extension and reload it from chrome://extensions.
-
-Version 1.4.15
-  Adds a Copy log button to the popup and keeps the Run log expanded as progress updates.
-  Update the extension and reload it from chrome://extensions.
-
-Version 1.4.16
-  Lets you choose which linked variants to update from the web app or popup; all are selected by default.
-  Update the extension and reload it from chrome://extensions.
-
-Version 1.4.17
-  Places Choose variants beside Go Live in the web app and popup.
-  Update the extension and reload it from chrome://extensions.
-
-Version 1.4.23
-  Updates the extension icon and popup branding for Loy Krathong.
-  Update the extension and reload it from chrome://extensions.
-
-Version 1.4.22
-  Go Live from the web app stays on the page instead of switching to the selected Master Canvas tab.
-  Update the extension and reload it from chrome://extensions.
-
-Version 1.4.21
-  Shows a RUN badge and current course/step in the extension icon tooltip while Go Live is running from the popup.
-  Update the extension and reload it from chrome://extensions.
-
-Version 1.4.20
-  Remembers the Close variant tabs when they are ready option when the popup is reopened or refreshed.
-  Update the extension and reload it from chrome://extensions.
-
-Version 1.4.19
-  The popup restores the current run status after it is closed and reopened. Press Refresh to clear it.
-  Update the extension and reload it from chrome://extensions.
-
-Version 1.4.18
-  Matches the Choose variants button height to Go Live in the popup and web app.
-  Update the extension and reload it from chrome://extensions.
-
-Version 1.3.1
-  Fixes the page showing "Extension v1.2.9 is too old" again and again after an update: the extension now
-  reports its id, and a copy that was reloaded or removed while the page stayed open stays silent. The
-  page now tells you when more than one copy is installed and will not start a run until only one is left.
-  Update this extension to 1.3.1 and press reload on its card in chrome://extensions.
-
-Version 1.3.0
-  Ultimate Go Live shows each variant's progress on its own row and tells the page when a variant has
-  finished. A page that is reloading no longer ends a run: the step is looked at again (without clicking)
-  up to three times. New option: close the tabs of variants that finished OK (off by default).
-  The summary now includes how long the run took.
-  Update this extension to 1.3.0 and press reload on its card in chrome://extensions.
-
+Earlier release notes incorporated into v1.3.0
+----------------------------------------------
 Version 1.2.9
   After the Master is ready, Ultimate Go Live opens each linked variant in its
   own background tab and processes all variants in parallel. It does not activate
@@ -229,3 +133,85 @@ Version 1.2.0: LearnCraft : Ultimate Go Live
   says why. If an "Assets without timestamp" dialog appears, the tool automatically ticks
   "Ignore Asset without Timestamp", then confirms with Approve or Submit and continues.
   Update this extension to 1.2.0 or later before using the tool.
+
+Archived notes for later releases (not included in the v1.3.0 package)
+----------------------------------------------------------------------
+These entries document separate, later release lines. They are kept for reference
+only; the package described at the top of this README is v1.3.0.
+
+Version 1.4.23
+  Updated the extension icon and popup branding for Loy Krathong.
+
+Version 1.4.22
+  Kept Go Live on the web app page instead of switching to the selected Master tab.
+
+Version 1.4.21
+  Added a RUN badge and current course/step to the extension icon tooltip.
+
+Version 1.4.20
+  Remembered the Close variant tabs setting when reopening the popup.
+
+Version 1.4.19
+  Restored run status when reopening the popup, with Refresh to clear it.
+
+Version 1.4.18
+  Matched the Choose variants button height in the popup and web app.
+
+Version 1.4.17
+  Placed Choose variants beside Go Live in the web app and popup.
+
+Version 1.4.16
+  Added variant selection in the web app and popup; all variants default to selected.
+
+Version 1.4.15
+  Added Copy log and kept the Run log expanded as progress updates.
+
+Version 1.4.14
+  Added linked-variant counts to Master Canvas status chips.
+
+Version 1.4.13
+  Confirmed the alert update dialog after updating a Master Canvas.
+
+Version 1.4.12
+  Handled the Master Canvas Alert stage by selecting its red Update button.
+
+Version 1.4.11
+  Detected course codes with alphabetic prefixes, including EC9203 and P2030.
+
+Version 1.4.10
+  Showed "Ready to Go Live" for eligible courses in the popup.
+
+Version 1.4.9
+  Reused the Penguin Logistics logo asset in the web app and popup.
+
+Version 1.4.8
+  Added the shared Penguin Logistics logo to the popup.
+
+Version 1.4.7
+  Matched the popup Go Live button colors to the web tool.
+
+Version 1.4.6
+  Put courses that can Go Live at the top of the popup.
+
+Version 1.4.5
+  Removed the duplicate course code line from the popup.
+
+Version 1.4.4
+  Removed the active/open tab label from the popup.
+
+Version 1.4.3
+  Removed the Preview button from the popup.
+
+Version 1.4.2
+  Reported Master Canvas status to the web app and disabled Go Live when already Ready.
+
+Version 1.4.1
+  Fixed web Preview so it no longer activates the Master Canvas tab.
+
+Version 1.4.0
+  Added the Go Live popup with tab listing, preview, progress, and optional
+  successful-tab closing.
+
+Version 1.3.1
+  Reported the extension ID to prevent stale-version warnings and detected
+  duplicate installs.

@@ -1,5 +1,5 @@
 import "./theme-shim.mjs";
-import {assetMatchesDateSelection, flattenTimestampAssets, groupTimestampUpdates, normalizeTimestampTree, parseTimestampPaste, selectedTimestampUpdates, summarizeRecordingDays, timestampPageAndProblemFromTitle, timestampUpdates, timestampVideoPlaybackUrl, timestampVideoRecordingInfo} from '../js/timestampcore.js';
+import {assetMatchesDateSelection, flattenTimestampAssets, groupTimestampUpdates, normalizeTimestampTree, parseTimestampPaste, selectedTimestampUpdates, summarizeRecordingDays, timestampGroupAssetIndices, timestampPageAndProblemFromTitle, timestampUpdates, timestampVideoPlaybackUrl, timestampVideoRecordingInfo} from '../js/timestampcore.js';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
@@ -170,6 +170,22 @@ await check('updates: groups selected assets by subsection and leaves other asse
   ]}, assets), [0, 1, 2, 3]);
   assert.deepEqual(groups.map(group => group.map(entry => entry.assetIndex)), [[0, 1], [2], [3]]);
 });
+await check('updates: preserves subsection asset order so duplicate titles can be identified', () => {
+  const assets = flattenTimestampAssets({ok: true, assets: [
+    {assetIndex: 0, type: 'VIDEO', title: 'หลักการนับเบื้องต้น และความน่าจะเป็น-4 วิธีการจัดหมู่', href: ''},
+    {assetIndex: 1, type: 'VIDEO', title: 'หลักการนับเบื้องต้น และความน่าจะเป็น-4 วิธีการจัดหมู่', href: ''},
+    {assetIndex: 2, type: 'VIDEO', title: 'Another video', href: ''},
+  ], tree: [{
+    level: 'subsection', title: 'Lesson 1', assetIndices: [0, 1, 2], children: [],
+  }]});
+  const tree = normalizeTimestampTree({tree: [{
+    level: 'subsection', title: 'Lesson 1', assetIndices: [0, 1, 2], children: [],
+  }]}, assets);
+  assets[0].pageNo = '1';
+  assets[1].pageNo = '2';
+  const groups = groupTimestampUpdates(assets, tree, [0, 1]);
+  assert.deepEqual(timestampGroupAssetIndices(assets, tree, groups), [[0, 1, 2]]);
+});
 await check('updates: rejects newlines and oversized field values', () => {
   const assets = flattenTimestampAssets(course);
   assets[0].pageNo = '247\n248';
@@ -210,7 +226,7 @@ await check('integration: the LearnCraft directory includes the guarded extensio
   assert.match(css, /\.tf-input-shell\.tf-input-empty\{/);
   assert.match(bridge, /m\.action !== 'fill-timestamps'/);
   assert.match(bridge, /m\.action !== 'list-timestamp-assets'/);
-  assert.match(bridge, /courseCode: m\.courseCode, entries: m\.entries/);
+  assert.match(bridge, /courseCode: m\.courseCode, entries: m\.entries, groups: m\.groups, subsectionAssetIndices: m\.subsectionAssetIndices/);
   assert.match(background, /if \(m\.action === 'list-timestamp-assets'\) return listTimestampAssets\(m\)/);
   assert.match(background, /The LearnCraft page did not return an asset list/);
   assert.match(background, /const assetTitle = \(nav, root\) =>/);
@@ -220,12 +236,15 @@ await check('integration: the LearnCraft directory includes the guarded extensio
   assert.match(background, /querySelectorAll\('li'\)\.length === 1/);
   assert.match(background, /querySelectorAll\('nav'\)\]\.filter\(nav =>\s*nav\.classList\.contains\('MuiBreadcrumbs-root'\) && nav\.querySelectorAll\('li'\)\.length === 1/);
   assert.match(background, /if \(m\.action === 'fill-timestamps'\) return fillTimestamps\(m, sender\)/);
-  assert.match(background, /run\(tabId, lcFillTimestamps, \[groups, courseCode, reqId\]\)/);
+  assert.match(background, /run\(tabId, lcFillTimestamps, \[groups, subsectionAssetIndices, courseCode, reqId\]\)/);
   assert.match(background, /const groups = m\.groups\.map\(group =>/);
   assert.match(background, /group\.every\(entry =>/);
   assert.match(background, /all subsection assets to show their filled timestamps/);
   assert.match(module, /groups:groups\.map\(group=>group\.map\(entry=>entry\.assetIndex\)\)/);
+  assert.match(module, /timestampGroupAssetIndices\(assets,tree,groups\)/);
   assert.match(bridge, /groups: m\.groups/);
+  assert.match(background, /findDialogAsset = \(entry, dialog, subsectionIndices\)/);
+  assert.match(background, /const expectedIndex = subsectionIndices\.indexOf\(entry\.assetIndex\)/);
   assert.match(background, /const cancelled = \(\) => !!\(globalThis\.__plLcCancel && globalThis\.__plLcCancel\[reqId\]\)/);
   assert.match(background, /state: stopped \? 'cancelled' : 'done'/);
   assert.match(background, /ns: 'pl-lc-tick', job: reqId, progress/);
@@ -244,7 +263,6 @@ await check('integration: the LearnCraft directory includes the guarded extensio
   assert.match(background, /const listboxId = select\.getAttribute\('aria-controls'\)/);
   assert.match(background, /listbox\.querySelectorAll\('\[role="option"\]'\)/);
   assert.match(background, /await clickWithErrorRecovery\(save\);\s*saved = true;\s*await waitFor\(\(\) => !findDialog\(\), 'the timestamp dialog to close'\);\s*await waitFor\(\(\) => \{/);
-  assert.match(background, /findDialogAsset = \(entry, dialog\)/);
   assert.match(background, /Could not uniquely identify/);
   assert.match(background, /await clickWithErrorRecovery\(targetAsset\.row\);\s*await settleTimestampEditor\(\);/);
   assert.match(background, /const settleTimestampEditor = \(\) => new Promise\(resolve => setTimeout\(resolve, 300\)\)/);
@@ -296,10 +314,10 @@ await check('integration: the LearnCraft directory includes the guarded extensio
   assert.match(module, /nextZoom=Math\.max\(1,Math\.min\(3,videoZoom/);
   assert.match(module, /resetVideoZoom\(\)/);
   assert.match(background, /already has a filled timestamp\./);
-  assert.equal(manifest.version, '1.2.0');
-  assert.match(module, /const EXT_MIN='1\.2\.0'/);
-  assert.match(learncraft, /const EXT_MIN='1\.2\.0'/);
-  assert.match(golive, /const EXT_MIN = '1\.2\.0'/);
+  assert.equal(manifest.version, '1.3.0');
+  assert.match(module, /const EXT_MIN='1\.3\.0'/);
+  assert.match(learncraft, /const EXT_MIN='1\.3\.0'/);
+  assert.match(golive, /const EXT_MIN = '1\.3\.0'/);
 });
 
 await check('date filter: summarizes recorded days in order and counts undated videos separately', () => {

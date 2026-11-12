@@ -252,7 +252,7 @@ check('extension downloads include the packaged manifest version in their filena
 });
 check('extension popup is trusted, can list/run Go Live, and does not steal focus', () => {
   const popup = read('extension/popup.js');
-  assert.equal(manifest.version, '1.2.0');
+  assert.equal(manifest.version, '1.3.0');
   assert.deepEqual(manifest.action, {default_title: 'Ultimate Go Live', default_popup: 'popup.html'});
   assert.ok(manifest.permissions.includes('storage'));
   assert.match(background, /m\.ns === 'pl-lc-popup' && fromPopup\(sender\)/);

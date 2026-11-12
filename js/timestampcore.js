@@ -222,8 +222,7 @@ export function selectedTimestampUpdates(assets, selectedIndices) {
   return timestampUpdates(assets.filter((_, index) => selected.has(index)));
 }
 
-export function groupTimestampUpdates(assets, tree, selectedIndices) {
-  const updates = selectedTimestampUpdates(assets, selectedIndices);
+const timestampSubsectionsByAsset = (assets, tree) => {
   const subsectionByAsset = new Map();
   const visit = (nodes, subsection = null) => {
     for (const node of nodes || []) {
@@ -236,6 +235,12 @@ export function groupTimestampUpdates(assets, tree, selectedIndices) {
     }
   };
   visit(tree);
+  return subsectionByAsset;
+};
+
+export function groupTimestampUpdates(assets, tree, selectedIndices) {
+  const updates = selectedTimestampUpdates(assets, selectedIndices);
+  const subsectionByAsset = timestampSubsectionsByAsset(assets, tree);
   const grouped = new Map();
   for (const update of updates) {
     const key = subsectionByAsset.get(update.assetIndex) || update;
@@ -243,6 +248,16 @@ export function groupTimestampUpdates(assets, tree, selectedIndices) {
     grouped.get(key).push(update);
   }
   return [...grouped.values()];
+}
+
+export function timestampGroupAssetIndices(assets, tree, groups) {
+  const subsectionByAsset = timestampSubsectionsByAsset(assets, tree);
+  return groups.map(group => {
+    const subsection = group.length ? subsectionByAsset.get(group[0].assetIndex) : null;
+    return subsection
+      ? subsection.assetIndices.map(index => assets[index]?.assetIndex).filter(Number.isInteger)
+      : group.map(entry => entry.assetIndex);
+  });
 }
 
 const isVideoAsset = asset => String(asset?.type || '').trim().toUpperCase() === 'VIDEO';

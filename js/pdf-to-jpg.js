@@ -1,9 +1,9 @@
-import {msg,track,countBucket} from './util.js?v=3.6.2';
-import {download} from './nbtool.js?v=3.6.2';
-import {jpgSetDpi} from './imgcore.js?v=3.6.2';
+import {msg,track,countBucket} from './util.js?v=3.7.0';
+import {download} from './nbtool.js?v=3.7.0';
+import {jpgSetDpi} from './imgcore.js?v=3.7.0';
 import {zipSync} from './vendor/fflate.js';
-import {mountGuide} from './instruction-panel.js?v=3.6.2';
-import {t} from './i18n.js?v=3.6.2';
+import {mountGuide} from './instruction-panel.js?v=3.7.0';
+import {t} from './i18n.js?v=3.7.0';
 
 const MAX_CANVAS_PIXELS=16000000;
 const MAX_CANVAS_SIDE=8192;
@@ -12,7 +12,7 @@ const PREVIEW_MAX_ZOOM=4;
 let nextPageId=0,pdfjsPromise=null;
 const hasFiles=event=>[...(event.dataTransfer?.types||[])].includes('Files');
 
-function loadPdfjs(){
+export function loadPdfjs(){
   if(!pdfjsPromise){
     pdfjsPromise=import('./vendor/pdfjs/build/pdf.mjs').then(pdfjs=>{
       pdfjs.GlobalWorkerOptions.workerSrc=new URL('./vendor/pdfjs/build/pdf.worker.mjs',import.meta.url).href;
@@ -64,7 +64,7 @@ function blobBytes(blob){
   });
 }
 
-async function imageObjectToPng(image,pdfjs){
+export async function imageObjectToPng(image,pdfjs){
   const {width,height}=image||{};
   if(!Number.isInteger(width)||!Number.isInteger(height)||width<1||height<1||width*height>MAX_CANVAS_PIXELS||Math.max(width,height)>MAX_CANVAS_SIDE){
     throw new Error(t('pdfToJpg.imageSizeError'));
@@ -94,9 +94,60 @@ async function imageObjectToPng(image,pdfjs){
   finally{canvas.width=0;canvas.height=0}
 }
 
-async function extractPdfImages(pdf,pdfjs,onProgress){
-  const output={},usedObjects=new Set(),failures=[];
-  let count=0;
+export function imageObjectToCanvas(image,pdfjs,{maxSide=MAX_CANVAS_SIDE,maxPixels=MAX_CANVAS_PIXELS,limitSource=false}={}){
+  const {width,height}=image||{};
+  if(!Number.isInteger(width)||!Number.isInteger(height)||width<1||height<1||
+    (limitSource&&(width*height>MAX_CANVAS_PIXELS||Math.max(width,height)>MAX_CANVAS_SIDE))){
+    throw new Error(t('pdfToJpg.imageSizeError'));
+  }
+  const scale=Math.min(1,maxSide/width,maxSide/height,Math.sqrt(maxPixels/(width*height)));
+  const outputWidth=Math.max(1,Math.floor(width*scale)),outputHeight=Math.max(1,Math.floor(height*scale));
+  const canvas=document.createElement('canvas');canvas.width=outputWidth;canvas.height=outputHeight;
+  const context=canvas.getContext('2d');
+  if(!context)throw new Error(t('pdfToJpg.canvasError'));
+  if(image.bitmap||(typeof HTMLImageElement!=='undefined'&&image instanceof HTMLImageElement)){
+    context.drawImage(image.bitmap||image,0,0,outputWidth,outputHeight);
+    return canvas;
+  }
+  if(!image.data)throw new Error(t('pdfToJpg.imageFormatError'));
+  const source=image.data,output=context.createImageData(outputWidth,outputHeight);
+  const rgba=image.kind===pdfjs.ImageKind.RGBA_32BPP||source.length===width*height*4;
+  const rgb=image.kind===pdfjs.ImageKind.RGB_24BPP;
+  const grayscale=image.kind===pdfjs.ImageKind.GRAYSCALE_1BPP;
+  if(!rgba&&!rgb&&!grayscale)throw new Error(t('pdfToJpg.imageFormatError'));
+  if((rgba&&source.length<width*height*4)||(rgb&&source.length<width*height*3)||(grayscale&&source.length<Math.ceil(width*height/8))){
+    throw new Error(t('pdfToJpg.imageFormatError'));
+  }
+  for(let y=0;y<outputHeight;y++){
+    const sourceY=Math.min(height-1,Math.floor((y+.5)*height/outputHeight));
+    for(let x=0;x<outputWidth;x++){
+      const sourceX=Math.min(width-1,Math.floor((x+.5)*width/outputWidth));
+      const target=(y*outputWidth+x)*4;
+      if(rgba){
+        const from=(sourceY*width+sourceX)*4;
+        output.data[target]=source[from];output.data[target+1]=source[from+1];output.data[target+2]=source[from+2];output.data[target+3]=source[from+3];
+      }else if(rgb){
+        const from=(sourceY*width+sourceX)*3;
+        output.data[target]=source[from];output.data[target+1]=source[from+1];output.data[target+2]=source[from+2];output.data[target+3]=255;
+      }else{
+        const pixel=sourceY*width+sourceX,value=source[pixel>>3]&(128>>(pixel&7))?255:0;
+        output.data[target]=output.data[target+1]=output.data[target+2]=value;output.data[target+3]=255;
+      }
+    }
+  }
+  context.putImageData(output,0,0);
+  return canvas;
+}
+
+function getPdfObject(objects,id){
+  if(objects.has(id))return Promise.resolve(objects.get(id));
+  return new Promise((resolve,reject)=>{
+    try{objects.get(id,resolve)}catch(error){reject(error)}
+  });
+}
+
+export async function extractPdfImageObjects(pdf,pdfjs,onProgress=()=>{},onImage=null){
+  const imageObjects=[],seenObjects=new Set(),byId=new Map(),failures=[];
   for(let pageNumber=1;pageNumber<=pdf.numPages;pageNumber++){
     const page=await pdf.getPage(pageNumber);
     try{
@@ -115,39 +166,48 @@ async function extractPdfImages(pdf,pdfjs,onProgress){
           inline.push(...(args[0]||[]).map(image=>image?.kind?image:{...image,kind:pdfjs.ImageKind.GRAYSCALE_1BPP}));
         }
       }
-      const viewport=page.getViewport({scale:1}),factor=Math.min(1,Math.sqrt(MAX_CANVAS_PIXELS/(viewport.width*viewport.height)),MAX_CANVAS_SIDE/viewport.width,MAX_CANVAS_SIDE/viewport.height),renderViewport=page.getViewport({scale:factor});
-      const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.ceil(renderViewport.width));canvas.height=Math.max(1,Math.ceil(renderViewport.height));
-      const context=canvas.getContext('2d');
-      if(!context)throw new Error(t('pdfToJpg.canvasError'));
-      try{await page.render({canvasContext:context,viewport:renderViewport}).promise}
-      finally{canvas.width=0;canvas.height=0}
-      const images=[...inline];
+      const pageImages=[...inline];
       for(const [id,isMask] of refs){
         const objects=id.startsWith('g_')?page.commonObjs:page.objs;
-        if(objects.has(id)){
-          const image=objects.get(id);
-          images.push(isMask&&!image.kind?{...image,kind:pdfjs.ImageKind.GRAYSCALE_1BPP}:image);
-        }
-        else failures.push(t('pdfToJpg.imageUnavailable',pageNumber));
+        try{
+          const image=await getPdfObject(objects,id);
+          pageImages.push(isMask&&!image.kind?{...image,kind:pdfjs.ImageKind.GRAYSCALE_1BPP}:image);
+        }catch(error){failures.push(`${t('pdfToJpg.imageUnavailable',pageNumber)} ${error.message||error}`)}
       }
-      let pageImage=0;
-      for(const [imageIndex,image] of images.entries()){
+      for(const [imageIndex,image] of pageImages.entries()){
         if(!image||typeof image!=='object'||!('width'in image)||!('height'in image))continue;
         const key=image.id||`${pageNumber}:${imageIndex}`;
-        if(usedObjects.has(key))continue;
-        usedObjects.add(key);
+        const existing=byId.get(key);
+        if(existing){
+          existing.pages.add(pageNumber);
+          if(onImage)try{await onImage({key,image},pageNumber)}catch(error){failures.push(`${t('jpg.pageLabel',pageNumber)}: ${error.message||error}`)}
+          continue;
+        }
+        if(seenObjects.has(key))continue;
+        seenObjects.add(key);
         try{
-          const bytes=await imageObjectToPng(image,pdfjs);
-          pageImage++;count++;
-          output[`page-${String(pageNumber).padStart(String(pdf.numPages).length,'0')}-image-${String(pageImage).padStart(3,'0')}.png`]=bytes;
+          const entry={key,bytes:null,pages:new Set([pageNumber])};
+          byId.set(key,entry);imageObjects.push(entry);
+          if(onImage)await onImage({key,image},pageNumber);
+          else entry.bytes=await imageObjectToPng(image,pdfjs);
         }catch(error){failures.push(`${t('jpg.pageLabel',pageNumber)}: ${error.message||error}`)}
       }
     }finally{page.cleanup()}
   }
-  return {output,count,failures};
+  return {images:imageObjects,failures};
 }
 
-async function loadPdf(file){
+async function extractPdfImages(pdf,pdfjs,onProgress){
+  const {images,failures}=await extractPdfImageObjects(pdf,pdfjs,onProgress),output={},perPage=new Map();
+  for(const image of images){
+    const pageNumber=Math.min(...image.pages),pageImage=(perPage.get(pageNumber)||0)+1;
+    perPage.set(pageNumber,pageImage);
+    output[`page-${String(pageNumber).padStart(String(pdf.numPages).length,'0')}-image-${String(pageImage).padStart(3,'0')}.png`]=image.bytes;
+  }
+  return {output,count:images.length,failures};
+}
+
+export async function loadPdf(file){
   const pdfjs=await loadPdfjs();
   const loadingTask=pdfjs.getDocument({
     data:await file.arrayBuffer(),

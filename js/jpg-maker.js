@@ -1,8 +1,8 @@
-import {msg,track} from './util.js?v=3.6.2';
-import {download} from './nbtool.js?v=3.6.2';
-import {extractNotebookPages} from './jpgcore.js?v=3.6.2';
-import {mountGuide} from './instruction-panel.js?v=3.6.2';
-import {t} from './i18n.js?v=3.6.2';
+import {msg,track} from './util.js?v=3.7.0';
+import {download} from './nbtool.js?v=3.7.0';
+import {extractNotebookPages} from './jpgcore.js?v=3.7.0';
+import {mountGuide} from './instruction-panel.js?v=3.7.0';
+import {t} from './i18n.js?v=3.7.0';
 
 const MAX_CANVAS_PIXELS=16000000;
 const MAX_CANVAS_SIDE=8192;
@@ -48,13 +48,13 @@ export function mount(root){
             <h2 id="jpg-pages-title">${t('jpg.pages')}</h2><span class="jpg-page-count" data-q="count"></span>
             <div class="jpg-panel-tools">
               <button type="button" class="btn jpg-mini" data-q="deselect-all" disabled>${t('jpg.clearSelection')}</button>
-              <button type="button" class="btn jpg-mini jpg-view-toggle" data-q="view-toggle" disabled aria-label="${t('jpg.switchToMediumIcons')}" title="${t('jpg.switchToMediumIcons')}" aria-pressed="false"></button>
+              <button type="button" class="btn jpg-mini jpg-view-toggle" data-q="view-toggle" disabled aria-label="${t('jpg.switchToDetails')}" title="${t('jpg.switchToDetails')}" aria-pressed="true"></button>
             </div>
           </div>
           <div class="jpg-import-feedback" data-q="import-feedback" hidden aria-live="polite"><span class="jpg-import-spinner" aria-hidden="true"></span><span class="jpg-import-label" data-q="import-label"></span><progress data-q="import-progress" max="1" value="0" aria-label="${t('a11y.progressImport')}"></progress></div>
           <div class="jpg-list" data-q="pages"></div>
         </section>
-        <div class="jpg-file-controls"><button type="button" class="btn" data-q="browse">${t('jpg.browse')}</button><button type="button" class="btn" data-q="clear" disabled>${t('jpg.removeAllFiles')}</button></div>
+        <div class="jpg-file-controls"><button type="button" class="btn" data-q="browse">${t('jpg.addNotebook')}</button><button type="button" class="btn" data-q="clear" disabled>${t('jpg.removeAllFiles')}</button></div>
       </div>
       <div class="jpg-preview-column">
         <section class="jpg-panel jpg-preview-panel" aria-label="${t('jpg.previewTitle')}">
@@ -81,7 +81,7 @@ export function mount(root){
   </div></div>`;
 
   const q=key=>root.querySelector(`[data-q="${key}"]`),notebooks=[],selected=new Set();
-  let busy=false,previewId=null,anchorId=null,previewZoom=1,previewPanX=0,previewPanY=0,pan=null,viewMode='details';
+  let busy=false,previewId=null,anchorId=null,previewZoom=1,previewPanX=0,previewPanY=0,pan=null,viewMode='medium';
   const fullscreen=q('fullscreen'),fullscreenImage=fullscreen.querySelector('img');
   let fullscreenZoom=1,fullscreenPanX=0,fullscreenPanY=0,fullscreenDrag=null,fullscreenPanned=false;
   const pageItems=()=>notebooks.flatMap(notebook=>notebook.pages);
@@ -124,8 +124,8 @@ export function mount(root){
     const medium=viewMode==='medium',button=q('view-toggle');
     const label=medium?t('jpg.switchToDetails'):t('jpg.switchToMediumIcons');
     const icon=medium
-      ?'<svg aria-hidden="true" focusable="false" viewBox="0 0 18 18" fill="none"><rect x="1.5" y="2" width="4" height="4" rx=".7"/><rect x="1.5" y="7" width="4" height="4" rx=".7"/><rect x="1.5" y="12" width="4" height="4" rx=".7"/><path d="M8 4h8.5M8 9h8.5M8 14h8.5"/></svg>'
-      :'<svg aria-hidden="true" focusable="false" viewBox="0 0 18 18" fill="none"><rect x="1.5" y="1.5" width="6.2" height="6.2" rx="1"/><rect x="10.3" y="1.5" width="6.2" height="6.2" rx="1"/><rect x="1.5" y="10.3" width="6.2" height="6.2" rx="1"/><rect x="10.3" y="10.3" width="6.2" height="6.2" rx="1"/></svg>';
+      ?'<svg aria-hidden="true" focusable="false" viewBox="0 0 18 18" fill="none"><rect x="1.5" y="1.5" width="6.2" height="6.2" rx="1"/><rect x="10.3" y="1.5" width="6.2" height="6.2" rx="1"/><rect x="1.5" y="10.3" width="6.2" height="6.2" rx="1"/><rect x="10.3" y="10.3" width="6.2" height="6.2" rx="1"/></svg>'
+      :'<svg aria-hidden="true" focusable="false" viewBox="0 0 18 18" fill="none"><rect x="1.5" y="2" width="4" height="4" rx=".7"/><rect x="1.5" y="7" width="4" height="4" rx=".7"/><rect x="1.5" y="12" width="4" height="4" rx=".7"/><path d="M8 4h8.5M8 9h8.5M8 14h8.5"/></svg>';
     if(button.dataset.mode!==viewMode){
       const oldIcons=button.querySelectorAll('.jpg-view-icon svg');
       if(animate&&oldIcons.length){

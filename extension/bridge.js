@@ -30,7 +30,7 @@
     }
     if (m.action !== 'list' && m.action !== 'extract' && m.action !== 'list-timestamp-assets' && m.action !== 'fill-timestamps' && m.action !== 'golive') return reply(m.id, {ok: false, error: 'Unknown action'});
     try {
-      chrome.runtime.sendMessage({ns: 'pl-lc', action: m.action, tabId: m.tabId, reqId: m.id, dryRun: !!m.dryRun, closeDone: !!m.closeDone, variantCodes: m.variantCodes, courseCode: m.courseCode, entries: m.entries, groups: m.groups}, res => {
+      chrome.runtime.sendMessage({ns: 'pl-lc', action: m.action, tabId: m.tabId, reqId: m.id, dryRun: !!m.dryRun, closeDone: !!m.closeDone, variantCodes: m.variantCodes, courseCode: m.courseCode, entries: m.entries, groups: m.groups, subsectionAssetIndices: m.subsectionAssetIndices}, res => {
         if (chrome.runtime.lastError) return reply(m.id, {ok: false, error: chrome.runtime.lastError.message});
         reply(m.id, res || {ok: false, error: 'No answer from the extension'});
       });

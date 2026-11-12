@@ -1,14 +1,14 @@
-import {msg} from './util.js?v=3.6.2';
-import {download} from './nbtool.js?v=3.6.2';
-import {t} from './i18n.js?v=3.6.2';
-import {mountGuide} from './instruction-panel.js?v=3.6.2';
-import {copyInternalPage,installStepsHtml} from './install-help.js?v=3.6.2';
-import {zipSync} from './vendor/fflate.js?v=3.6.2';
-import {older,summarizeBridges,staleDownload,freshUrl,FRESH} from './extcore.js?v=3.6.2';
-import {assetMatchesDateSelection,flattenTimestampAssets,groupTimestampUpdates,normalizeTimestampTree,parseTimestampPaste,selectedTimestampUpdates,summarizeRecordingDays} from './timestampcore.js?v=3.6.2';
-import {extensionAssetUrl} from './assets.js?v=3.6.2';
+import {msg} from './util.js?v=3.7.0';
+import {download} from './nbtool.js?v=3.7.0';
+import {t} from './i18n.js?v=3.7.0';
+import {mountGuide} from './instruction-panel.js?v=3.7.0';
+import {copyInternalPage,installStepsHtml} from './install-help.js?v=3.7.0';
+import {zipSync} from './vendor/fflate.js?v=3.7.0';
+import {older,summarizeBridges,staleDownload,freshUrl,FRESH} from './extcore.js?v=3.7.0';
+import {assetMatchesDateSelection,flattenTimestampAssets,groupTimestampUpdates,normalizeTimestampTree,parseTimestampPaste,selectedTimestampUpdates,summarizeRecordingDays,timestampGroupAssetIndices} from './timestampcore.js?v=3.7.0';
+import {extensionAssetUrl} from './assets.js?v=3.7.0';
 
-const EXT_MIN='1.2.0';
+const EXT_MIN='1.3.0';
 const FORCE_RESET_PARAM='__pl_tf_reset';
 if(new URL(location.href).searchParams.has(FORCE_RESET_PARAM)){
   const cleanUrl=new URL(location.href);cleanUrl.searchParams.delete(FORCE_RESET_PARAM);
@@ -671,7 +671,7 @@ export function mount(root){
     stopButton.hidden=false;stopButton.disabled=false;stopButton.textContent=t('timestampMaker.stop');
     $result.hidden=false;$result.className='tf-result tf-working';$result.textContent=t('timestampMaker.workingSwitch',updates.length);
     try{
-      const result=await ask('fill-timestamps',{tabId:activeTab.tabId,courseCode:activeTab.code,entries:updates,groups:groups.map(group=>group.map(entry=>entry.assetIndex))},300000,progress=>{
+      const result=await ask('fill-timestamps',{tabId:activeTab.tabId,courseCode:activeTab.code,entries:updates,groups:groups.map(group=>group.map(entry=>entry.assetIndex)),subsectionAssetIndices:timestampGroupAssetIndices(assets,tree,groups)},300000,progress=>{
         if(stopRequested)return;
         if(progress?.phase==='asset'){
           $result.textContent=progress.state==='done'

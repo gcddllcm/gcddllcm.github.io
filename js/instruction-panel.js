@@ -1,4 +1,4 @@
-import {t} from './i18n.js?v=3.6.2';
+import {t} from './i18n.js?v=3.7.0';
 
 const GUIDES = {
   learncraft: {
@@ -121,6 +121,29 @@ const GUIDES = {
       }
     ],
     detailsKey: 'guide.pdfToJpg.details'
+  },
+  pdfQrDetector: {
+    steps: [
+      {
+        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16h14V8z"/><path d="M14 2v6h6M9 13h6M9 17h3"/></svg>',
+        title: 'guide.pdfQrDetector.step1.title',
+        desc: 'guide.pdfQrDetector.step1.desc',
+        targets: ['[data-q="drop"]']
+      },
+      {
+        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zm4 4h3v3h-3z"/></svg>',
+        title: 'guide.pdfQrDetector.step2.title',
+        desc: 'guide.pdfQrDetector.step2.desc',
+        targets: ['.pdf-qr-status-card']
+      },
+      {
+        icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7M21 3l-9 9"/><path d="M11 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6"/></svg>',
+        title: 'guide.pdfQrDetector.step3.title',
+        desc: 'guide.pdfQrDetector.step3.desc',
+        targets: ['[data-q="results"]']
+      }
+    ],
+    detailsKey: 'guide.pdfQrDetector.details'
   },
   'jpg-maker': {
     steps: [

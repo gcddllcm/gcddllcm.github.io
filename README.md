@@ -34,6 +34,7 @@ Tool names and taglines are kept in `js/locales/en.js` under the keys below. The
 | Convert to PDF | `pdf.sub` | One PDF per .notebook file |
 | PDF to JPG | `pdfToJpg.sub` | Preview PDF pages and export selected pages as JPG |
 | PDF image extraction mode | `pdfToJpg.imagesSub` | Extract embedded images from one PDF and download them as PNG files. |
+| PDF QR Detector | `pdfQrDetector.sub` | Find QR codes in PDF images and list their pages. |
 | Notebook to JPG | `jpg.sub` | Preview every page in your SMART Notebook and export selected pages as JPG |
 | Page Locker | `pagelock.sub` | Lock or unlock every image on every page |
 | Image Resizer | `resizer.sub` | Resize images and 'TRULY' set DPI in bulk |
@@ -67,6 +68,6 @@ Canvas Extractor's **Copy current view** action copies the expanded/collapsed hi
 
 The SMART Notebook tool lists pages on the left and previews the active page on the right for one or more `.notebook` files. Pages start unselected; export selected pages or all pages as individual JPG downloads, with JPEG quality from 70% to 100% (default 100%).
 
-## Convert to JPG
+## I Philo PDF
 
-The **I PHILO PDF** tool has two modes: preview and export selected PDF pages (or all pages) as JPG in a ZIP, or extract embedded images from one PDF as PNG files in a ZIP. Page export defaults to 300 DPI in the JPEG metadata with quality fixed at 100%. PDF.js 5.4.394 and its worker, CMaps, and standard fonts are vendored locally under `js/vendor/pdfjs/`; files stay in the browser and are not uploaded. The Apache 2.0 and asset license files are included alongside the vendored files.
+The **Convert to JPG** tool has two modes: preview and export selected PDF pages (or all pages) as JPG in a ZIP, or extract embedded images from one PDF as PNG files in a ZIP. Page export defaults to 300 DPI in the JPEG metadata with quality fixed at 100%. The **QR Detector** scans embedded images in one PDF, can show unique QR codes with their pages or group codes by page, and lets users open HTTP(S) links by clicking the QR image. It shows elapsed processing time and a page-based ETA. Scanning skips full-page rendering, downsizes images to 1,600 pixels maximum per side, and tries normal polarity before inverted QR decoding. It uses the browser's built-in `BarcodeDetector` when available and the locally vendored jsQR decoder otherwise; vector-drawn codes and codes assembled from multiple images are not detected. PDF.js 5.4.394 and its worker, CMaps, and standard fonts are vendored locally under `js/vendor/pdfjs/`; jsQR and its Apache 2.0 license are in `js/vendor/`. Files stay in the browser and are not uploaded.

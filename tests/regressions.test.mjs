@@ -39,6 +39,11 @@ await check('landing: category order, concise titles, new badges and card arrows
   assert.match(css, /\.landing-tool-new-card\{animation:landing-card-in \.38s cubic-bezier\(\.2,\.75,\.25,1\) var\(--landing-delay,40ms\) both\}/);
   assert.match(css, /animation:landing-intro-in \.6s cubic-bezier\(\.2,\.75,\.25,1\) both/);
   assert.match(app, /card\.style\.setProperty\('--landing-delay',`\$\{40\+cardIndex\*40\}ms`\)/);
+  assert.match(app, /const NEW_TOOL_KEYS=new Set\(\['pdf-qr-detector'\]\)/);
+  assert.doesNotMatch(app, /landingPhiloLinks|landing-philo-links|landing-pdf-brand-trigger/);
+  assert.doesNotMatch(css, /landing-philo-links|landing-pdf-brand-trigger/);
+  assert.match(css, /\.landing-tool-copy \.landing-tool-category \.release-brand-gradient\{font-size:inherit;letter-spacing:inherit;line-height:inherit\}/);
+  assert.equal(en['tool.pdfQrDetector.desc'], 'Find all QR codes in PDF file.');
   assert.match(app, /library\.categoryNotebook[\s\S]*library\.categoryLearnCraft[\s\S]*library\.categoryImages[\s\S]*library\.categoryPdf[\s\S]*library\.categoryArchive/);
   assert.match(app, /tools:TOOLS\.filter\(item=>item\[3\]===t\('library\.categoryNotebook'\)\)/);
   assert.doesNotMatch(app, /landing-archive|archiveDetails|expandArchiveAtBottom/);
@@ -75,6 +80,52 @@ await check('PDF to JPG mode tabs and workspaces transition accessibly', () => {
   assert.match(css, /\.pdf-jpg-mode-stage>\.pdf-jpg-mode-content,\.pdf-jpg-mode-stage>\.pdf-image-mode\{grid-area:1\/1\/2\/2/);
   assert.doesNotMatch(css, /pdf-jpg-mode-enter|pdf-jpg-mode-leave|\.pdf-jpg-mode-stage>\.is-(?:entering|leaving)/);
   assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{\.pdf-jpg-modes::after,\.pdf-jpg-mode\{transition:none!important\}\}/);
+});
+await check('PDF QR detection reports successful results with positive feedback', () => {
+  const source = fs.readFileSync(new URL('../js/pdf-qr-detector.js', import.meta.url), 'utf8');
+  const util = fs.readFileSync(new URL('../js/util.js', import.meta.url), 'utf8');
+  const css = fs.readFileSync(new URL('../style.css', import.meta.url), 'utf8');
+  assert.match(source, /<div class="pdf-qr-meta"><span class="pdf-qr-timing" data-q="timing" hidden><\/span><span data-q="detail"><\/span><\/div>/);
+  assert.match(source, /setStatus\(t\('pdfQr\.found',found\.length\)\);setState\('done'\)/);
+  assert.match(source, /msg\(t\('pdfQr\.title'\),t\('pdfQr\.found',found\.length\),'success'\)/);
+  assert.match(util, /success:'✓'/);
+  assert.match(css, /\.badge\.success\{color:var\(--ok\)\}/);
+  assert.equal(en['pdfQr.found'](2), 'Detection complete with 2 QR codes found.');
+  assert.equal(en['pdfQr.timingEstimating']('0:03'), 'Elapsed 0:03s · Estimating time left…');
+  assert.equal(en['pdfQr.timingEta']('0:03', '0:08'), 'Elapsed 0:03s · About 0:08s left');
+  assert.equal(en['pdfQr.timingDone']('0:03'), 'Finished in 0:03s');
+  assert.equal(en['pdfQr.timingStopped']('0:03'), 'Stopped after 0:03s');
+  assert.match(source, /download\.download=`qr-code-\$\{index\+1\}\.png`/);
+  assert.match(source, /card\.append\(download,preview,details\)/);
+  assert.equal(en['pdfQr.downloadCode'](1), 'Download QR code 1');
+  assert.match(source, /pdf-qr-tool is-pristine/);
+  assert.match(source, /tool\.classList\.remove\('is-pristine'\)/);
+  assert.match(css, /\.pdf-qr-tool\.is-pristine \.pdf-qr-status-card,\.pdf-qr-tool\.is-pristine \.pdf-qr-panel\{display:none\}/);
+  assert.match(css, /\.pdf-qr-tool\.is-pristine \.pdf-qr-drop\{flex:1 1 0;min-height:0\}/);
+  assert.match(css, /\.pdf-qr-download\{position:absolute;[^}]*top:8px;right:8px/);
+  assert.match(css, /\.pdf-qr-download\{[^}]*opacity:0/);
+  assert.match(css, /\.pdf-qr-card:hover \.pdf-qr-download,\.pdf-qr-download:focus-visible\{opacity:1\}/);
+  assert.match(css, /@media\(hover:none\)\{\.pdf-qr-download\{opacity:1\}\}/);
+});
+await check('QR Detector landing icon matches the tool QR scanner icon', () => {
+  const app = fs.readFileSync(new URL('../js/app.js', import.meta.url), 'utf8');
+  const css = fs.readFileSync(new URL('../style.css', import.meta.url), 'utf8');
+  assert.match(app, /viewBox="0 0 32 32"[^`]*M4 11V6a2 2 0 0 1 2-2h5M21 4h5a2 2 0 0 1 2 2v5/);
+  assert.match(css, /\.landing-tool-icon-qr svg\{width:32px;height:32px\}/);
+});
+await check('file dropzones share QR Detector hover feedback', () => {
+  const css = fs.readFileSync(new URL('../style.css', import.meta.url), 'utf8');
+  assert.match(css, /\.view\[data-tool="topdf"\] \.drop:not\(\.off\):not\(\.hot\):is\(:hover,:focus-within\)\{border-color:var\(--accent\);box-shadow:0 10px 30px -16px/);
+  assert.match(css, /\.cr-left-pane:not\(\.has-images\):not\(\.hot\):is\(:hover,:focus-within\) \.listbox\.empty\{border-color:var\(--accent\);box-shadow:0 10px 30px -16px/);
+  assert.match(css, /\.pdf-image-drop:not\(\.jpg-drop-hot\):is\(:hover,:focus-within\)\{border-color:var\(--accent\);box-shadow:0 10px 30px -16px/);
+  assert.match(css, /\.view\[data-tool="resizer"\] \.rz-drop:not\(\.is-processing\):not\(\.hot\):is\(:hover,:focus-within\)\{border-color:var\(--accent\);box-shadow:0 10px 30px -16px/);
+});
+await check('PDF QR result page references open the scanned PDF at that page', () => {
+  const source = fs.readFileSync(new URL('../js/pdf-qr-detector.js', import.meta.url), 'utf8');
+  assert.match(source, /link\.href=`\$\{pdfUrl\}#page=\$\{page\}`/);
+  assert.match(source, /renderResults\(results,detectedCodes,resultMode,sourcePdfUrl\)/);
+  assert.match(source, /URL\.revokeObjectURL\(sourcePdfUrl\)/);
+  assert.equal(en['pdfQr.openPage'](4), 'Open PDF on page 4 (opens in a new tab)');
 });
 await check('keyboard: Space does not switch tools while a Timestamp Maker video preview is open', () => {
   const app = fs.readFileSync(new URL('../js/app.js', import.meta.url), 'utf8');
@@ -614,6 +665,7 @@ await check('keyboard shortcuts stay enabled, focus styling persists until point
   assert.doesNotMatch(css, /tool-nav-shortcut/);
   assert.match(app, /setAttribute\('aria-keyshortcuts','G'\)/);
   assert.match(app, /e\.code!=='KeyG'&&e\.key\?\.toLowerCase\(\)!=='g'/);
+  assert.match(app, /isEditingCreatorTitle\(e\.target\)\|\|e\.target instanceof Element&&e\.target\.matches\('input,textarea,\[contenteditable="true"\]'\)/);
   assert.match(app, /if\(guide\.parentElement\.classList\.contains\('guide-open'\)\)guide\.closeGuide\(true\);\s*else\{guide\.openGuide\(\);if\(isPhone\)setPhoneToolPickerOpen\(false\)\}/);
   assert.match(app, /if\(e\.key==='Tab'\)document\.body\.classList\.add\('keyboard-tab-nav'\)/);
   assert.match(css, /body\.keyboard-tab-nav :focus-visible\{outline:2px solid #8e82ff/);
