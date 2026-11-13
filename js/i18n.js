@@ -1,4 +1,4 @@
-import en from './locales/en.js?v=3.7.0';
+import en from './locales/en.js?v=3.7.1';
 
 export const strings = en;
 export const t = (key, ...args) => {

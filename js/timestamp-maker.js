@@ -1,12 +1,12 @@
-import {msg} from './util.js?v=3.7.0';
-import {download} from './nbtool.js?v=3.7.0';
-import {t} from './i18n.js?v=3.7.0';
-import {mountGuide} from './instruction-panel.js?v=3.7.0';
-import {copyInternalPage,installStepsHtml} from './install-help.js?v=3.7.0';
-import {zipSync} from './vendor/fflate.js?v=3.7.0';
-import {older,summarizeBridges,staleDownload,freshUrl,FRESH} from './extcore.js?v=3.7.0';
-import {assetMatchesDateSelection,flattenTimestampAssets,groupTimestampUpdates,normalizeTimestampTree,parseTimestampPaste,selectedTimestampUpdates,summarizeRecordingDays,timestampGroupAssetIndices} from './timestampcore.js?v=3.7.0';
-import {extensionAssetUrl} from './assets.js?v=3.7.0';
+import {msg} from './util.js?v=3.7.1';
+import {download} from './nbtool.js?v=3.7.1';
+import {t} from './i18n.js?v=3.7.1';
+import {mountGuide} from './instruction-panel.js?v=3.7.1';
+import {copyInternalPage,installStepsHtml} from './install-help.js?v=3.7.1';
+import {zipSync} from './vendor/fflate.js?v=3.7.1';
+import {older,summarizeBridges,staleDownload,freshUrl,FRESH} from './extcore.js?v=3.7.1';
+import {assetMatchesDateSelection,flattenTimestampAssets,groupTimestampUpdates,normalizeTimestampTree,parseTimestampPaste,selectedTimestampUpdates,summarizeRecordingDays,timestampGroupAssetIndices} from './timestampcore.js?v=3.7.1';
+import {extensionAssetUrl} from './assets.js?v=3.7.1';
 
 const EXT_MIN='1.3.0';
 const FORCE_RESET_PARAM='__pl_tf_reset';

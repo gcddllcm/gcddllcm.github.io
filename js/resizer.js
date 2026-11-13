@@ -1,8 +1,8 @@
-import {$,msg,track,countBucket,yieldNow} from './util.js?v=3.7.0';
-import {mountGuide} from './instruction-panel.js?v=3.7.0';
-import {t} from './i18n.js?v=3.7.0';
-import {pngSetDpi,jpgSetDpi,bmpEncode,readImageInfo,resizeLanczos,ppm} from './imgcore.js?v=3.7.0';
-import {zipSync} from './vendor/fflate.js?v=3.7.0';
+import {$,msg,track,countBucket,yieldNow} from './util.js?v=3.7.1';
+import {mountGuide} from './instruction-panel.js?v=3.7.1';
+import {t} from './i18n.js?v=3.7.1';
+import {pngSetDpi,jpgSetDpi,bmpEncode,readImageInfo,resizeLanczos,ppm} from './imgcore.js?v=3.7.1';
+import {zipSync} from './vendor/fflate.js?v=3.7.1';
 const HAS_FS='showDirectoryPicker' in window;
 const sleep=yieldNow;
 const IN_THREAD_MAX_MP=40;     // the page itself only processes images up to this size (fallback path)
@@ -78,7 +78,7 @@ class ResizerPool {
   }
 
   _spawnWorker(){
-    const w=new Worker(new URL('./resizer-worker.js?v=3.7.0',import.meta.url),{type:'module'});
+    const w=new Worker(new URL('./resizer-worker.js?v=3.7.1',import.meta.url),{type:'module'});
     w.onmessage=e=>{
       const {id,ok,blob,w:rw,h:rh,dpi:rdpi,error}=e.data;
       const h=this.handlers.get(id);

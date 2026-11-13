@@ -1,8 +1,8 @@
-import {msg,track} from './util.js?v=3.7.0';
-import {download} from './nbtool.js?v=3.7.0';
-import {extractNotebookPages} from './jpgcore.js?v=3.7.0';
-import {mountGuide} from './instruction-panel.js?v=3.7.0';
-import {t} from './i18n.js?v=3.7.0';
+import {msg,track} from './util.js?v=3.7.1';
+import {download} from './nbtool.js?v=3.7.1';
+import {extractNotebookPages} from './jpgcore.js?v=3.7.1';
+import {mountGuide} from './instruction-panel.js?v=3.7.1';
+import {t} from './i18n.js?v=3.7.1';
 
 const MAX_CANVAS_PIXELS=16000000;
 const MAX_CANVAS_SIDE=8192;
