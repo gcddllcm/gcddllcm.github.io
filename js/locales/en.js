@@ -221,19 +221,30 @@ const en = {
   'learncraft.timeIssues':n=>`${n} time${n===1?'':'s'} do not add up:`,'learncraft.timeMismatch':(shown,sum)=>`shown ${shown}, items inside add up to ${sum}`,
   RELEASES:[
     {
+      version:'v3.7.1',
+      date:'13 November 2026',
+      sections:[
+        {title:'Fixed',items:[
+          'unslop 1'
+        ]}
+      ]
+    },
+    {
       version:'v3.7.0',
       date:'12 November 2026',
       sections:[
         {title:'Added',items:[
           '<strong><span class="release-brand-trigger"><span class="release-brand-gradient" tabindex="0">I Philo PDF</span><span class="release-brand-links" aria-label="I Philo PDF links"><a class="release-link-preview" data-preview-url="https://shop.farose.studio/products/i-philo-u" href="https://shop.farose.studio/products/i-philo-u" target="_blank" rel="noopener noreferrer">I Philo U<span class="release-link-preview-card" aria-hidden="true"><span class="release-link-preview-fallback"><strong>I Philo U</strong><small>shop.farose.studio</small></span><img class="release-link-preview-image" width="200" height="125" alt="" referrerpolicy="no-referrer" decoding="async"></span></a><a class="release-link-preview" data-preview-url="https://www.ilovepdf.com/" href="https://www.ilovepdf.com/" target="_blank" rel="noopener noreferrer">iLovePDF<span class="release-link-preview-card" aria-hidden="true"><span class="release-link-preview-fallback"><strong>iLovePDF</strong><small>www.ilovepdf.com</small></span><img class="release-link-preview-image" width="200" height="125" alt="" referrerpolicy="no-referrer" decoding="async"></span></a></span></span> : QR Detector</strong> finds and lists QR codes embedded in PDF images. You can download each detected QR code or open the PDF directly to the page where it appears.',
-          'Duplicate asset names are now supported in <strong>LearnCraft : Timestamp Maker</strong>, so courses that reuse a title no longer confuse the fill. Reported by <strong class="release-brand-gradient">Paradol</strong>.'
         ]},
         {title:'Changed',items:[
-          `Standardized progress bars in <strong>SMART Notebook : File Creator</strong> and <strong>SMART Notebook : Convert to PDF</strong>, and dropzone hover feedback across <strong>SMART Notebook : File Creator</strong>, <strong>SMART Notebook : Convert to PDF</strong>, <strong>Image Resizer</strong>, and <strong>${I_PHILO_PDF_BRAND} : Convert to JPG</strong>, to match <strong>${I_PHILO_PDF_BRAND} : QR Detector</strong>. <strong>SMART Notebook : Convert to PDF</strong> now opens with an empty progress bar and displays “Just drop your .notebook files” when ready.`,
-          '<strong>SMART Notebook : File Creator</strong> and <strong>SMART Notebook : Convert to JPG</strong> now have clearer file-selection controls: <strong>Browse</strong> is now <strong>Add Images</strong> or <strong>Add .notebook</strong>, respectively. <strong>SMART Notebook : Convert to JPG</strong> also opens in Medium icons view, and its view-toggle icon reflects the active view.'
+          `Standardized progress bars in <strong>SMART Notebook : File Creator</strong> and <strong>Convert to PDF</strong>.`,
+          `Standardized dropzone hover feedback across <strong>SMART Notebook : File Creator</strong>, <strong>Convert to PDF</strong>, <strong>Image Resizer</strong>, and <strong>${I_PHILO_PDF_BRAND} : Convert to JPG</strong>.`,
+          '<strong>SMART Notebook : Convert to PDF</strong> now opens with an empty progress bar and displays “Just drop your .notebook files” when ready.',
+          '<strong>SMART Notebook : File Creator</strong> and <strong>Convert to JPG</strong> now have clearer file-selection controls: <strong>Browse</strong> is now <strong>Add Images</strong> or <strong>Add .notebook</strong>, respectively. <strong>SMART Notebook : Convert to JPG</strong> also opens in Medium icons view, and its view-toggle icon reflects the active view.'
         ]},
         {title:'Fixed',items:[
-          'Typing Page/Pb values in <strong>LearnCraft : Timestamp Maker</strong> no longer triggers keybinds unintentionally. Reported by <strong class="release-brand-gradient">Paradol</strong>.',
+          'Duplicate asset names are now supported in <strong>LearnCraft : Timestamp Maker</strong>, so assets that reuse a title no longer confuse the fill. Reported by Paradol.',
+          'Typing Page/Pb values in <strong>LearnCraft : Timestamp Maker</strong> no longer triggers keybinds unintentionally. Reported by Paradol.',
           '<strong>LearnCraft : Ultimate Go Live</strong> confirms its dialogs more reliably.'
         ]}
       ]
@@ -252,7 +263,7 @@ const en = {
       date:'9 November 2026',
       sections:[
         {title:'Added',items:[
-          'More animations are now included throughout the app.'
+          'More animations across the app.'
         ]}
       ]
     },
@@ -279,7 +290,7 @@ const en = {
       date:'7 November 2026',
       sections:[
         {title:'Added',items:[
-          '<strong>SMART Notebook : File Creator</strong> advanced mode creates and groups pages, renames them as you build the file, and suggests page names. Requested by <strong class="release-brand-gradient">Jatupon</strong>.',
+          '<strong>SMART Notebook : File Creator</strong> advanced mode creates and groups pages, renames them as you build the file, and suggests page names. Requested by Jatupon.',
           '<strong>SMART Notebook : Convert to JPG</strong> exports notebook pages as JPG images.',
           '<strong><span class="release-brand-trigger"><span class="release-brand-gradient" tabindex="0">I Philo PDF</span><span class="release-brand-links" aria-label="I Philo PDF links"><a class="release-link-preview" data-preview-url="https://shop.farose.studio/products/i-philo-u" href="https://shop.farose.studio/products/i-philo-u" target="_blank" rel="noopener noreferrer">I Philo U<span class="release-link-preview-card" aria-hidden="true"><span class="release-link-preview-fallback"><strong>I Philo U</strong><small>shop.farose.studio</small></span><img class="release-link-preview-image" width="200" height="125" alt="" referrerpolicy="no-referrer" decoding="async"></span></a><a class="release-link-preview" data-preview-url="https://www.ilovepdf.com/" href="https://www.ilovepdf.com/" target="_blank" rel="noopener noreferrer">iLovePDF<span class="release-link-preview-card" aria-hidden="true"><span class="release-link-preview-fallback"><strong>iLovePDF</strong><small>www.ilovepdf.com</small></span><img class="release-link-preview-image" width="200" height="125" alt="" referrerpolicy="no-referrer" decoding="async"></span></a></span></span> : Convert to JPG</strong> converts PDF pages into JPG images.',
           'Tool navigation categories can now be collapsed.',
