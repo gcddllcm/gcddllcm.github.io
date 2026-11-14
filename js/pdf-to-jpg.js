@@ -1,9 +1,9 @@
-import {msg,track,countBucket} from './util.js?v=3.7.1';
-import {download} from './nbtool.js?v=3.7.1';
-import {jpgSetDpi} from './imgcore.js?v=3.7.1';
+import {msg,track,countBucket} from './util.js?v=3.7.2';
+import {download} from './nbtool.js?v=3.7.2';
+import {jpgSetDpi} from './imgcore.js?v=3.7.2';
 import {zipSync} from './vendor/fflate.js';
-import {mountGuide} from './instruction-panel.js?v=3.7.1';
-import {t} from './i18n.js?v=3.7.1';
+import {mountGuide} from './instruction-panel.js?v=3.7.2';
+import {t} from './i18n.js?v=3.7.2';
 
 const MAX_CANVAS_PIXELS=16000000;
 const MAX_CANVAS_SIDE=8192;
@@ -241,7 +241,7 @@ export function mount(root){
         <section class="jpg-panel jpg-pages-panel" data-q="drop" tabindex="0" role="region" aria-keyshortcuts="Enter Space" aria-disabled="false" aria-labelledby="pdf-jpg-pages-title">
           <div class="jpg-panel-head">
             <h2 id="pdf-jpg-pages-title">${t('pdfToJpg.pages')}</h2><span class="jpg-page-count" data-q="count"></span>
-            <div class="jpg-panel-tools"><button type="button" class="btn jpg-mini" data-q="deselect-all" disabled>${t('jpg.clearSelection')}</button><button type="button" class="btn jpg-mini jpg-view-toggle" data-q="view-toggle" disabled aria-label="${t('jpg.switchToMediumIcons')}" title="${t('jpg.switchToMediumIcons')}" aria-pressed="false"></button></div>
+            <div class="jpg-panel-tools"><button type="button" class="btn jpg-mini" data-q="deselect-all" disabled>${t('jpg.clearSelection')}</button><button type="button" class="btn jpg-mini jpg-view-toggle" data-q="view-toggle" disabled aria-label="${t('jpg.switchToDetails')}" title="${t('jpg.switchToDetails')}" aria-pressed="true"></button></div>
           </div>
           <div class="jpg-list" data-q="pages"></div>
         </section>
@@ -279,7 +279,7 @@ export function mount(root){
   </div></div>`;
 
   const q=key=>root.querySelector(`[data-q="${key}"]`),pdfs=[],selected=new Set();
-  let busy=false,activeMode='pages',previewId=null,anchorId=null,previewUrl=null,previewToken=0,previewZoom=1,previewPanX=0,previewPanY=0,pan=null,viewMode='details';
+  let busy=false,activeMode='pages',previewId=null,anchorId=null,previewUrl=null,previewToken=0,previewZoom=1,previewPanX=0,previewPanY=0,pan=null,viewMode='medium';
   let modeTransitionId=0,modeAnimations=[];
   const fullscreen=q('fullscreen'),fullscreenImage=fullscreen.querySelector('img');
   let fullscreenZoom=1,fullscreenPanX=0,fullscreenPanY=0,fullscreenDrag=null,fullscreenPanned=false;
@@ -302,8 +302,8 @@ export function mount(root){
     const medium=viewMode==='medium',button=q('view-toggle');
     const label=medium?t('jpg.switchToDetails'):t('jpg.switchToMediumIcons');
     const icon=medium
-      ?'<svg aria-hidden="true" focusable="false" viewBox="0 0 18 18" fill="none"><rect x="1.5" y="2" width="4" height="4" rx=".7"/><rect x="1.5" y="7" width="4" height="4" rx=".7"/><rect x="1.5" y="12" width="4" height="4" rx=".7"/><path d="M8 4h8.5M8 9h8.5M8 14h8.5"/></svg>'
-      :'<svg aria-hidden="true" focusable="false" viewBox="0 0 18 18" fill="none"><rect x="1.5" y="1.5" width="6.2" height="6.2" rx="1"/><rect x="10.3" y="1.5" width="6.2" height="6.2" rx="1"/><rect x="1.5" y="10.3" width="6.2" height="6.2" rx="1"/><rect x="10.3" y="10.3" width="6.2" height="6.2" rx="1"/></svg>';
+      ?'<svg aria-hidden="true" focusable="false" viewBox="0 0 18 18" fill="none"><rect x="1.5" y="1.5" width="6.2" height="6.2" rx="1"/><rect x="10.3" y="1.5" width="6.2" height="6.2" rx="1"/><rect x="1.5" y="10.3" width="6.2" height="6.2" rx="1"/><rect x="10.3" y="10.3" width="6.2" height="6.2" rx="1"/></svg>'
+      :'<svg aria-hidden="true" focusable="false" viewBox="0 0 18 18" fill="none"><rect x="1.5" y="2" width="4" height="4" rx=".7"/><rect x="1.5" y="7" width="4" height="4" rx=".7"/><rect x="1.5" y="12" width="4" height="4" rx=".7"/><path d="M8 4h8.5M8 9h8.5M8 14h8.5"/></svg>';
     if(button.dataset.mode!==viewMode){
       const oldIcons=button.querySelectorAll('.jpg-view-icon svg');
       if(animate&&oldIcons.length){
@@ -450,7 +450,7 @@ export function mount(root){
     const list=q('pages');list.replaceChildren();
     if(!pdfs.length){const empty=document.createElement('div');empty.className='jpg-empty';empty.textContent=t('pdfToJpg.emptyList');list.append(empty)}
     for(const pdf of pdfs){
-      const section=document.createElement('section');section.className='jpg-file';section.setAttribute('aria-label',pdf.file.name);
+      const section=document.createElement('section');section.className=`jpg-file${viewMode==='medium'?' jpg-file-medium':''}`;section.setAttribute('aria-label',pdf.file.name);
       const head=document.createElement('div');head.className='jpg-file-head';
       const name=document.createElement('button');name.type='button';name.className='jpg-file-name';name.textContent=pdf.file.name;name.title=pdf.file.name;name.setAttribute('aria-expanded','true');
       const count=document.createElement('span');count.className='jpg-file-count';count.textContent=t('jpg.filePages',pdf.pages.length);
@@ -577,7 +577,7 @@ export function mount(root){
       track('pdf-to-jpg/run','PDF to JPG run');
       track('pdf-to-jpg/pages/'+countBucket(completed),'PDF to JPG pages '+countBucket(completed));
       if(failures.length)await msg(t('pdfToJpg.errorTitle'),t('pdfToJpg.partialMessage',completed,pages.length,failures.join('\n')),'warning');
-      else await msg(t('pdfToJpg.doneTitle'),t('pdfToJpg.doneMessage',completed,archiveName));
+      else await msg(t('pdfToJpg.doneTitle'),t('pdfToJpg.doneMessage',completed,archiveName),'success');
     }finally{busy=false;updateActions();q('progress').value=0}
   }
 

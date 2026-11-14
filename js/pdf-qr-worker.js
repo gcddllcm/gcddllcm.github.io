@@ -1,4 +1,4 @@
-import './vendor/jsqr.js?v=3.7.1';
+import './vendor/jsqr.js?v=3.7.2';
 
 self.onmessage=event=>{
   const {id,width,height,data}=event.data;

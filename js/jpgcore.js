@@ -1,8 +1,8 @@
-import {unzipSync} from './vendor/fflate.js?v=3.7.1';
-import {fixNames} from './zipnames.js?v=3.7.1';
-import {prepareSvg} from './svgfix.js?v=3.7.1';
-import {readImageInfo} from './imgcore.js?v=3.7.1';
-import {orderNotebookPages,normalizedPath} from './notebook-pages.js?v=3.7.1';
+import {unzipSync} from './vendor/fflate.js?v=3.7.2';
+import {fixNames} from './zipnames.js?v=3.7.2';
+import {prepareSvg} from './svgfix.js?v=3.7.2';
+import {readImageInfo} from './imgcore.js?v=3.7.2';
+import {orderNotebookPages,normalizedPath} from './notebook-pages.js?v=3.7.2';
 
 const SKIP_ENTRY=/(^|\/)thumbnails\/|^preview\.png$|\.(mp4|m4v|mov|avi|wmv|mpe?g|webm|mp3|wav|ogg|m4a|wma|swf|flv)$/i;
 const MIME_TYPES={'.bmp':'image/bmp','.gif':'image/gif','.jpeg':'image/jpeg','.jpg':'image/jpeg','.png':'image/png','.svg':'image/svg+xml','.webp':'image/webp'};

@@ -1,8 +1,8 @@
-import {$,msg,track,countBucket,yieldNow} from './util.js?v=3.7.1';
-import {mountGuide} from './instruction-panel.js?v=3.7.1';
-import {zipSync} from './vendor/fflate.js?v=3.7.1';
-import * as T from './nbtemplates.js?v=3.7.1';
-import {t} from './i18n.js?v=3.7.1';
+import {$,msg,track,countBucket,yieldNow} from './util.js?v=3.7.2';
+import {mountGuide} from './instruction-panel.js?v=3.7.2';
+import {zipSync} from './vendor/fflate.js?v=3.7.2';
+import * as T from './nbtemplates.js?v=3.7.2';
+import {t} from './i18n.js?v=3.7.2';
 const SUP=/\.(png|jpe?g|gif|bmp)$/i,coll=new Intl.Collator(undefined,{numeric:true,sensitivity:'base'});
 const A='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',nid=(n=25)=>Array.from(crypto.getRandomValues(new Uint8Array(n)),b=>A[b%36]).join('');
 const enc=new TextEncoder(),tick=yieldNow;
@@ -386,7 +386,7 @@ export function mount(root){
       if(handle){const w=await handle.createWritable();await w.write(bytes);await w.close()}
       else{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([bytes]));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),30000)}
       track('creator/run','Creator run');track('creator/files/'+countBucket(items.length),'Creator pages '+countBucket(items.length));
-      status(t('creator.doneStatus',items.length));await msg(t('creator.doneTitle'),t('creator.done',items.length,handle?handle.name:name));
+      status(t('creator.doneStatus',items.length));await msg(t('creator.doneTitle'),t('creator.done',items.length,handle?handle.name:name),'success');
     }catch(e){status(t('creator.failed'));msg(t('creator.failed'),String(e.message||e),'error')}
     busy=false;saveButton.disabled=false;saveButton.classList.remove('is-building');saveButton.removeAttribute('aria-busy');saveButton.style.removeProperty('--save-progress');$('cr-advanced').disabled=false;
     root.querySelectorAll('.cr-group-separator input,.cr-group-merge,.lrow-title,#cr-new-group').forEach(el=>{el.disabled=false});

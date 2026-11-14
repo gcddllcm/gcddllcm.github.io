@@ -2,11 +2,16 @@ Penguin Logistics - LearnCraft bridge
 =====================================
 
 Deployment version note
-  The extension package in this repository is version 1.3.0, matching manifest.json
-  and the version required by the web tools. The Version 1.3.0 entry describes
+  The extension package in this repository is version 1.3.1, matching manifest.json.
+  The web tools require extension version 1.3.0 or later. The Version 1.3.1 entry describes
   this package. Release-history sections below are clearly labeled as earlier
   changes included in this release or later archived releases. Chrome
   may not automatically update an existing installation whose version is higher.
+
+Version 1.3.1
+  Matched the popup background to the website with solid colors in dark and light
+  themes, removing the background gradients. Reported the extension ID to prevent
+  stale-version warnings and detected duplicate installs.
 
 Version 1.3.0
   Rolls up the extension improvements from 1.2.1 through 1.2.10. Ultimate Go Live
@@ -70,7 +75,7 @@ Using your own address
   and keep <meta name="penguin-logistics"> in index.html.
 
 
-Earlier release notes incorporated into v1.3.0
+Earlier release notes incorporated into v1.3.1
 ----------------------------------------------
 Version 1.2.9
   After the Master is ready, Ultimate Go Live opens each linked variant in its
@@ -134,10 +139,10 @@ Version 1.2.0: LearnCraft : Ultimate Go Live
   "Ignore Asset without Timestamp", then confirms with Approve or Submit and continues.
   Update this extension to 1.2.0 or later before using the tool.
 
-Archived notes for later releases (not included in the v1.3.0 package)
+Archived notes for later releases (not included in the v1.3.1 package)
 ----------------------------------------------------------------------
 These entries document separate, later release lines. They are kept for reference
-only; the package described at the top of this README is v1.3.0.
+only; the package described at the top of this README is v1.3.1.
 
 Version 1.4.23
   Updated the extension icon and popup branding for Loy Krathong.
@@ -211,7 +216,3 @@ Version 1.4.1
 Version 1.4.0
   Added the Go Live popup with tab listing, preview, progress, and optional
   successful-tab closing.
-
-Version 1.3.1
-  Reported the extension ID to prevent stale-version warnings and detected
-  duplicate installs.

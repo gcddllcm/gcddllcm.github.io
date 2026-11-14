@@ -2,15 +2,15 @@
 // Takes one open Master Canvas tab and takes the course to ready: approves the master, then updates every variant.
 // It talks to the same companion extension as the Master Canvas extractor (extension/), and every click happens
 // inside the course tab through that extension. Nothing is sent over the internet.
-import {track,msg} from './util.js?v=3.7.1';
-import {download} from './nbtool.js?v=3.7.1';
-import {t} from './i18n.js?v=3.7.1';
-import {copyInternalPage,installStepsHtml} from './install-help.js?v=3.7.1';
-import {zipSync} from './vendor/fflate.js?v=3.7.1';
-import {older,summarizeBridges,staleDownload,freshUrl,FRESH} from './extcore.js?v=3.7.1';
-import {mountGuide} from './instruction-panel.js?v=3.7.1';
-import {fmtElapsed, newRun, applyProgress, logLine, summarize, tabProblem, masterIsReady, masterStage} from './glcore.js?v=3.7.1';
-import {ASSETS,extensionAssetUrl} from './assets.js?v=3.7.1';
+import {track,msg} from './util.js?v=3.7.2';
+import {download} from './nbtool.js?v=3.7.2';
+import {t} from './i18n.js?v=3.7.2';
+import {copyInternalPage,installStepsHtml} from './install-help.js?v=3.7.2';
+import {zipSync} from './vendor/fflate.js?v=3.7.2';
+import {older,summarizeBridges,staleDownload,freshUrl,FRESH} from './extcore.js?v=3.7.2';
+import {mountGuide} from './instruction-panel.js?v=3.7.2';
+import {fmtElapsed, newRun, applyProgress, logLine, summarize, tabProblem, masterIsReady, masterStage} from './glcore.js?v=3.7.2';
+import {ASSETS,extensionAssetUrl} from './assets.js?v=3.7.2';
 
 const EXT_MIN = '1.3.0';
 const FORCE_RESET_PARAM = '__pl_gl_reset';

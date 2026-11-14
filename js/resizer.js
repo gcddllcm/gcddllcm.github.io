@@ -1,8 +1,8 @@
-import {$,msg,track,countBucket,yieldNow} from './util.js?v=3.7.1';
-import {mountGuide} from './instruction-panel.js?v=3.7.1';
-import {t} from './i18n.js?v=3.7.1';
-import {pngSetDpi,jpgSetDpi,bmpEncode,readImageInfo,resizeLanczos,ppm} from './imgcore.js?v=3.7.1';
-import {zipSync} from './vendor/fflate.js?v=3.7.1';
+import {$,msg,track,countBucket,yieldNow} from './util.js?v=3.7.2';
+import {mountGuide} from './instruction-panel.js?v=3.7.2';
+import {t} from './i18n.js?v=3.7.2';
+import {pngSetDpi,jpgSetDpi,bmpEncode,readImageInfo,resizeLanczos,ppm} from './imgcore.js?v=3.7.2';
+import {zipSync} from './vendor/fflate.js?v=3.7.2';
 const HAS_FS='showDirectoryPicker' in window;
 const sleep=yieldNow;
 const IN_THREAD_MAX_MP=40;     // the page itself only processes images up to this size (fallback path)
@@ -78,7 +78,7 @@ class ResizerPool {
   }
 
   _spawnWorker(){
-    const w=new Worker(new URL('./resizer-worker.js?v=3.7.1',import.meta.url),{type:'module'});
+    const w=new Worker(new URL('./resizer-worker.js?v=3.7.2',import.meta.url),{type:'module'});
     w.onmessage=e=>{
       const {id,ok,blob,w:rw,h:rh,dpi:rdpi,error}=e.data;
       const h=this.handlers.get(id);
@@ -408,6 +408,6 @@ export function mount(root){
     track('resizer/run','Resizer run');if(ok>0)track('resizer/files/'+countBucket(ok),'Resizer files '+countBucket(ok));
     const notes=[stretched?t('resizer.stretchNote',stretched):null,webp?t('resizer.webpNote',webp):null].filter(Boolean),extra=notes.length?'\n\n'+notes.join('\n'):'';
     if(fails.length){msg(t('resizer.errorTitle'),t('resizer.errorMsg',ok,entries.length,fails.slice(0,10).join('\n')+(fails.length>10?'\n...':''))+extra,'warning')}
-    else{msg(t('resizer.doneTitle'),t('resizer.doneMsg',ok)+extra,notes.length?'warning':'info')}
+    else{msg(t('resizer.doneTitle'),t('resizer.doneMsg',ok)+extra,notes.length?'warning':'success')}
   }
 }

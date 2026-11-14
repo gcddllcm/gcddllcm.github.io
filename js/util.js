@@ -1,4 +1,4 @@
-import {GOATCOUNTER_CODE} from '../config.js?v=3.7.1';
+import {GOATCOUNTER_CODE} from '../config.js?v=3.7.2';
 export const $ = id => document.getElementById(id);
 
 // Usage counting: numbers only (tool names + counts). Never file names or file contents.
@@ -33,7 +33,10 @@ export function msg(title,text,kind='info',buttons=['OK']){
     const d=$('dlg');
     if(d.open)d.close();
     d.innerHTML='<div class="dl"><div class="badge"></div><div><h3></h3><p></p></div></div><div class="btns"></div>';
-    const b=d.querySelector('.badge'); b.classList.add(kind); b.textContent={info:'i',warning:'!',error:'×',success:'✓'}[kind]||'i';
+    const b=d.querySelector('.badge');
+    const badgeKind=kind==='done'?'success':kind;
+    b.classList.add(badgeKind);
+    b.textContent={info:'i',warning:'!',error:'×',success:'✓'}[badgeKind]||'i';
     d.querySelector('h3').textContent=title; d.querySelector('p').textContent=text;
     buttons.forEach((t,i)=>{const x=document.createElement('button');x.className='btn'+(i===buttons.length-1?' primary':'');x.textContent=t;x.onclick=()=>{d.close();res(i)};d.querySelector('.btns').append(x)});
     d.oncancel=()=>res(0); d.showModal();

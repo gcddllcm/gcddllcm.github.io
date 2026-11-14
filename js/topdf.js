@@ -1,6 +1,6 @@
-import {msg,track,countBucket} from './util.js?v=3.7.1';
-import {shell,download,ensureWriteAccess} from './nbtool.js?v=3.7.1';
-import {t} from './i18n.js?v=3.7.1';
+import {msg,track,countBucket} from './util.js?v=3.7.2';
+import {shell,download,ensureWriteAccess} from './nbtool.js?v=3.7.2';
+import {t} from './i18n.js?v=3.7.2';
 
 const PDF_RESOLUTION=0;   // 0 = no fixed width: a plain image page keeps its pixels as they are; a page that has to be drawn (ink, text) is rendered at its widest picture's width, between 1600 and 3508 px
 let worker=null,seq=0,prepared=false;const waits=new Map();let onStatus=()=>{};
@@ -72,7 +72,7 @@ function drawSvgPage(svgText,width,height,quality){
 }
 function getWorker(){
   if(worker)return worker;
-  worker=new Worker(new URL('./pdfworker.js?v=3.7.1',import.meta.url),{type:'module'});
+  worker=new Worker(new URL('./pdfworker.js?v=3.7.2',import.meta.url),{type:'module'});
   worker.onmessage=async e=>{
     const m=e.data;
     if(m.type==='renderSvg'){
@@ -135,7 +135,7 @@ export function mount(root){
       const note=notes.length?` (${notes.join('; ')})`:'';
       if(failures.length){ui.status(t('pdf.problemStatus',failures.length,note));await msg(t('pdf.errorTitle'),t('pdf.errorMsg',converted,total,note,failures.slice(0,10).join('\n')+(failures.length>10?'\n...':'')),'warning')}
       else if(!converted){ui.status(t('pdf.nothingStatus',note));await msg(t('pdf.nothingTitle'),t('pdf.nothingMsg',note))}
-      else{ui.status(t('pdf.doneStatus',converted,note));await msg(t('pdf.doneTitle'),t('pdf.doneMsg',converted,note))}
+      else{ui.status(t('pdf.doneStatus',converted,note));await msg(t('pdf.doneTitle'),t('pdf.doneMsg',converted,note),'success')}
     }});
   onStatus=(text,fraction,code)=>{lastStatusText=text;lastProgress=fraction;ui.status(text);if(fraction!=null)ui.progress(fraction,1);if(code==='loadError'){prepared=false;worker?.terminate();worker=null}};
   if(lastStatusText){ui.status(lastStatusText);if(lastProgress!=null)ui.progress(lastProgress,1)}

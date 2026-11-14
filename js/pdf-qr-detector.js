@@ -1,7 +1,7 @@
-import {msg,track} from './util.js?v=3.7.1';
-import {loadPdf,loadPdfjs,extractPdfImageObjects,imageObjectToCanvas} from './pdf-to-jpg.js?v=3.7.1';
-import {mountGuide} from './instruction-panel.js?v=3.7.1';
-import {t} from './i18n.js?v=3.7.1';
+import {msg,track} from './util.js?v=3.7.2';
+import {loadPdf,loadPdfjs,extractPdfImageObjects,imageObjectToCanvas} from './pdf-to-jpg.js?v=3.7.2';
+import {mountGuide} from './instruction-panel.js?v=3.7.2';
+import {t} from './i18n.js?v=3.7.2';
 
 const hasFiles=event=>[...(event.dataTransfer?.types||[])].includes('Files');
 let qrDecoderPromise=null;
@@ -25,7 +25,7 @@ function createQrWorkerPool(){
   }
   try{
     for(let index=0;index<size;index++){
-      const worker=new Worker(new URL('./pdf-qr-worker.js?v=3.7.1',import.meta.url),{type:'module'});
+      const worker=new Worker(new URL('./pdf-qr-worker.js?v=3.7.2',import.meta.url),{type:'module'});
       worker.onmessage=event=>{
         const {id,ok,detections,error}=event.data,request=pending.get(id);
         if(!request)return;
@@ -183,7 +183,7 @@ async function detectorForQr(){
   }
   async function decodeWithJsQr(bitmap){
     if(!qrDecoderPromise){
-      qrDecoderPromise=import('./vendor/jsqr.js?v=3.7.1').then(()=>{
+      qrDecoderPromise=import('./vendor/jsqr.js?v=3.7.2').then(()=>{
         if(typeof globalThis.jsQR!=='function')throw new Error(t('pdfQr.decoderUnavailable'));
         return globalThis.jsQR;
       }).catch(error=>{qrDecoderPromise=null;throw error});

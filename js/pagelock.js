@@ -1,9 +1,9 @@
-import {msg,track,countBucket,yieldNow} from './util.js?v=3.7.1';
-import {shell,download,ensureWriteAccess,saveToHandle} from './nbtool.js?v=3.7.1';
-import {setLock} from './lockcore.js?v=3.7.1';
-import {fixNames} from './zipnames.js?v=3.7.1';
-import {unzipSync,zipSync} from './vendor/fflate.js?v=3.7.1';
-import {t} from './i18n.js?v=3.7.1';
+import {msg,track,countBucket,yieldNow} from './util.js?v=3.7.2';
+import {shell,download,ensureWriteAccess,saveToHandle} from './nbtool.js?v=3.7.2';
+import {setLock} from './lockcore.js?v=3.7.2';
+import {fixNames} from './zipnames.js?v=3.7.2';
+import {unzipSync,zipSync} from './vendor/fflate.js?v=3.7.2';
+import {t} from './i18n.js?v=3.7.2';
 const dec=new TextDecoder('utf-8'),enc=new TextEncoder();
 
 async function process(file,lock){
@@ -37,7 +37,7 @@ export function mount(root){
       const suffix=note.length?` (${note.join('; ')})`:'';
       ui.status(failures.length?t('pagelock.errorStatus',failures.length,suffix):t('pagelock.doneStatus',ed,entries.length,suffix));
       if(failures.length)await msg(t('pagelock.finished'),t('pagelock.failure',ed,entries.length-failures.length,entries.length,suffix,failures.slice(0,10).join('\n')+(failures.length>10?'\n...':'')),'warning');
-      else await msg(t('pagelock.done'),t('pagelock.success',ed,entries.length,suffix));
+      else await msg(t('pagelock.done'),t('pagelock.success',ed,entries.length,suffix),'success');
     }});
   root.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{mode=b.dataset.m;root.querySelectorAll('[data-m]').forEach(x=>{const selected=x===b;x.classList.toggle('on',selected);x.setAttribute('aria-pressed',String(selected))})});
 }

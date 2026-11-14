@@ -1,8 +1,9 @@
-import {msg,track} from './util.js?v=3.7.1';
-import {download} from './nbtool.js?v=3.7.1';
-import {extractNotebookPages} from './jpgcore.js?v=3.7.1';
-import {mountGuide} from './instruction-panel.js?v=3.7.1';
-import {t} from './i18n.js?v=3.7.1';
+import {msg,track} from './util.js?v=3.7.2';
+import {download} from './nbtool.js?v=3.7.2';
+import {extractNotebookPages} from './jpgcore.js?v=3.7.2';
+import {zipSync} from './vendor/fflate.js';
+import {mountGuide} from './instruction-panel.js?v=3.7.2';
+import {t} from './i18n.js?v=3.7.2';
 
 const MAX_CANVAS_PIXELS=16000000;
 const MAX_CANVAS_SIDE=8192;
@@ -35,6 +36,7 @@ function renderJpeg(page,quality){
   });
 }
 function safeStem(name){return name.replace(/\.[^.]*$/,'').replace(/[<>:"/\\|?*\u0000-\u001f]/g,'_').trim()||'notebook'}
+function uniqueStem(name,used){const stem=safeStem(name);let candidate=stem,index=2;while(used.has(candidate.toLocaleLowerCase()))candidate=`${stem} (${index++})`;used.add(candidate.toLocaleLowerCase());return candidate}
 const hasFiles=event=>[...(event.dataTransfer?.types||[])].includes('Files');
 
 export function mount(root){
@@ -331,24 +333,34 @@ export function mount(root){
     const pages=pageItems(),targets=exportAll?pages:pages.filter(page=>selected.has(page.id));
     if(!targets.length){await msg(t('jpg.noSelectionTitle'),t('jpg.noSelection'),'warning');return}
     busy=true;updateActions();q('progress').max=targets.length;q('progress').value=0;
-    const quality=Number(q('quality').value)/100,failures=[],usedNames=new Set();
+    const quality=Number(q('quality').value)/100,outputs={},usedStems=new Set(),failures=[];
+    const stems=new Map(notebooks.map(nb=>[nb,uniqueStem(nb.file.name,usedStems)]));
     for(let i=0;i<targets.length;i++){
       const page=targets[i],notebook=notebookOf(page);
       status(t('jpg.exporting',i+1,targets.length,notebook.file.name,page.number));
       try{
-        const blob=await renderJpeg(page,quality),stem=safeStem(notebook.file.name),suffix=String(page.number).padStart(2,'0');
-        let name=`${stem}-page-${suffix}.jpg`,copy=2;
-        while(usedNames.has(name.toLowerCase()))name=`${stem}-page-${suffix}-${copy++}.jpg`;
-        usedNames.add(name.toLowerCase());download(name,blob);
-        if(i+1<targets.length)await new Promise(resolve=>setTimeout(resolve,300));
+        const blob=await renderJpeg(page,quality);
+        const stem=stems.get(notebook),suffix=String(page.number).padStart(2,'0');
+        const prefix=notebooks.length>1?`${stem}/`:'';
+        const bytes=new Uint8Array(await blob.arrayBuffer());
+        outputs[`${prefix}${stem}-page-${suffix}.jpg`]=bytes;
       }catch(error){failures.push(`${notebook.file.name} — ${t('jpg.pageLabel',page.number)}: ${error.message||error}`)}
       q('progress').value=i+1;
     }
     busy=false;updateActions();
-    const exported=targets.length-failures.length;
-    status(failures.length?t('jpg.exportErrors',exported,targets.length):t('jpg.exported',exported));
+    const completed=Object.keys(outputs).length;
     track('jpg-maker/export','Convert to JPG export');
+    if(!completed){
+      status(t('jpg.exportErrors',0,targets.length));
+      if(failures.length)await msg(t('jpg.exportErrorTitle'),failures.slice(0,10).join('\n')+(failures.length>10?'\n…':''),'error');
+      return;
+    }
+    const archive=zipSync(outputs,{level:0});
+    const archiveName=notebooks.length===1?`${safeStem(notebooks[0].file.name)}-jpg.zip`:'notebook-jpg.zip';
+    download(archiveName,archive);
+    status(failures.length?t('jpg.exportErrors',completed,targets.length):t('jpg.exported',completed));
     if(failures.length)await msg(t('jpg.exportErrorTitle'),failures.slice(0,10).join('\n')+(failures.length>10?'\n…':''),'warning');
+    else await msg(t('jpg.doneTitle'),t('jpg.doneMessage',completed,archiveName),'success');
   }
 
   const drop=q('drop'),input=q('file');

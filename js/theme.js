@@ -1,4 +1,4 @@
-import {t} from './i18n.js?v=3.7.1';
+import {t} from './i18n.js?v=3.7.2';
 
 // Light / dark theme.
 // The choice is kept in localStorage ('pl-theme'), so every computer remembers its own last mode.

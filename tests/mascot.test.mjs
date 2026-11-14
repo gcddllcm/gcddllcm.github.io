@@ -6,9 +6,9 @@ const read = f => fs.readFileSync(new URL('../' + f, import.meta.url), 'utf8');
 let failed = 0;
 const check = (name, fn) => { try { fn(); console.log('PASS ' + name); } catch (e) { failed++; console.log('FAIL ' + name + '\n' + e.message); } };
 const mascot = read('js/mascot.js'), css = read('style.css'), en = read('js/locales/en.js');
-check('both LearnCraft tools start the interactive penguin', () => {
-  assert.match(read('js/golive.js'), /initMascot\(root, \{kind: 'golive', result: '#gl-result'\}\)/);
-  assert.match(read('js/learncraft.js'), /initMascot\(root,\{kind:'learncraft',result:'#lc-result'\}\)/);
+check('LearnCraft tools do not mount the interactive penguin', () => {
+  assert.doesNotMatch(read('js/golive.js'), /\binitMascot\s*\(/);
+  assert.doesNotMatch(read('js/learncraft.js'), /\binitMascot\s*\(/);
 });
 check('the penguin never talks to the extension or clicks anything on a page', () => {
   assert.doesNotMatch(mascot, /postMessage|chrome\.|\.submit\(|querySelector\([^)]*\)\.click\(/);
